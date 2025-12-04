@@ -1,4 +1,3 @@
-// src/pages/products/[slug].astro
 ---
 import Layout from '@/layouts/Layout.astro';
 import Header from '@/components/Header.astro';
@@ -8,6 +7,19 @@ import { generateProductJsonLd } from '@/lib/seo';
 import type { Product } from '@/types';
 
 const { slug } = Astro.params;
+
+// Generate static paths for all products
+export async function getStaticPaths() {
+  try {
+    const products = await getProducts();
+    return products.map((product: Product) => ({
+      params: { slug: product.slug }
+    }));
+  } catch (error) {
+    console.error('Error generating static paths:', error);
+    return [];
+  }
+}
 
 // Redirect to products page if no slug provided
 if (!slug) {
@@ -46,19 +58,6 @@ const categoryIcon = category?.metadata?.category_icon;
 // SEO data
 const baseUrl = import.meta.env.SITE || 'https://noxmarket.com';
 const jsonLd = generateProductJsonLd(product, baseUrl);
-
-// Generate static paths for all products
-export async function getStaticPaths() {
-  try {
-    const products = await getProducts();
-    return products.map((product: Product) => ({
-      params: { slug: product.slug }
-    }));
-  } catch (error) {
-    console.error('Error generating static paths:', error);
-    return [];
-  }
-}
 ---
 
 <Layout 
