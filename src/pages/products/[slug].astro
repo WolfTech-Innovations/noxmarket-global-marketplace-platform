@@ -2,39 +2,28 @@
 import Layout from '@/layouts/Layout.astro';
 import Header from '@/components/Header.astro';
 import Footer from '@/components/Footer.astro';
-import { getProduct, getProducts } from '@/lib/cosmic';
+import { getProduct } from '@/lib/cosmic';
 import { generateProductJsonLd } from '@/lib/seo';
-import type { Product } from '@/types';
 
-// Generate static paths for all products - MUST be first
-export async function getStaticPaths() {
-  try {
-    const products = await getProducts();
-    
-    if (!products || products.length === 0) {
-      console.warn('No products found for static path generation');
-      return [];
-    }
-    
-    return products.map((product: Product) => ({
-      params: { slug: product.slug },
-      props: { product } // Pass product as prop to avoid refetching
-    }));
-  } catch (error) {
-    console.error('Error generating static paths:', error);
-    return [];
-  }
+const { slug } = Astro.params;
+
+// Redirect to products page if no slug provided
+if (!slug) {
+  return Astro.redirect('/products');
 }
 
-// Get the product from props (passed from getStaticPaths)
-const { product } = Astro.props;
+// Fetch the product
+let product;
+try {
+  product = await getProduct(slug);
+} catch (error) {
+  console.error('Error fetching product:', error);
+  return Astro.redirect('/404');
+}
 
-// If somehow we don't have a product, this shouldn't happen with proper getStaticPaths
+// Show 404 if product not found
 if (!product) {
-  return new Response(null, {
-    status: 404,
-    statusText: 'Not found'
-  });
+  return Astro.redirect('/404');
 }
 
 // Extract and prepare product data with proper null checks
