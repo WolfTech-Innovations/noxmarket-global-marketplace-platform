@@ -80,7 +80,8 @@ export async function getSellerByEmail(email: string) {
   try {
     const response = await cosmic.objects
       .find({ type: 'sellers', 'metadata.email': email })
-      .props(['id', 'title', 'slug', 'metadata']);
+      .props(['id', 'title', 'slug', 'metadata'])
+      .limit(1);
     
     const sellers = response.objects;
     return sellers.length > 0 ? sellers[0] : null;
@@ -118,20 +119,40 @@ export async function createOrder(orderData: any) {
   }
 }
 
-// User authentication functions
+// User authentication functions - searches BOTH users and sellers
 export async function getUserByEmail(email: string) {
   try {
-    const response = await cosmic.objects
-      .find({ type: 'users', 'metadata.email': email })
-      .props(['id', 'title', 'metadata']);
-    
-    const users = response.objects;
-    return users.length > 0 ? users[0] : null;
-  } catch (error) {
-    if (hasStatus(error) && error.status === 404) {
-      return null;
+    // First, try to find in users
+    const usersResult = await cosmic.objects
+      .find({
+        type: 'users',
+        'metadata.email': email,
+      })
+      .props('id,slug,title,metadata')
+      .limit(1);
+
+    if (usersResult.objects && usersResult.objects.length > 0) {
+      return usersResult.objects[0];
     }
-    throw new Error('Failed to fetch user');
+
+    // If not found in users, try sellers
+    const sellersResult = await cosmic.objects
+      .find({
+        type: 'sellers',
+        'metadata.email': email,
+      })
+      .props('id,slug,title,metadata')
+      .limit(1);
+
+    if (sellersResult.objects && sellersResult.objects.length > 0) {
+      return sellersResult.objects[0];
+    }
+
+    // User not found
+    return null;
+  } catch (error) {
+    console.error('Error fetching user by email:', error);
+    return null;
   }
 }
 
