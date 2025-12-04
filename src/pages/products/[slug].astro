@@ -204,7 +204,7 @@ const jsonLd = generateProductJsonLd(product, baseUrl);
           <!-- Purchase Form -->
           {inStock ? (
             <form action="/api/checkout" method="POST" class="space-y-5 p-6 bg-gray-50 rounded-xl border border-gray-200">
-              <input type="hidden" name="productId" value={product.id} />
+              <input type="hidden" name="productId" value={product.slug} />
               
               <div>
                 <label for="quantity" class="block text-sm font-semibold mb-2 text-gray-900">
@@ -227,7 +227,7 @@ const jsonLd = generateProductJsonLd(product, baseUrl);
                 type="submit" 
                 class="btn btn-primary w-full text-lg py-4 font-semibold shadow-lg hover:shadow-xl transition-all"
               >
-                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-5 h-5 mr-2 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
                 </svg>
                 Buy Now
