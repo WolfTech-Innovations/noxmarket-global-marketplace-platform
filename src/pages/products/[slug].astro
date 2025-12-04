@@ -1,0 +1,138 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import Header from '@/components/Header.astro';
+import Footer from '@/components/Footer.astro';
+import { getProduct, getProducts } from '@/lib/cosmic';
+import { generateProductJsonLd } from '@/lib/seo';
+
+const { slug } = await Astro.params;
+
+if (!slug) {
+  return Astro.redirect('/products');
+}
+
+const product = await getProduct(slug);
+
+if (!product) {
+  return Astro.redirect('/products');
+}
+
+const image = product.metadata.product_images?.[0];
+const imageUrl = image ? `${image.imgix_url}?w=1200&h=1200&fit=crop&auto=format,compress` : '';
+const price = product.metadata.price ? `$${product.metadata.price.toFixed(2)}` : 'N/A';
+const inStock = product.metadata.in_stock;
+
+const baseUrl = import.meta.env.SITE || 'https://noxmarket.com';
+const jsonLd = generateProductJsonLd(product, baseUrl);
+
+export async function getStaticPaths() {
+  const products = await getProducts();
+  return products.map((product) => ({
+    params: { slug: product.slug }
+  }));
+}
+---
+
+<Layout 
+  title={`${product.metadata.product_name} - NoxMarket`}
+  description={product.metadata.description.substring(0, 160)}
+>
+  <Fragment slot="head">
+    <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+  </Fragment>
+  
+  <Header />
+  
+  <main class="py-12">
+    <div class="container-custom">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
+        <div class="animate-fade-in">
+          {imageUrl && (
+            <div class="aspect-square rounded-lg overflow-hidden bg-gray-100">
+              <img 
+                src={imageUrl}
+                alt={product.metadata.product_name}
+                class="w-full h-full object-cover"
+                width="600"
+                height="600"
+              />
+            </div>
+          )}
+        </div>
+        
+        <div class="animate-slide-up">
+          <h1 class="text-4xl font-bold mb-4">{product.metadata.product_name}</h1>
+          
+          <div class="flex items-center gap-4 mb-6">
+            <span class="text-4xl font-bold text-accent">{price}</span>
+            {inStock ? (
+              <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
+                In Stock
+              </span>
+            ) : (
+              <span class="px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm font-medium">
+                Out of Stock
+              </span>
+            )}
+          </div>
+          
+          {product.metadata.seller && (
+            <div class="mb-6 p-4 bg-gray-50 rounded-lg">
+              <p class="text-sm text-gray-600 mb-1">Sold by</p>
+              <p class="font-bold">
+                {product.metadata.seller.metadata?.business_name || product.metadata.seller.title}
+              </p>
+            </div>
+          )}
+          
+          <div class="prose prose-lg mb-8" set:html={product.metadata.description} />
+          
+          {inStock && (
+            <form action="/api/checkout" method="POST" class="space-y-4">
+              <input type="hidden" name="productId" value={product.id} />
+              
+              <div>
+                <label class="block text-sm font-medium mb-2">Quantity</label>
+                <input 
+                  type="number" 
+                  name="quantity" 
+                  min="1" 
+                  value="1"
+                  max={product.metadata.stock_quantity}
+                  class="input w-32"
+                />
+              </div>
+              
+              <button type="submit" class="btn btn-primary w-full">
+                Buy Now
+              </button>
+            </form>
+          )}
+          
+          {product.metadata.category && (
+            <div class="mt-6">
+              <p class="text-sm text-gray-600 mb-2">Category</p>
+              <a 
+                href={`/products?category=${product.metadata.category.slug}`}
+                class="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                {product.metadata.category.metadata?.category_icon && (
+                  <img 
+                    src={product.metadata.category.metadata.category_icon.imgix_url}
+                    alt=""
+                    class="w-5 h-5"
+                    width="20"
+                    height="20"
+                  />
+                )}
+                <span class="font-medium">{product.metadata.category.metadata?.category_name}</span>
+              </a>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  </main>
+  
+  <Footer />
+</Layout>

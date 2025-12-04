@@ -1,0 +1,33 @@
+{
+  "name": "noxmarket",
+  "type": "module",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "astro dev",
+    "start": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "type-check": "astro check",
+    "prebuild": "bun run type-check",
+    "postbuild": "node scripts/inject-console-capture.js"
+  },
+  "dependencies": {
+    "@astrojs/node": "^9.0.0",
+    "@astrojs/tailwind": "^5.1.2",
+    "@cosmicjs/sdk": "^1.5.6",
+    "astro": "^5.0.5",
+    "bcryptjs": "^2.4.3",
+    "nanoid": "^5.0.4",
+    "stripe": "^17.5.0"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.4",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/node": "^20.0.0",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5.7.2",
+    "glob": "^10.3.10"
+  }
+}
