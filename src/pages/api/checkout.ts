@@ -17,24 +17,32 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
 
   try {
     const formData = await request.formData();
-    const productId = formData.get('productId')?.toString();
+    const productSlug = formData.get('productId')?.toString(); // This is actually a slug now
     const quantity = parseInt(formData.get('quantity')?.toString() || '1');
 
-    if (!productId) {
+    console.log('Checkout attempt:', { productSlug, quantity, hasSession: !!session });
+
+    if (!productSlug) {
+      console.error('No product slug provided');
       return redirect('/products?error=Invalid product');
     }
 
-    const product = await getProduct(productId);
+    const product = await getProduct(productSlug); // getProduct uses slug
 
     if (!product) {
+      console.error('Product not found:', productSlug);
       return redirect('/products?error=Product not found');
     }
 
+    console.log('Product found:', { name: product.metadata.product_name, price: product.metadata.price });
+
     if (!product.metadata.in_stock) {
+      console.error('Product out of stock:', productSlug);
       return redirect(`/products/${product.slug}?error=Product out of stock`);
     }
 
     if (quantity > product.metadata.stock_quantity) {
+      console.error('Insufficient stock:', { requested: quantity, available: product.metadata.stock_quantity });
       return redirect(`/products/${product.slug}?error=Not enough stock available`);
     }
 
@@ -42,6 +50,7 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
     const baseUrl = new URL(request.url).origin;
 
     // Create Stripe Checkout Session
+    console.log('Creating Stripe checkout session...');
     const checkoutSession = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [
@@ -75,6 +84,9 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
         allowed_countries: ['US', 'CA', 'GB', 'AU'], // Add countries you ship to
       },
     });
+
+    console.log('Checkout session created:', checkoutSession.id);
+    console.log('Redirecting to:', checkoutSession.url);
 
     // Redirect to Stripe Checkout
     return redirect(checkoutSession.url!);
