@@ -5,6 +5,7 @@ import Footer from '@/components/Footer.astro';
 import ProductCard from '@/components/ProductCard.astro';
 import SearchBar from '@/components/SearchBar.astro';
 import { getProducts } from '@/lib/cosmic';
+import type { Product } from '@/types';
 
 const products = await getProducts();
 const featuredProducts = products.slice(0, 6);
@@ -49,7 +50,7 @@ const featuredProducts = products.slice(0, 6);
           </div>
           
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {featuredProducts.map((product) => (
+            {featuredProducts.map((product: Product) => (
               <ProductCard product={product} />
             ))}
           </div>

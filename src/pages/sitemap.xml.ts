@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { getProducts, getCategories } from '@/lib/cosmic';
+import type { Product, Category } from '@/types';
 
 export const GET: APIRoute = async () => {
   const baseUrl = import.meta.env.SITE || 'https://noxmarket.com';
@@ -15,12 +16,12 @@ export const GET: APIRoute = async () => {
     '/signup'
   ];
   
-  const productUrls = products.map(product => ({
+  const productUrls = products.map((product: Product) => ({
     url: `/products/${product.slug}`,
     lastmod: product.modified_at
   }));
   
-  const categoryUrls = categories.map(category => ({
+  const categoryUrls = categories.map((category: Category) => ({
     url: `/products?category=${category.slug}`,
     lastmod: category.modified_at
   }));

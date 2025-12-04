@@ -4,6 +4,7 @@ import Header from '@/components/Header.astro';
 import Footer from '@/components/Footer.astro';
 import { getSessionFromCookies } from '@/lib/auth';
 import { getSellerOrders } from '@/lib/cosmic';
+import type { Order } from '@/types';
 
 const session = getSessionFromCookies(Astro.cookies);
 
@@ -15,8 +16,8 @@ const orders = await getSellerOrders(session.sellerId);
 
 // Calculate stats
 const totalOrders = orders.length;
-const pendingOrders = orders.filter(o => o.metadata.order_status === 'pending').length;
-const totalRevenue = orders.reduce((sum, order) => {
+const pendingOrders = orders.filter((o: Order) => o.metadata.order_status === 'pending').length;
+const totalRevenue = orders.reduce((sum: number, order: Order) => {
   if (order.metadata.payment_status === 'paid') {
     return sum + (order.metadata.order_total || 0);
   }
@@ -109,7 +110,7 @@ const totalRevenue = orders.reduce((sum, order) => {
                 </tr>
               </thead>
               <tbody>
-                {orders.slice(0, 5).map((order) => (
+                {orders.slice(0, 5).map((order: Order) => (
                   <tr class="border-b border-gray-100 hover:bg-gray-50">
                     <td class="py-3 px-4 font-medium">{order.metadata.order_number}</td>
                     <td class="py-3 px-4">

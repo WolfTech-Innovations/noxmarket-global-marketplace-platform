@@ -4,6 +4,7 @@ import Header from '@/components/Header.astro';
 import Footer from '@/components/Footer.astro';
 import { getProduct, getProducts } from '@/lib/cosmic';
 import { generateProductJsonLd } from '@/lib/seo';
+import type { Product } from '@/types';
 
 const { slug } = await Astro.params;
 
@@ -27,7 +28,7 @@ const jsonLd = generateProductJsonLd(product, baseUrl);
 
 export async function getStaticPaths() {
   const products = await getProducts();
-  return products.map((product) => ({
+  return products.map((product: Product) => ({
     params: { slug: product.slug }
   }));
 }
@@ -38,7 +39,7 @@ export async function getStaticPaths() {
   description={product.metadata.description.substring(0, 160)}
 >
   <Fragment slot="head">
-    <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+    <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} is:inline />
   </Fragment>
   
   <Header />
