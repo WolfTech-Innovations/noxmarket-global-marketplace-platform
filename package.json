@@ -12,7 +12,7 @@
     "postbuild": "node scripts/inject-console-capture.js"
   },
   "dependencies": {
-     "@astrojs/vercel/serverless"
+    "@astrojs/vercel/serverless"
     "@astrojs/vercel"
     "@astrojs/node": "^9.0.0",
     "@astrojs/tailwind": "^5.1.2",
