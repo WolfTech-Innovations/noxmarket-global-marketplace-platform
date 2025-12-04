@@ -2,7 +2,7 @@ import type { APIRoute } from 'astro';
 import Stripe from 'stripe';
 
 const stripe = new Stripe(import.meta.env.STRIPE_SECRET_KEY, {
-  apiVersion: '2025-03-31.basil',
+  apiVersion: '2025-02-24.acacia',
 });
 
 const webhookSecret = import.meta.env.STRIPE_WEBHOOK_SECRET;
