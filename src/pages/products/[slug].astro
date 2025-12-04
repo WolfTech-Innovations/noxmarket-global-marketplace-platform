@@ -126,7 +126,7 @@ export async function getStaticPaths() {
               <!-- Additional images preview (if multiple images exist) -->
               {productImages.length > 1 && (
                 <div class="mt-4 grid grid-cols-4 gap-2">
-                  {productImages.slice(1, 5).map((img) => (
+                  {productImages.slice(1, 5).map((img: { imgix_url: string }) => (
                     <div class="aspect-square rounded-lg overflow-hidden bg-gray-100 border-2 border-transparent hover:border-primary transition-all cursor-pointer">
                       <img 
                         src={`${img.imgix_url}?w=200&h=200&fit=crop&auto=format,compress`}
