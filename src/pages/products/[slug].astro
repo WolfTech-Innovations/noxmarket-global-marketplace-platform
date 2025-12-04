@@ -7,7 +7,6 @@ import { getProduct, getProducts } from '@/lib/cosmic';
 import { generateProductJsonLd } from '@/lib/seo';
 import type { Product } from '@/types';
 
-// Changed: Removed await - Astro.params is not a Promise
 const { slug } = Astro.params;
 
 if (!slug) {
