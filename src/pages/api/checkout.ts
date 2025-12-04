@@ -5,10 +5,10 @@ import Stripe from 'stripe';
 
 // Initialize Stripe with your live secret key
 const stripe = new Stripe(import.meta.env.STRIPE_SECRET_KEY, {
-  apiVersion: '2025-03-31.basil',
+  apiVersion: '2025-02-24.acacia',
 });
 
-export const POST: APIRoute = async ({ request, cookies, redirect, url }) => {
+export const POST: APIRoute = async ({ request, cookies, redirect }) => {
   const session = getSessionFromCookies(cookies);
 
   if (!session) {
@@ -63,11 +63,11 @@ export const POST: APIRoute = async ({ request, cookies, redirect, url }) => {
       mode: 'payment',
       success_url: `${baseUrl}/order-success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${baseUrl}/products/${product.slug}?error=Payment cancelled`,
-      customer_email: session.user.email,
+      customer_email: session.email,
       metadata: {
         productId: product.id,
         productSlug: product.slug,
-        userId: session.user.id,
+        userId: session.userId,
         quantity: quantity.toString(),
       },
       // Optional: Add shipping address collection
