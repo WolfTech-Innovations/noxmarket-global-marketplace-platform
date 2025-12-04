@@ -1,3 +1,4 @@
+// src/pages/products/[slug].astro
 ---
 import Layout from '@/layouts/Layout.astro';
 import Header from '@/components/Header.astro';
@@ -6,7 +7,8 @@ import { getProduct, getProducts } from '@/lib/cosmic';
 import { generateProductJsonLd } from '@/lib/seo';
 import type { Product } from '@/types';
 
-const { slug } = await Astro.params;
+// Changed: Removed await - Astro.params is not a Promise
+const { slug } = Astro.params;
 
 if (!slug) {
   return Astro.redirect('/products');
