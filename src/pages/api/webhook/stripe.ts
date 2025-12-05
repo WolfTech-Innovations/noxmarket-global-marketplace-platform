@@ -4,7 +4,7 @@ import Stripe from 'stripe';
 import { createBucketClient } from '@cosmicjs/sdk';
 
 // Initialize Stripe with type-safe environment variable
-const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+const stripeSecretKey = import.meta.env.STRIPE_SECRET_KEY;
 if (!stripeSecretKey) {
   throw new Error('STRIPE_SECRET_KEY is not defined in environment variables');
 }
@@ -15,12 +15,12 @@ export const stripe = new Stripe(stripeSecretKey, {
 
 // Initialize Cosmic
 const cosmic = createBucketClient({
-  bucketSlug: process.env.COSMIC_BUCKET_SLUG || '',
-  readKey: process.env.COSMIC_READ_KEY || '',
-  writeKey: process.env.COSMIC_WRITE_KEY || '',
+  bucketSlug: import.meta.env.COSMIC_BUCKET_SLUG || '',
+  readKey: import.meta.env.COSMIC_READ_KEY || '',
+  writeKey: import.meta.env.COSMIC_WRITE_KEY || '',
 });
 
-const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
+const endpointSecret = import.meta.env.STRIPE_WEBHOOK_SECRET;
 
 export const POST: APIRoute = async ({ request }) => {
   const body = await request.text();
