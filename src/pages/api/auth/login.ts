@@ -12,7 +12,7 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
       return redirect('/login?error=Email and password are required');
     }
 
-    // Get user from Cosmic (checks both users and sellers)
+    // Get user from Cosmic
     const user = await getUserByEmail(email);
 
     if (!user) {
@@ -32,76 +32,53 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
       return redirect('/login?error=Invalid email or password');
     }
 
-    // Determine user type
-    let userType = user.metadata.user_type || 'buyer';
-    
-    // If the user object itself is type 'sellers', they're a seller
-    if (user.type === 'sellers') {
-      userType = 'seller';
-    }
+    // Check if user has a seller profile
+    let sellerProfile = null;
+    const isSeller = user.metadata.is_seller || false;
 
-    // Create session with appropriate data
-    const sessionToken = createSessionToken();
-    const session: any = {
-      userId: user.id,
-      email: user.metadata.email,
-      userType: userType,
-      name: user.metadata.name || user.title || 'User',
-    };
-
-    // If seller, fetch their seller profile
-    if (userType === 'seller') {
+    if (isSeller) {
       try {
-        // First, check if this IS the seller profile (old style)
-        if (user.type === 'sellers') {
-          session.sellerId = user.id;
-          session.businessName = user.metadata.business_name || user.title;
-        } else {
-          // New style: separate user and seller profile
-          const sellerProfile = await cosmic.objects
-            .findOne({
-              type: 'sellers',
-              'metadata.user_id': user.id
-            })
-            .props('id,slug,title,metadata');
+        const sellerResult = await cosmic.objects
+          .findOne({
+            type: 'sellers',
+            'metadata.user_id': user.id
+          })
+          .props('id,slug,title,metadata');
 
-          if (sellerProfile.object) {
-            session.sellerId = sellerProfile.object.id;
-            session.businessName = sellerProfile.object.metadata.business_name;
-          } else {
-            // Fallback: try to find seller by email
-            const sellerByEmail = await cosmic.objects
-              .find({
-                type: 'sellers',
-                'metadata.email': email
-              })
-              .props('id,slug,title,metadata')
-              .limit(1);
-
-            if (sellerByEmail.objects && sellerByEmail.objects.length > 0) {
-              session.sellerId = sellerByEmail.objects[0].id;
-              session.businessName = sellerByEmail.objects[0].metadata.business_name;
-            }
-          }
-        }
+        sellerProfile = sellerResult.object;
       } catch (error) {
         console.error('Could not fetch seller profile:', error);
       }
     }
 
+    // Create session
+    const sessionToken = createSessionToken();
+    const session: any = {
+      userId: user.id,
+      email: user.metadata.email,
+      name: user.metadata.name || user.title || 'User',
+      isSeller: isSeller
+    };
+
+    // Add seller info if they have a profile
+    if (sellerProfile) {
+      session.sellerId = sellerProfile.id;
+      session.businessName = sellerProfile.metadata.business_name;
+    }
+
     console.log('Login successful:', { 
       email, 
-      userType, 
       userId: user.id,
       name: session.name,
+      isSeller: session.isSeller,
       sellerId: session.sellerId 
     });
 
     storeSession(sessionToken, session);
     setSessionCookie(cookies, sessionToken, session);
 
-    // Redirect based on user type
-    if (userType === 'seller') {
+    // Redirect to dashboard if seller, otherwise profile
+    if (isSeller && sellerProfile) {
       return redirect('/dashboard');
     }
 
