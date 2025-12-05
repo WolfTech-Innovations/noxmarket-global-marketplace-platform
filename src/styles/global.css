@@ -6,74 +6,272 @@
   * {
     @apply border-gray-200;
   }
-  
+
   body {
-    @apply bg-white text-primary font-sans antialiased;
+    @apply bg-white text-gray-900 font-sans antialiased;
   }
-  
+
   h1, h2, h3, h4, h5, h6 {
-    @apply font-bold text-primary;
+    @apply font-medium text-gray-900;
   }
 }
 
 @layer components {
+  /* Modern Material Design 3 Buttons - Elevated, rounded, with state layers */
   .btn {
-    @apply px-6 py-3 rounded-lg font-medium transition-all duration-300 ease-in-out;
+    @apply relative overflow-hidden px-6 py-3 rounded-full font-medium 
+           transition-all duration-300 ease-out
+           before:absolute before:inset-0 before:bg-current before:opacity-0 
+           before:transition-opacity before:duration-300;
   }
-  
+
+  .btn:hover::before {
+    @apply opacity-[0.08];
+  }
+
+  .btn:active {
+    @apply scale-[0.98];
+  }
+
+  .btn:active::before {
+    @apply opacity-[0.12];
+  }
+
   .btn-primary {
-    @apply bg-primary text-secondary hover:bg-gray-dark active:scale-95;
+    @apply bg-blue-600 text-white shadow-md hover:shadow-lg 
+           hover:bg-blue-700;
   }
-  
+
   .btn-secondary {
-    @apply bg-secondary text-primary border-2 border-primary hover:bg-gray-light active:scale-95;
+    @apply bg-transparent text-blue-600 border border-gray-300 
+           hover:bg-blue-50 shadow-none;
   }
-  
+
   .btn-accent {
-    @apply bg-accent text-white hover:bg-orange-600 active:scale-95;
+    @apply bg-orange-600 text-white shadow-md hover:shadow-lg 
+           hover:bg-orange-700;
   }
-  
+
+  /* Material Design 3 Filled Text Fields */
   .input {
-    @apply w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-primary focus:outline-none transition-colors duration-200;
+    @apply w-full px-4 py-4 bg-gray-50 rounded-t-lg 
+           border-b-2 border-gray-300 
+           focus:border-blue-600 focus:bg-gray-100 focus:outline-none 
+           transition-all duration-200 ease-out;
   }
-  
+
+  /* Modern Cards with subtle elevation */
   .card {
-    @apply bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden transition-all duration-300 hover:shadow-xl;
+    @apply bg-white rounded-3xl overflow-hidden 
+           transition-all duration-300 ease-out
+           border border-gray-100;
   }
-  
+
+  .card:hover {
+    @apply shadow-lg border-gray-200;
+  }
+
+  /* Material Design 3 Elevated Card variant */
+  .card-elevated {
+    @apply bg-white rounded-3xl overflow-hidden 
+           shadow-md transition-all duration-300 ease-out;
+  }
+
+  .card-elevated:hover {
+    @apply shadow-xl -translate-y-1;
+  }
+
+  /* Outlined Card - lighter, modern alternative */
+  .card-outlined {
+    @apply bg-transparent rounded-3xl overflow-hidden 
+           border-2 border-gray-200 
+           transition-all duration-300 ease-out;
+  }
+
+  .card-outlined:hover {
+    @apply border-gray-300 bg-gray-50;
+  }
+
+  /* Modern container with appropriate padding */
   .container-custom {
-    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+    @apply max-w-7xl mx-auto px-6 sm:px-8 lg:px-12;
+  }
+
+  /* Chip component - Material Design 3 style */
+  .chip {
+    @apply inline-flex items-center gap-2 px-4 py-2 
+           rounded-full bg-gray-100 text-gray-700 text-sm font-medium
+           transition-all duration-200 ease-out
+           hover:bg-gray-200 hover:shadow-sm;
+  }
+
+  /* FAB (Floating Action Button) - Material Design signature */
+  .fab {
+    @apply fixed bottom-6 right-6 w-14 h-14 
+           bg-blue-600 text-white rounded-full 
+           shadow-lg hover:shadow-xl 
+           flex items-center justify-center
+           transition-all duration-300 ease-out
+           hover:scale-110 active:scale-95;
+  }
+
+  /* Modern navigation bar */
+  .nav-bar {
+    @apply bg-white/80 backdrop-blur-md border-b border-gray-100 
+           sticky top-0 z-50 transition-all duration-300;
+  }
+
+  /* Segmented buttons - Material Design 3 */
+  .segmented-group {
+    @apply inline-flex rounded-full bg-gray-100 p-1;
+  }
+
+  .segmented-btn {
+    @apply px-4 py-2 rounded-full text-sm font-medium 
+           transition-all duration-200 ease-out;
+  }
+
+  .segmented-btn-active {
+    @apply bg-white text-blue-600 shadow-sm;
+  }
+
+  .segmented-btn-inactive {
+    @apply text-gray-600 hover:text-gray-900;
   }
 }
 
 @layer utilities {
+  /* Surface tint system - Material Design 3 */
+  .surface-tint-1 {
+    @apply bg-blue-50/30;
+  }
+
+  .surface-tint-2 {
+    @apply bg-blue-50/50;
+  }
+
+  .surface-tint-3 {
+    @apply bg-blue-50/70;
+  }
+
+  /* Elevation system */
+  .elevation-1 {
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  }
+
+  .elevation-2 {
+    box-shadow: 0 3px 8px 0 rgba(0, 0, 0, 0.1);
+  }
+
+  .elevation-3 {
+    box-shadow: 0 6px 16px 0 rgba(0, 0, 0, 0.12);
+  }
+
+  .elevation-4 {
+    box-shadow: 0 12px 28px 0 rgba(0, 0, 0, 0.15);
+  }
+
+  /* Animation delays for staggered effects */
   .animation-delay-100 {
     animation-delay: 100ms;
   }
-  
+
   .animation-delay-200 {
     animation-delay: 200ms;
   }
-  
+
   .animation-delay-300 {
     animation-delay: 300ms;
   }
+
+  /* State layer overlays */
+  .state-layer {
+    @apply relative overflow-hidden;
+  }
+
+  .state-layer::before {
+    content: '';
+    @apply absolute inset-0 bg-current opacity-0 transition-opacity duration-200;
+  }
+
+  .state-layer:hover::before {
+    @apply opacity-[0.08];
+  }
+
+  .state-layer:active::before {
+    @apply opacity-[0.12];
+  }
 }
 
-/* Custom scrollbar */
+/* Modern smooth scrollbar - minimalist Google style */
 ::-webkit-scrollbar {
-  width: 10px;
+  width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #f5f5f5;
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #000000;
-  border-radius: 5px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  transition: background 0.2s;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #1a1a1a;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+/* Selection styling */
+::selection {
+  background-color: rgba(59, 130, 246, 0.3);
+  color: inherit;
+}
+
+/* Focus visible for accessibility */
+:focus-visible {
+  @apply outline-2 outline-offset-2 outline-blue-600;
+}
+
+/* Smooth transitions for interactive elements */
+button, a, input, textarea, select {
+  @apply transition-colors duration-200;
+}
+
+/* Modern glassmorphism effect */
+.glass {
+  @apply bg-white/70 backdrop-blur-lg border border-white/20;
+}
+
+/* Animated gradient backgrounds */
+@keyframes gradient-shift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.gradient-animated {
+  background-size: 200% 200%;
+  animation: gradient-shift 8s ease infinite;
+}
+
+/* Material Design 3 motion - emphasis easing */
+.motion-standard {
+  transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
+}
+
+.motion-emphasized {
+  transition-timing-function: cubic-bezier(0.05, 0.7, 0.1, 1);
+}
+
+.motion-emphasized-decelerate {
+  transition-timing-function: cubic-bezier(0.3, 0, 0.8, 0.15);
+}
+
+.motion-emphasized-accelerate {
+  transition-timing-function: cubic-bezier(0.3, 0, 1, 1);
 }
