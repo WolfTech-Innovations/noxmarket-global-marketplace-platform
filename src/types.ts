@@ -34,6 +34,7 @@ export interface Seller extends CosmicObject {
   metadata: {
     business_name: string;
     email: string;
+    user_id: string; // Link to user account
     store_description?: string;
     profile_image?: {
       url: string;
@@ -42,6 +43,7 @@ export interface Seller extends CosmicObject {
     stripe_account_id?: string;
     stripe_onboarding_complete: boolean;
     phone?: string;
+    owner_name?: string;
   };
 }
 
@@ -77,15 +79,15 @@ export interface Order extends CosmicObject {
 }
 
 // User interface (stored in Cosmic for authentication)
+// Now unified - all users can buy, and optionally become sellers
 export interface User extends CosmicObject {
   type: 'users';
   metadata: {
     name: string;
     email: string;
     password_hash: string;
-    user_type: 'buyer' | 'seller';
-    seller_id?: string;
-    business_name?: string;
+    is_seller: boolean; // True if they've created a seller profile
+    created_at?: string;
   };
 }
 
@@ -98,13 +100,14 @@ export interface CosmicResponse<T> {
 }
 
 // Authentication types
+// Unified session - no more userType distinction
 export interface AuthSession {
   userId: string;
   email: string;
   name: string;
-  userType: 'buyer' | 'seller';
-  sellerId?: string;
-  businessName?: string;
+  isSeller: boolean; // True if they have a seller profile
+  sellerId?: string; // ID of their seller profile (if they have one)
+  businessName?: string; // Their business name (if seller)
 }
 
 // Search filter types
