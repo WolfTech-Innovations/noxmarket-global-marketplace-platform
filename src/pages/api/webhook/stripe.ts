@@ -10,7 +10,7 @@ if (!stripeSecretKey) {
 }
 
 export const stripe = new Stripe(stripeSecretKey, {
-  apiVersion: '2024-11-20.acacia', // Use latest or your preferred version
+  apiVersion: '2025-02-24.acacia', // Use latest or your preferred version
 });
 
 // Initialize Cosmic
