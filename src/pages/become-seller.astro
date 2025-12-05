@@ -1,0 +1,141 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import Header from '@/components/Header.astro';
+import Footer from '@/components/Footer.astro';
+import { getSessionFromCookies } from '@/lib/auth';
+
+const session = getSessionFromCookies(Astro.cookies);
+
+if (!session) {
+  return Astro.redirect('/login?redirect=/become-seller');
+}
+
+// If already a seller, redirect to dashboard
+if (session.isSeller) {
+  return Astro.redirect('/dashboard');
+}
+
+const errorMessage = Astro.url.searchParams.get('error');
+---
+
+<Layout title="Become a Seller - NoxMarket">
+  <Header />
+
+  <main class="py-16 bg-gray-50 min-h-screen">
+    <div class="container-custom max-w-3xl">
+      <!-- Header -->
+      <div class="text-center mb-12">
+        <div class="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-blue-500 to-blue-600 rounded-3xl mb-6 elevation-3">
+          <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+          </svg>
+        </div>
+        <h1 class="text-5xl font-medium tracking-tight text-gray-900 mb-4">Start Selling on NoxMarket</h1>
+        <p class="text-xl text-gray-600">Join thousands of sellers reaching customers worldwide</p>
+      </div>
+
+      <!-- Error Message -->
+      {errorMessage && (
+        <div class="mb-8 card-elevated p-4 bg-red-50 border-l-4 border-red-500">
+          <div class="flex items-center gap-3">
+            <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+            <p class="text-red-800 font-medium">{errorMessage}</p>
+          </div>
+        </div>
+      )}
+
+      <!-- Benefits Section -->
+      <div class="grid md:grid-cols-3 gap-6 mb-12">
+        {[
+          { icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z', title: 'Earn Money', desc: 'Set your own prices and keep most of your earnings' },
+          { icon: 'M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z', title: 'Global Reach', desc: 'Sell to customers around the world' },
+          { icon: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0121 12c0 5.523-4.477 10-10 10S1 17.523 1 12 5.477 2 11 2c1.821 0 3.532.49 5.003 1.343', title: 'Easy Setup', desc: 'Get started in just 5 minutes' }
+        ].map(benefit => (
+          <div class="card-elevated p-6 text-center">
+            <div class="w-14 h-14 bg-blue-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <svg class="w-7 h-7 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={benefit.icon} />
+              </svg>
+            </div>
+            <h3 class="font-semibold text-gray-900 mb-2">{benefit.title}</h3>
+            <p class="text-gray-600 text-sm">{benefit.desc}</p>
+          </div>
+        ))}
+      </div>
+
+      <!-- Form -->
+      <div class="card-elevated p-8">
+        <h2 class="text-2xl font-medium text-gray-900 mb-6">Create Your Seller Account</h2>
+        
+        <form action="/api/seller/create" method="POST" class="space-y-5">
+          <div>
+            <label for="businessName" class="block text-sm font-medium text-gray-700 mb-2">
+              Business Name <span class="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              id="businessName"
+              name="businessName"
+              class="input w-full"
+              placeholder="Your Store Name"
+              required
+            />
+            <p class="text-sm text-gray-500 mt-2">This will be displayed to customers</p>
+          </div>
+
+          <div>
+            <label for="storeDescription" class="block text-sm font-medium text-gray-700 mb-2">
+              Store Description
+            </label>
+            <textarea
+              id="storeDescription"
+              name="storeDescription"
+              rows="4"
+              class="input w-full resize-none"
+              placeholder="Tell customers what makes your store special..."
+            ></textarea>
+          </div>
+
+          <div>
+            <label for="phone" class="block text-sm font-medium text-gray-700 mb-2">
+              Contact Phone
+            </label>
+            <input
+              type="tel"
+              id="phone"
+              name="phone"
+              class="input w-full"
+              placeholder="+1 (555) 000-0000"
+            />
+          </div>
+
+          <div class="pt-4 border-t border-gray-200">
+            <div class="flex items-start gap-3 p-4 bg-blue-50 rounded-2xl mb-6">
+              <svg class="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <p class="text-sm text-blue-900">
+                After creating your seller account, you'll need to verify your identity with Stripe to start receiving payments. This is a quick 5-minute process.
+              </p>
+            </div>
+
+            <button type="submit" class="btn btn-primary w-full text-lg py-4">
+              Create Seller Account →
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Additional Info -->
+      <div class="mt-8 text-center">
+        <p class="text-gray-600">
+          Have questions? <a href="/support" class="text-blue-600 hover:underline font-medium">Contact Support</a>
+        </p>
+      </div>
+    </div>
+  </main>
+
+  <Footer />
+</Layout>
