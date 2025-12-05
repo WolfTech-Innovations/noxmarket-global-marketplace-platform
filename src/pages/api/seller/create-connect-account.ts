@@ -10,7 +10,7 @@ const stripe = new Stripe(import.meta.env.STRIPE_SECRET_KEY, {
 export const POST: APIRoute = async ({ request, cookies, redirect }) => {
   const session = getSessionFromCookies(cookies);
 
-  if (!session || session.userType !== 'seller' || !session.sellerId) {
+  if (!session || !session.isSeller || !session.sellerId) {
     return redirect('/login');
   }
 
