@@ -1,6 +1,6 @@
 import Stripe from 'stripe';
 
-export const stripe = new Stripe(import.meta.env.STRIPE_SECRET_KEY, {
+export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: '2025-02-24.acacia'
 });
 
@@ -15,7 +15,7 @@ export async function createConnectAccount(email: string) {
         transfers: { requested: true }
       }
     });
-    
+
     return account;
   } catch (error) {
     throw new Error('Failed to create Stripe account');
@@ -31,7 +31,7 @@ export async function createAccountLink(accountId: string, returnUrl: string, re
       return_url: returnUrl,
       type: 'account_onboarding'
     });
-    
+
     return accountLink;
   } catch (error) {
     throw new Error('Failed to create account link');
@@ -50,7 +50,7 @@ export async function createPaymentIntent(amount: number, currency: string, conn
         destination: connectedAccountId
       }
     });
-    
+
     return paymentIntent;
   } catch (error) {
     throw new Error('Failed to create payment intent');
