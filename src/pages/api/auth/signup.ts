@@ -1,87 +1,67 @@
 import type { APIRoute } from 'astro';
-import { getUserByEmail, cosmic } from '@/lib/cosmic';
-import { verifyPassword, createSessionToken, storeSession, setSessionCookie } from '@/lib/auth';
+import { createUser, getUserByEmail } from '@/lib/cosmic';
+import { hashPassword, createSessionToken, storeSession, setSessionCookie } from '@/lib/auth';
+import { nanoid } from 'nanoid';
 
 export const POST: APIRoute = async ({ request, cookies, redirect }) => {
   try {
     const formData = await request.formData();
+    const name = formData.get('name')?.toString();
     const email = formData.get('email')?.toString();
     const password = formData.get('password')?.toString();
 
-    if (!email || !password) {
-      return redirect('/login?error=Email and password are required');
+    console.log('Signup attempt:', { name, email });
+
+    if (!name || !email || !password) {
+      return redirect('/signup?error=Missing required fields');
     }
 
-    // Get user from Cosmic
-    const user = await getUserByEmail(email);
+    // Check if user already exists
+    const existingUser = await getUserByEmail(email);
 
-    if (!user) {
-      return redirect('/login?error=Invalid email or password');
+    if (existingUser) {
+      return redirect('/signup?error=Email already registered');
     }
 
-    // Check if password_hash exists
-    if (!user.metadata.password_hash) {
-      console.error('User missing password_hash:', user.id);
-      return redirect('/login?error=Account not properly configured');
-    }
+    // Hash password
+    const passwordHash = await hashPassword(password);
 
-    // Verify password
-    const isValid = await verifyPassword(password, user.metadata.password_hash);
+    // Create a single user account - they can buy and sell
+    const userData = {
+      type: 'users',
+      title: name,
+      slug: `user-${nanoid(10)}`,
+      metadata: {
+        name,
+        email,
+        password_hash: passwordHash,
+        is_seller: false, // Can be upgraded to seller later
+        created_at: new Date().toISOString()
+      }
+    };
 
-    if (!isValid) {
-      return redirect('/login?error=Invalid email or password');
-    }
+    console.log('Creating user account:', { name, email });
+    const user = await createUser(userData);
+    console.log('User account created:', user.id);
 
-    // Determine user type and build session
-    const userType = user.metadata.user_type || 'buyer';
-
-    // Create session with appropriate data
+    // Create session
     const sessionToken = createSessionToken();
     const session: any = {
       userId: user.id,
       email: user.metadata.email,
-      userType: userType,
-      name: user.metadata.name || user.title || 'User',
+      name: user.metadata.name || name,
+      isSeller: false
     };
 
-    // If seller, fetch their seller profile
-    if (userType === 'seller') {
-      try {
-        const sellerProfile = await cosmic.objects
-          .findOne({
-            type: 'sellers',
-            'metadata.user_id': user.id
-          })
-          .props('id,slug,title,metadata');
-
-        if (sellerProfile.object) {
-          session.sellerId = sellerProfile.object.id;
-          session.businessName = sellerProfile.object.metadata.business_name;
-        }
-      } catch (error) {
-        console.error('Could not fetch seller profile:', error);
-      }
-    }
-
-    console.log('Login successful:', { 
-      email, 
-      userType, 
-      userId: user.id,
-      name: session.name,
-      sellerId: session.sellerId 
-    });
+    console.log('Session created:', { userId: user.id, name: session.name });
 
     storeSession(sessionToken, session);
     setSessionCookie(cookies, sessionToken, session);
 
-    // Redirect based on user type
-    if (userType === 'seller') {
-      return redirect('/dashboard');
-    }
-
+    // Redirect to profile
     return redirect('/profile');
   } catch (error) {
-    console.error('Login error:', error);
-    return redirect('/login?error=Failed to login');
+    console.error('Signup error:', error);
+    return redirect('/signup?error=Failed to create account');
   }
 };
