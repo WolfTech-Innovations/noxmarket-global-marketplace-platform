@@ -158,10 +158,36 @@ export async function getUserByEmail(email: string) {
 
 export async function createUser(userData: any) {
   try {
+    console.log('Creating user in Cosmic:', { 
+      type: userData.type, 
+      title: userData.title,
+      email: userData.metadata?.email,
+      slug: userData.slug 
+    });
+    
     const response = await cosmic.objects.insertOne(userData);
+    
+    console.log('User created successfully:', response.object.id);
     return response.object;
-  } catch (error) {
-    throw new Error('Failed to create user');
+  } catch (error: any) {
+    console.error('Cosmic insertOne error:', error);
+    console.error('Failed userData:', JSON.stringify(userData, null, 2));
+    
+    // Log detailed error information
+    if (error) {
+      console.error('Error details:', {
+        message: error.message,
+        status: error.status,
+        statusText: error.statusText,
+        response: error.response,
+        data: error.data,
+        stack: error.stack
+      });
+    }
+    
+    // Throw a more descriptive error
+    const errorMsg = error.message || error.toString();
+    throw new Error(`Failed to create user: ${errorMsg}`);
   }
 }
 
