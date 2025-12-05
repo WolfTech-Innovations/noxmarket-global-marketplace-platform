@@ -56,6 +56,80 @@ const isVerified = hasStripeAccount && sellerProfile?.metadata?.stripe_onboardin
         </div>
       )}
 
+      <!-- Payment Settings (moved OUTSIDE the form) -->
+      <div class="card-elevated p-8 mb-6">
+        <div class="flex items-center gap-3 mb-6">
+          <div class="w-12 h-12 bg-green-100 rounded-2xl flex items-center justify-center">
+            <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+            </svg>
+          </div>
+          <div>
+            <h2 class="text-2xl font-medium text-gray-900">Payment Settings</h2>
+            <p class="text-gray-600">Verify your identity to receive payments</p>
+          </div>
+        </div>
+
+        {isVerified ? (
+          <div class="p-6 bg-green-50 rounded-2xl border-2 border-green-200">
+            <div class="flex items-start gap-3">
+              <svg class="w-6 h-6 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div>
+                <p class="font-semibold text-green-900 mb-1">✓ Verified & Ready</p>
+                <p class="text-green-800 mb-3">Your account is verified and ready to receive payments!</p>
+                <p class="text-xs text-green-700 font-mono bg-green-100 px-3 py-2 rounded-lg inline-block">
+                  {sellerProfile.metadata.stripe_account_id}
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : hasStripeAccount ? (
+          <div class="p-6 bg-amber-50 rounded-2xl border-2 border-amber-200">
+            <div class="flex items-start gap-3">
+              <svg class="w-6 h-6 text-amber-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div class="flex-1">
+                <p class="font-semibold text-amber-900 mb-1">Verification In Progress</p>
+                <p class="text-amber-800 mb-4">Complete your verification to start receiving payments.</p>
+                <form action="/api/seller/create-connect-account" method="POST">
+                  <button type="submit" class="btn btn-primary">
+                    Continue Verification
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div class="space-y-4">
+            <div class="p-6 bg-blue-50 rounded-2xl border-2 border-blue-200">
+              <div class="flex gap-3">
+                <svg class="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div class="text-blue-900">
+                  <p class="font-semibold mb-2">Get Verified to Accept Payments</p>
+                  <p class="text-blue-800 mb-3">We use Stripe to ensure secure payments. Quick 5-minute setup.</p>
+                  <ul class="list-disc list-inside space-y-1 text-blue-800 text-sm">
+                    <li>Bank account information</li>
+                    <li>ID verification</li>
+                    <li>Tax information (if applicable)</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <form action="/api/seller/create-connect-account" method="POST">
+              <button type="submit" class="btn btn-primary w-full text-lg py-4">
+                Start Verification with Stripe →
+              </button>
+            </form>
+          </div>
+        )}
+      </div>
+
       <!-- Settings Form -->
       <form action="/api/seller/update-settings" method="POST" class="space-y-6">
         <!-- Business Information -->
@@ -115,80 +189,6 @@ const isVerified = hasStripeAccount && sellerProfile?.metadata?.stripe_onboardin
               />
             </div>
           </div>
-        </div>
-
-        <!-- Payment Settings -->
-        <div class="card-elevated p-8">
-          <div class="flex items-center gap-3 mb-6">
-            <div class="w-12 h-12 bg-green-100 rounded-2xl flex items-center justify-center">
-              <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-              </svg>
-            </div>
-            <div>
-              <h2 class="text-2xl font-medium text-gray-900">Payment Settings</h2>
-              <p class="text-gray-600">Verify your identity to receive payments</p>
-            </div>
-          </div>
-
-          {isVerified ? (
-            <div class="p-6 bg-green-50 rounded-2xl border-2 border-green-200">
-              <div class="flex items-start gap-3">
-                <svg class="w-6 h-6 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <div>
-                  <p class="font-semibold text-green-900 mb-1">✓ Verified & Ready</p>
-                  <p class="text-green-800 mb-3">Your account is verified and ready to receive payments!</p>
-                  <p class="text-xs text-green-700 font-mono bg-green-100 px-3 py-2 rounded-lg inline-block">
-                    {sellerProfile.metadata.stripe_account_id}
-                  </p>
-                </div>
-              </div>
-            </div>
-          ) : hasStripeAccount ? (
-            <div class="p-6 bg-amber-50 rounded-2xl border-2 border-amber-200">
-              <div class="flex items-start gap-3">
-                <svg class="w-6 h-6 text-amber-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <div class="flex-1">
-                  <p class="font-semibold text-amber-900 mb-1">Verification In Progress</p>
-                  <p class="text-amber-800 mb-4">Complete your verification to start receiving payments.</p>
-                  <form action="/api/seller/create-connect-account" method="POST">
-                    <button type="submit" class="btn btn-primary">
-                      Continue Verification
-                    </button>
-                  </form>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div class="space-y-4">
-              <div class="p-6 bg-blue-50 rounded-2xl border-2 border-blue-200">
-                <div class="flex gap-3">
-                  <svg class="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <div class="text-blue-900">
-                    <p class="font-semibold mb-2">Get Verified to Accept Payments</p>
-                    <p class="text-blue-800 mb-3">We use Stripe to ensure secure payments. Quick 5-minute setup.</p>
-                    <ul class="list-disc list-inside space-y-1 text-blue-800 text-sm">
-                      <li>Bank account information</li>
-                      <li>ID verification</li>
-                      <li>Tax information (if applicable)</li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-
-              <form action="/api/seller/create-connect-account" method="POST">
-                <button type="submit" class="btn btn-primary w-full text-lg py-4">
-                  Start Verification with Stripe →
-                </button>
-              </form>
-            </div>
-          )}
         </div>
 
         <!-- Save Button -->
