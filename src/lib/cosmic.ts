@@ -1,175 +1,111 @@
-import { createBucketClient } from '@cosmicjs/sdk';
+import type { APIRoute } from 'astro';
+import { createUser, getUserByEmail } from '@/lib/cosmic';
+import { hashPassword, createSessionToken, storeSession, setSessionCookie } from '@/lib/auth';
+import { nanoid } from 'nanoid';
 
-export const cosmic = createBucketClient({
-  bucketSlug: import.meta.env.COSMIC_BUCKET_SLUG,
-  readKey: import.meta.env.COSMIC_READ_KEY,
-  writeKey: import.meta.env.COSMIC_WRITE_KEY
-});
-
-// Helper function for error handling
-function hasStatus(error: unknown): error is { status: number } {
-  return typeof error === 'object' && error !== null && 'status' in error;
-}
-
-// Product functions
-export async function getProducts() {
+export const POST: APIRoute = async ({ request, cookies, redirect }) => {
   try {
-    const response = await cosmic.objects
-      .find({ type: 'products' })
-      .props(['id', 'title', 'slug', 'metadata'])
-      .depth(1);
-    
-    return response.objects;
-  } catch (error) {
-    if (hasStatus(error) && error.status === 404) {
-      return [];
-    }
-    throw new Error('Failed to fetch products');
-  }
-}
+    const formData = await request.formData();
+    const name = formData.get('name')?.toString();
+    const email = formData.get('email')?.toString();
+    const password = formData.get('password')?.toString();
+    const userType = formData.get('userType')?.toString() as 'buyer' | 'seller';
+    const businessName = formData.get('businessName')?.toString();
 
-export async function getProduct(slug: string) {
-  try {
-    const response = await cosmic.objects
-      .findOne({ type: 'products', slug })
-      .props(['id', 'title', 'slug', 'metadata'])
-      .depth(1);
-    
-    return response.object;
-  } catch (error) {
-    if (hasStatus(error) && error.status === 404) {
-      return null;
-    }
-    throw new Error('Failed to fetch product');
-  }
-}
+    console.log('Signup attempt:', { name, email, userType, businessName });
 
-// Category functions
-export async function getCategories() {
-  try {
-    const response = await cosmic.objects
-      .find({ type: 'categories' })
-      .props(['id', 'title', 'slug', 'metadata']);
-    
-    return response.objects;
-  } catch (error) {
-    if (hasStatus(error) && error.status === 404) {
-      return [];
-    }
-    throw new Error('Failed to fetch categories');
-  }
-}
-
-// Seller functions
-export async function getSeller(id: string) {
-  try {
-    const response = await cosmic.objects
-      .findOne({ type: 'sellers', id })
-      .props(['id', 'title', 'slug', 'metadata']);
-    
-    return response.object;
-  } catch (error) {
-    if (hasStatus(error) && error.status === 404) {
-      return null;
-    }
-    throw new Error('Failed to fetch seller');
-  }
-}
-
-export async function getSellerByEmail(email: string) {
-  try {
-    const response = await cosmic.objects
-      .find({ type: 'sellers', 'metadata.email': email })
-      .props(['id', 'title', 'slug', 'metadata'])
-      .limit(1);
-    
-    const sellers = response.objects;
-    return sellers.length > 0 ? sellers[0] : null;
-  } catch (error) {
-    if (hasStatus(error) && error.status === 404) {
-      return null;
-    }
-    throw new Error('Failed to fetch seller');
-  }
-}
-
-// Order functions
-export async function getSellerOrders(sellerId: string) {
-  try {
-    const response = await cosmic.objects
-      .find({ type: 'orders', 'metadata.seller': sellerId })
-      .props(['id', 'title', 'metadata'])
-      .depth(1);
-    
-    return response.objects;
-  } catch (error) {
-    if (hasStatus(error) && error.status === 404) {
-      return [];
-    }
-    throw new Error('Failed to fetch orders');
-  }
-}
-
-export async function createOrder(orderData: any) {
-  try {
-    const response = await cosmic.objects.insertOne(orderData);
-    return response.object;
-  } catch (error) {
-    throw new Error('Failed to create order');
-  }
-}
-
-// User authentication functions - searches BOTH users and sellers
-export async function getUserByEmail(email: string) {
-  try {
-    // First, try to find in users
-    const usersResult = await cosmic.objects
-      .find({
-        type: 'users',
-        'metadata.email': email,
-      })
-      .props('id,slug,title,metadata')
-      .limit(1);
-
-    if (usersResult.objects && usersResult.objects.length > 0) {
-      return usersResult.objects[0];
+    if (!name || !email || !password || !userType) {
+      return redirect('/signup?error=Missing required fields');
     }
 
-    // If not found in users, try sellers
-    const sellersResult = await cosmic.objects
-      .find({
+    if (userType === 'seller' && !businessName) {
+      return redirect('/signup?error=Business name is required for sellers');
+    }
+
+    // Check if user already exists
+    const existingUser = await getUserByEmail(email);
+
+    if (existingUser) {
+      return redirect('/signup?error=Email already registered');
+    }
+
+    // Hash password
+    const passwordHash = await hashPassword(password);
+
+    let user;
+
+    if (userType === 'seller') {
+      // For sellers, create ONLY a seller object with all needed fields
+      const sellerData = {
         type: 'sellers',
-        'metadata.email': email,
-      })
-      .props('id,slug,title,metadata')
-      .limit(1);
+        title: businessName || `Seller - ${name}`,
+        slug: `seller-${nanoid(10)}`, // Add explicit slug
+        metadata: {
+          business_name: businessName,
+          email,
+          password_hash: passwordHash, // Store password in seller object
+          user_type: 'seller',
+          store_description: '',
+          stripe_account_id: '',
+          stripe_onboarding_complete: false,
+          phone: '',
+          owner_name: name // Store the person's name separately
+        }
+      };
 
-    if (sellersResult.objects && sellersResult.objects.length > 0) {
-      return sellersResult.objects[0];
+      console.log('Creating seller with data:', JSON.stringify(sellerData, null, 2));
+      user = await createUser(sellerData);
+      console.log('Seller created successfully:', user.id);
+
+    } else {
+      // For buyers, create a regular user object
+      const userData = {
+        type: 'users',
+        title: name,
+        slug: `user-${nanoid(10)}`, // Add explicit slug
+        metadata: {
+          name,
+          email,
+          password_hash: passwordHash,
+          user_type: 'buyer'
+        }
+      };
+
+      console.log('Creating buyer with data:', JSON.stringify(userData, null, 2));
+      user = await createUser(userData);
+      console.log('Buyer created successfully:', user.id);
     }
 
-    // User not found
-    return null;
-  } catch (error) {
-    console.error('Error fetching user by email:', error);
-    return null;
-  }
-}
+    // Create session
+    const sessionToken = createSessionToken();
+    const session: any = {
+      userId: user.id,
+      email: user.metadata.email,
+      userType: userType,
+    };
 
-export async function createUser(userData: any) {
-  try {
-    const response = await cosmic.objects.insertOne(userData);
-    return response.object;
-  } catch (error) {
-    throw new Error('Failed to create user');
-  }
-}
+    // Set name based on user type
+    if (userType === 'seller') {
+      session.name = user.metadata.business_name || businessName;
+      session.sellerId = user.id;
+      session.businessName = user.metadata.business_name;
+    } else {
+      session.name = user.metadata.name || name;
+    }
 
-export async function updateUser(userId: string, userData: any) {
-  try {
-    const response = await cosmic.objects.updateOne(userId, userData);
-    return response.object;
+    console.log('Session created:', { userId: user.id, userType, name: session.name });
+
+    storeSession(sessionToken, session);
+    setSessionCookie(cookies, sessionToken);
+
+    // Redirect based on user type
+    if (userType === 'seller') {
+      return redirect('/seller/dashboard');
+    }
+
+    return redirect('/profile');
   } catch (error) {
-    throw new Error('Failed to update user');
+    console.error('Signup error:', error);
+    return redirect('/signup?error=Failed to create account');
   }
-}
+};
