@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { getUserByEmail } from '@/lib/cosmic';
+import { getUserByEmail, cosmic } from '@/lib/cosmic';
 import { verifyPassword, createSessionToken, storeSession, setSessionCookie } from '@/lib/auth';
 
 export const POST: APIRoute = async ({ request, cookies, redirect }) => {
@@ -41,26 +41,38 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
       userId: user.id,
       email: user.metadata.email,
       userType: userType,
+      name: user.metadata.name || user.title || 'User',
     };
 
-    // Add name based on user type
+    // If seller, fetch their seller profile
     if (userType === 'seller') {
-      session.name = user.metadata.business_name || user.title || 'Seller';
-      session.sellerId = user.id; // The seller object ID is the seller ID
-      session.businessName = user.metadata.business_name;
-    } else {
-      session.name = user.metadata.name || user.title || 'User';
+      try {
+        const sellerProfile = await cosmic.objects
+          .findOne({
+            type: 'sellers',
+            'metadata.user_id': user.id
+          })
+          .props('id,slug,title,metadata');
+        
+        if (sellerProfile.object) {
+          session.sellerId = sellerProfile.object.id;
+          session.businessName = sellerProfile.object.metadata.business_name;
+        }
+      } catch (error) {
+        console.error('Could not fetch seller profile:', error);
+      }
     }
 
     console.log('Login successful:', { 
       email, 
       userType, 
       userId: user.id,
-      name: session.name 
+      name: session.name,
+      sellerId: session.sellerId 
     });
 
     storeSession(sessionToken, session);
-    setSessionCookie(cookies, sessionToken);
+    setSessionCookie(cookies, sessionToken, session);
 
     // Redirect based on user type
     if (userType === 'seller') {
