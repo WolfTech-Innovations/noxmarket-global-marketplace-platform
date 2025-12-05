@@ -1,7 +1,6 @@
-============================================
 // UPOAP - User Pattern Observation and Prediction
 // Advanced behavioral analytics and conversion optimization
-// ============================================
+// By WolfTech Innovations
 
 class PredictionEngine {
   constructor() {
