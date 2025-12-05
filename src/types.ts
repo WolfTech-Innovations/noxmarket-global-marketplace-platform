@@ -85,6 +85,7 @@ export interface User extends CosmicObject {
     password_hash: string;
     user_type: 'buyer' | 'seller';
     seller_id?: string;
+    business_name?: string;
   };
 }
 
@@ -103,6 +104,7 @@ export interface AuthSession {
   name: string;
   userType: 'buyer' | 'seller';
   sellerId?: string;
+  businessName?: string;
 }
 
 // Search filter types
