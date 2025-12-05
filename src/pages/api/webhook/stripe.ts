@@ -79,7 +79,54 @@ export const POST: APIRoute = async ({ request }) => {
       console.log('Checkout session expired:', session.id);
       break;
     }
+                 // Add these event handlers to your existing webhook at src/pages/api/webhook/stripe.ts
 
+// After your existing switch cases, add:
+
+case 'account.updated': {
+  const account = event.data.object as Stripe.Account;
+  console.log('Stripe account updated:', account.id);
+  
+  // Check if account is fully onboarded
+  if (account.charges_enabled && account.payouts_enabled) {
+    console.log('Account fully verified:', account.id);
+    
+    // Update seller profile to mark as verified
+    try {
+      // Find seller by stripe account ID
+      const sellerResponse = await cosmic.objects.find({
+        type: 'sellers',
+        'metadata.stripe_account_id': account.id
+      }).props('id');
+      
+      if (sellerResponse.objects && sellerResponse.objects.length > 0) {
+        const sellerId = sellerResponse.objects[0].id;
+        
+        await cosmic.objects.updateOne(sellerId, {
+          metadata: {
+            stripe_onboarding_complete: true,
+            stripe_charges_enabled: account.charges_enabled,
+            stripe_payouts_enabled: account.payouts_enabled
+          }
+        });
+        
+        console.log('Seller marked as verified:', sellerId);
+      }
+    } catch (error) {
+      console.error('Error updating seller verification:', error);
+    }
+  }
+  break;
+}
+
+case 'account.application.deauthorized': {
+  const account = event.data.object as any;
+  console.log('Stripe account disconnected:', account.id);
+  
+  // Handle account disconnection
+  // Update seller to mark as disconnected
+  break;
+}
     case 'payment_intent.payment_failed': {
       const paymentIntent = event.data.object as Stripe.PaymentIntent;
       console.log('Payment failed:', paymentIntent.id);
