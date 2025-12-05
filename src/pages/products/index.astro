@@ -1,5 +1,4 @@
 ---
-
 import Layout from '@/layouts/Layout.astro';
 import Header from '@/components/Header.astro';
 import Footer from '@/components/Footer.astro';
@@ -13,51 +12,94 @@ const categories = await getCategories();
 
 <Layout title="Products - NoxMarket">
   <Header />
-  
-  <main class="py-12">
+
+  <main class="py-16 min-h-screen">
     <div class="container-custom">
-      <div class="mb-8">
-        <h1 class="text-4xl font-bold mb-4">All Products</h1>
-        <p class="text-gray-600 text-lg">Discover amazing products from sellers worldwide</p>
+      <!-- Hero Section with Modern Typography -->
+      <div class="mb-12 space-y-3">
+        <h1 class="text-5xl md:text-6xl font-medium tracking-tight text-gray-900 motion-emphasized">
+          All Products
+        </h1>
+        <p class="text-gray-600 text-xl md:text-2xl font-light max-w-2xl">
+          Discover amazing products from sellers worldwide
+        </p>
       </div>
-      
+
+      <!-- Modern Chip-based Category Filter -->
       {categories.length > 0 && (
-        <div class="mb-8 flex flex-wrap gap-2">
-          <a href="/products" class="px-4 py-2 rounded-full bg-primary text-white text-sm font-medium">
-            All
-          </a>
-          {categories.map((category: Category) => (
+        <div class="mb-12">
+          <div class="flex flex-wrap gap-2">
             <a 
-              href={`/products?category=${category.slug}`}
-              class="px-4 py-2 rounded-full bg-gray-200 text-primary hover:bg-gray-300 text-sm font-medium transition-colors"
+              href="/products" 
+              class="chip bg-blue-600 text-white hover:bg-blue-700 hover:shadow-md"
             >
-              {category.metadata.category_name}
+              All Products
             </a>
-          ))}
+            {categories.map((category: Category) => (
+              <a 
+                href={`/products?category=${category.slug}`}
+                class="chip"
+              >
+                {category.metadata.category_name}
+              </a>
+            ))}
+          </div>
         </div>
       )}
-      
+
+      <!-- Products Grid or Empty State -->
       {products.length === 0 ? (
-        <div class="text-center py-20">
-          <svg class="w-24 h-24 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-          </svg>
-          <h2 class="text-2xl font-bold mb-2">No Products Yet</h2>
-          <p class="text-gray-600 mb-6">Be the first to list a product!</p>
-          <a href="/signup?type=seller" class="btn btn-primary">
+        <div class="text-center py-24">
+          <!-- Modern Empty State Icon -->
+          <div class="inline-flex items-center justify-center w-32 h-32 rounded-full bg-gray-100 mb-8">
+            <svg class="w-16 h-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+            </svg>
+          </div>
+          
+          <h2 class="text-3xl font-medium text-gray-900 mb-3">
+            No Products Yet
+          </h2>
+          <p class="text-gray-600 text-lg mb-8 max-w-md mx-auto">
+            Be the first to list a product and start selling to customers worldwide!
+          </p>
+          
+          <a href="/signup?type=seller" class="btn btn-primary inline-flex items-center gap-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+            </svg>
             Become a Seller
           </a>
         </div>
       ) : (
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {products.map((product: Product) => (
-            <ProductCard product={product} />
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {products.map((product: Product, index: number) => (
+            <div 
+              class="motion-emphasized"
+              style={`animation: fadeInUp 0.6s ease-out ${index * 0.05}s both;`}
+            >
+              <ProductCard product={product} />
+            </div>
           ))}
         </div>
       )}
     </div>
-       <script src="./upoap.js"></script>
-   </main>
-  
+    
+    <script src="./upoap.js"></script>
+  </main>
+
   <Footer />
 </Layout>
+
+<style>
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(24px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+</style>
