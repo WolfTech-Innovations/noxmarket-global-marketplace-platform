@@ -17,38 +17,50 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
   try {
     const baseUrl = new URL(request.url).origin;
 
-    // Create a Stripe Connect account for the seller
-    const account = await stripe.accounts.create({
-      type: 'express', // or 'standard' for more control
-      country: 'US', // Get from form or default
-      email: session.email,
-      capabilities: {
-        card_payments: { requested: true },
-        transfers: { requested: true },
-      },
-      business_type: 'individual', // or 'company'
-      metadata: {
-        seller_id: session.sellerId,
-        user_id: session.userId,
-      },
+    // Check if seller already has a Stripe account
+    const sellerProfile = await cosmic.objects.findOne({
+      id: session.sellerId,
     });
 
-    console.log('Stripe Connect account created:', account.id);
+    let stripeAccountId = sellerProfile?.object?.metadata?.stripe_account_id;
 
-    // Create an account link for onboarding
+    // If no Stripe account exists, create one
+    if (!stripeAccountId) {
+      const account = await stripe.accounts.create({
+        type: 'express',
+        country: 'US',
+        email: session.email,
+        capabilities: {
+          card_payments: { requested: true },
+          transfers: { requested: true },
+        },
+        business_type: 'individual',
+        metadata: {
+          seller_id: session.sellerId,
+          user_id: session.userId,
+        },
+      });
+
+      stripeAccountId = account.id;
+      console.log('Stripe Connect account created:', stripeAccountId);
+
+      // Save the Stripe account ID
+      await cosmic.objects.updateOne(session.sellerId, {
+        metadata: {
+          stripe_account_id: stripeAccountId,
+          stripe_onboarding_complete: false,
+        }
+      });
+    } else {
+      console.log('Using existing Stripe account:', stripeAccountId);
+    }
+
+    // Create an account link for onboarding (includes identity verification)
     const accountLink = await stripe.accountLinks.create({
-      account: account.id,
+      account: stripeAccountId,
       refresh_url: `${baseUrl}/dashboard/settings?refresh=true`,
       return_url: `${baseUrl}/dashboard/settings?success=true`,
       type: 'account_onboarding',
-    });
-
-    // Save the Stripe account ID to the seller profile
-    await cosmic.objects.updateOne(session.sellerId, {
-      metadata: {
-        stripe_account_id: account.id,
-        stripe_onboarding_complete: false,
-      }
     });
 
     console.log('Redirecting to Stripe onboarding:', accountLink.url);
