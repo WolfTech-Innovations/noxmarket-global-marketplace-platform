@@ -14,7 +14,7 @@ const currentPath = Astro.url.pathname;
         </svg>
         <span>NoxMarket</span>
       </a>
-      
+
       <div class="hidden md:flex items-center gap-8">
         <a 
           href="/" 
@@ -34,10 +34,10 @@ const currentPath = Astro.url.pathname;
         >
           Search
         </a>
-        
+
         {session ? (
           <>
-            {session.userType === 'seller' && (
+            {session.isSeller && (
               <a 
                 href="/dashboard" 
                 class={`text-sm font-medium transition-colors ${currentPath.startsWith('/dashboard') ? 'text-primary' : 'text-gray-600 hover:text-primary'}`}
@@ -68,14 +68,14 @@ const currentPath = Astro.url.pathname;
           </>
         )}
       </div>
-      
+
       <button id="mobile-menu-button" class="md:hidden text-primary">
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
         </svg>
       </button>
     </div>
-    
+
     <div id="mobile-menu" class="hidden md:hidden mt-4 pb-4 border-t border-gray-200 pt-4">
       <div class="flex flex-col gap-4">
         <a href="/" class="text-sm font-medium text-gray-600 hover:text-primary transition-colors">
@@ -89,7 +89,7 @@ const currentPath = Astro.url.pathname;
         </a>
         {session ? (
           <>
-            {session.userType === 'seller' && (
+            {session.isSeller && (
               <a href="/dashboard" class="text-sm font-medium text-gray-600 hover:text-primary transition-colors">
                 Dashboard
               </a>
@@ -121,7 +121,7 @@ const currentPath = Astro.url.pathname;
 <script>
   const mobileMenuButton = document.getElementById('mobile-menu-button');
   const mobileMenu = document.getElementById('mobile-menu');
-  
+
   if (mobileMenuButton && mobileMenu) {
     mobileMenuButton.addEventListener('click', () => {
       mobileMenu.classList.toggle('hidden');
