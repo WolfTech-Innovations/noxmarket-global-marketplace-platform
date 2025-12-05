@@ -33,29 +33,49 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
     const passwordHash = await hashPassword(password);
 
     let user;
+    let sellerProfile = null;
 
     if (userType === 'seller') {
-      // For sellers, create ONLY a seller object with all needed fields
+      // For sellers, create BOTH a user account AND a seller profile
+      
+      // First create the user account (so they can buy too)
+      const userData = {
+        type: 'users',
+        title: name,
+        slug: `user-${nanoid(10)}`,
+        metadata: {
+          name,
+          email,
+          password_hash: passwordHash,
+          user_type: 'seller', // Mark them as a seller
+          business_name: businessName // Store business name reference
+        }
+      };
+
+      console.log('Creating seller user account:', { name, email });
+      user = await createUser(userData);
+      console.log('Seller user account created:', user.id);
+
+      // Then create the seller profile (linked to user account)
       const sellerData = {
         type: 'sellers',
         title: businessName || `Seller - ${name}`,
-        slug: `seller-${nanoid(10)}`, // Add explicit slug
+        slug: `seller-${nanoid(10)}`,
         metadata: {
           business_name: businessName,
           email,
-          password_hash: passwordHash, // Store password in seller object
-          user_type: 'seller',
+          user_id: user.id, // Link to user account
           store_description: '',
           stripe_account_id: '',
           stripe_onboarding_complete: false,
           phone: '',
-          owner_name: name // Store the person's name separately
+          owner_name: name
         }
       };
 
-      console.log('Creating seller with data:', JSON.stringify(sellerData, null, 2));
-      user = await createUser(sellerData);
-      console.log('Seller created successfully:', user.id);
+      console.log('Creating seller profile:', { businessName, email });
+      sellerProfile = await createUser(sellerData);
+      console.log('Seller profile created:', sellerProfile.id);
 
     } else {
       // For buyers, create a regular user object
@@ -82,21 +102,19 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
       userId: user.id,
       email: user.metadata.email,
       userType: userType,
+      name: user.metadata.name || name,
     };
 
-    // Set name based on user type
-    if (userType === 'seller') {
-      session.name = user.metadata.business_name || businessName;
-      session.sellerId = user.id;
-      session.businessName = user.metadata.business_name;
-    } else {
-      session.name = user.metadata.name || name;
+    // If seller, add seller profile info
+    if (userType === 'seller' && sellerProfile) {
+      session.sellerId = sellerProfile.id;
+      session.businessName = businessName;
     }
 
-    console.log('Session created:', { userId: user.id, userType, name: session.name });
+    console.log('Session created:', { userId: user.id, userType, name: session.name, sellerId: session.sellerId });
 
     storeSession(sessionToken, session);
-    setSessionCookie(cookies, sessionToken);
+    setSessionCookie(cookies, sessionToken, session);
 
     // Redirect based on user type
     if (userType === 'seller') {
