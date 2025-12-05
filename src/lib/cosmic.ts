@@ -18,7 +18,7 @@ export async function getProducts() {
       .find({ type: 'products' })
       .props(['id', 'title', 'slug', 'metadata'])
       .depth(1);
-    
+
     return response.objects;
   } catch (error) {
     if (hasStatus(error) && error.status === 404) {
@@ -34,7 +34,7 @@ export async function getProduct(slug: string) {
       .findOne({ type: 'products', slug })
       .props(['id', 'title', 'slug', 'metadata'])
       .depth(1);
-    
+
     return response.object;
   } catch (error) {
     if (hasStatus(error) && error.status === 404) {
@@ -50,7 +50,7 @@ export async function getCategories() {
     const response = await cosmic.objects
       .find({ type: 'categories' })
       .props(['id', 'title', 'slug', 'metadata']);
-    
+
     return response.objects;
   } catch (error) {
     if (hasStatus(error) && error.status === 404) {
@@ -66,7 +66,7 @@ export async function getSeller(id: string) {
     const response = await cosmic.objects
       .findOne({ type: 'sellers', id })
       .props(['id', 'title', 'slug', 'metadata']);
-    
+
     return response.object;
   } catch (error) {
     if (hasStatus(error) && error.status === 404) {
@@ -82,7 +82,7 @@ export async function getSellerByEmail(email: string) {
       .find({ type: 'sellers', 'metadata.email': email })
       .props(['id', 'title', 'slug', 'metadata'])
       .limit(1);
-    
+
     const sellers = response.objects;
     return sellers.length > 0 ? sellers[0] : null;
   } catch (error) {
@@ -100,7 +100,7 @@ export async function getSellerOrders(sellerId: string) {
       .find({ type: 'orders', 'metadata.seller': sellerId })
       .props(['id', 'title', 'metadata'])
       .depth(1);
-    
+
     return response.objects;
   } catch (error) {
     if (hasStatus(error) && error.status === 404) {
@@ -128,32 +128,41 @@ export async function getUserByEmail(email: string) {
         type: 'users',
         'metadata.email': email,
       })
-      .props('id,slug,title,metadata')
+      .props('id,slug,title,type,metadata')
       .limit(1);
 
     if (usersResult.objects && usersResult.objects.length > 0) {
       return usersResult.objects[0];
     }
+  } catch (error: any) {
+    // 404 just means no users found, which is fine
+    if (error?.status !== 404) {
+      console.error('Error fetching user from users:', error);
+    }
+  }
 
+  try {
     // If not found in users, try sellers
     const sellersResult = await cosmic.objects
       .find({
         type: 'sellers',
         'metadata.email': email,
       })
-      .props('id,slug,title,metadata')
+      .props('id,slug,title,type,metadata')
       .limit(1);
 
     if (sellersResult.objects && sellersResult.objects.length > 0) {
       return sellersResult.objects[0];
     }
-
-    // User not found
-    return null;
-  } catch (error) {
-    console.error('Error fetching user by email:', error);
-    return null;
+  } catch (error: any) {
+    // 404 just means no sellers found, which is fine
+    if (error?.status !== 404) {
+      console.error('Error fetching user from sellers:', error);
+    }
   }
+
+  // User not found in either collection
+  return null;
 }
 
 export async function createUser(userData: any) {
@@ -164,15 +173,15 @@ export async function createUser(userData: any) {
       email: userData.metadata?.email,
       slug: userData.slug 
     });
-    
+
     const response = await cosmic.objects.insertOne(userData);
-    
+
     console.log('User created successfully:', response.object.id);
     return response.object;
   } catch (error: any) {
     console.error('Cosmic insertOne error:', error);
     console.error('Failed userData:', JSON.stringify(userData, null, 2));
-    
+
     // Log detailed error information
     if (error) {
       console.error('Error details:', {
@@ -184,7 +193,7 @@ export async function createUser(userData: any) {
         stack: error.stack
       });
     }
-    
+
     // Throw a more descriptive error
     const errorMsg = error.message || error.toString();
     throw new Error(`Failed to create user: ${errorMsg}`);
