@@ -1,5 +1,6 @@
 ---
 import '@/styles/global.css';
+import Analytics from '@vercel/analytics/astro';
 
 export interface Props {
   title: string;
@@ -24,6 +25,7 @@ const bucketSlug = import.meta.env.COSMIC_BUCKET_SLUG;
     <title>{title}</title>
     <!-- Console capture script for dashboard debugging -->
     <script src="/dashboard-console-capture.js" is:inline></script>
+    <Analytics />
   </head>
   <body>
     <slot />

@@ -1,0 +1,27 @@
+/* empty css                                 */
+import { e as createComponent, k as renderComponent, r as renderTemplate, m as maybeRenderHead } from '../chunks/astro/server_D4-WhsIa.mjs';
+import 'piccolore';
+import { $ as $$Layout, a as $$Header, b as $$Footer } from '../chunks/Footer_Ck1w-9zV.mjs';
+export { renderers } from '../renderers.mjs';
+
+const $$Contact = createComponent(($$result, $$props, $$slots) => {
+  return renderTemplate`${renderComponent($$result, "Layout", $$Layout, { "title": "Contact Us - NoxMarket" }, { "default": ($$result2) => renderTemplate` ${renderComponent($$result2, "Header", $$Header, {})} ${maybeRenderHead()}<main class="py-12"> <div class="container-custom"> <div class="max-w-2xl mx-auto"> <h1 class="text-4xl font-bold mb-8">Contact Us</h1> <div class="card p-8"> <p class="text-gray-600 mb-6">
+Have questions? We'd love to hear from you. Send us a message and we'll respond as soon as possible.
+</p> <form class="space-y-4"> <div> <label class="block font-medium mb-2">Name</label> <input type="text" required class="input"> </div> <div> <label class="block font-medium mb-2">Email</label> <input type="email" required class="input"> </div> <div> <label class="block font-medium mb-2">Subject</label> <input type="text" required class="input"> </div> <div> <label class="block font-medium mb-2">Message</label> <textarea rows="5" required class="input"></textarea> </div> <button type="submit" class="btn btn-primary w-full">
+Send Message
+</button> </form> </div> </div> </div> </main> ${renderComponent($$result2, "Footer", $$Footer, {})} ` })}`;
+}, "/vercel/sandbox/primary/src/pages/contact.astro", void 0);
+
+const $$file = "/vercel/sandbox/primary/src/pages/contact.astro";
+const $$url = "/contact";
+
+const _page = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
+  __proto__: null,
+  default: $$Contact,
+  file: $$file,
+  url: $$url
+}, Symbol.toStringTag, { value: 'Module' }));
+
+const page = () => _page;
+
+export { page };
