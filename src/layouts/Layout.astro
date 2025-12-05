@@ -1,6 +1,7 @@
 ---
 import '@/styles/global.css';
 import Analytics from '@vercel/analytics/astro';
+import SpeedInsights from '@vercel/speed-insights/astro';
 
 export interface Props {
   title: string;
@@ -26,6 +27,7 @@ const bucketSlug = import.meta.env.COSMIC_BUCKET_SLUG;
     <!-- Console capture script for dashboard debugging -->
     <script src="/dashboard-console-capture.js" is:inline></script>
     <Analytics />
+    <SpeedInsights />
   </head>
   <body>
     <slot />
