@@ -1,12 +1,19 @@
 // src/pages/api/seller/create.ts
 import type { APIRoute } from 'astro';
 import { createUser, cosmic } from '@/lib/cosmic';
-import { getSession } from '@/lib/auth';
+import { getSession, storeSession, setSessionCookie } from '@/lib/auth';
 import { nanoid } from 'nanoid';
 
 export const POST: APIRoute = async ({ request, cookies, redirect }) => {
   try {
-    const session = getSession(cookies);
+    // Get session token from cookies
+    const sessionToken = cookies.get('session')?.value;
+    
+    if (!sessionToken) {
+      return redirect('/login?error=Please log in first');
+    }
+
+    const session = getSession(sessionToken);
 
     if (!session || !session.userId) {
       return redirect('/login?error=Please log in first');
@@ -69,17 +76,17 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
       }
     });
 
-    // Update session
-    session.isSeller = true;
-    session.sellerId = sellerProfile.id;
-    session.businessName = businessName;
+    // Update session with new seller info
+    const updatedSession: any = {
+      ...session,
+      isSeller: true,
+      sellerId: sellerProfile.id,
+      businessName: businessName
+    };
 
-    // Re-store the updated session
-    const sessionToken = cookies.get('session')?.value;
-    if (sessionToken) {
-      const { storeSession } = await import('@/lib/auth');
-      storeSession(sessionToken, session);
-    }
+    // Store updated session
+    storeSession(sessionToken, updatedSession);
+    setSessionCookie(cookies, sessionToken, updatedSession);
 
     return redirect('/dashboard?success=Seller account created successfully');
   } catch (error) {
