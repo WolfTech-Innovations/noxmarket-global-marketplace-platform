@@ -64,7 +64,7 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
 
     // Redirect based on user type
     if (userType === 'seller') {
-      return redirect('/seller/dashboard');
+      return redirect('/dashboard');
     }
     
     return redirect('/profile');
