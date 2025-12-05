@@ -8,52 +8,48 @@ import type { Order } from '@/types';
 
 const session = getSessionFromCookies(Astro.cookies);
 
-if (!session || session.userType !== 'seller' || !session.sellerId) {
+if (!session || !session.isSeller || !session.sellerId) {
   return Astro.redirect('/login');
 }
 
 const orders = await getSellerOrders(session.sellerId);
 const sellerProfile = await getSeller(session.sellerId);
 
-// Calculate stats
 const totalOrders = orders.length;
 const pendingOrders = orders.filter((o: Order) => o.metadata.order_status === 'pending').length;
-const totalRevenue = orders.reduce((sum: number, order: Order) => {
-  if (order.metadata.payment_status === 'paid') {
-    return sum + (order.metadata.order_total || 0);
-  }
-  return sum;
-}, 0);
+const totalRevenue = orders.reduce((sum: number, order: Order) => 
+  order.metadata.payment_status === 'paid' ? sum + (order.metadata.order_total || 0) : sum, 0
+);
 
 const hasStripeAccount = sellerProfile?.metadata?.stripe_account_id;
 const isSetupComplete = hasStripeAccount && sellerProfile?.metadata?.store_description;
+
+const statusStyles = {
+  delivered: 'bg-green-100 text-green-800',
+  shipped: 'bg-blue-100 text-blue-800',
+  processing: 'bg-yellow-100 text-yellow-800',
+  default: 'bg-gray-100 text-gray-800'
+};
 ---
 
 <Layout title="Seller Dashboard - NoxMarket">
   <Header />
 
-  <main class="py-8 md:py-12 bg-gray-50 min-h-screen">
+  <main class="py-16 bg-gray-50 min-h-screen">
     <div class="container-custom">
-      <!-- Header Section -->
-      <div class="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <!-- Header -->
+      <div class="mb-12 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 class="text-3xl md:text-4xl font-bold mb-2">
+          <h1 class="text-5xl font-medium tracking-tight text-gray-900 mb-2">
             Welcome back, {session.businessName || session.name}! 👋
           </h1>
-          <p class="text-gray-600">Here's what's happening with your store today</p>
+          <p class="text-xl text-gray-600">Here's what's happening with your store today</p>
         </div>
         <div class="flex gap-3">
           <a href="/dashboard/products" class="btn btn-primary">
-            <svg class="w-5 h-5 mr-2 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-            </svg>
             Add Product
           </a>
-          <a href="/dashboard/settings" class="btn bg-white border-2 border-gray-300 text-gray-700 hover:bg-gray-50">
-            <svg class="w-5 h-5 mr-2 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
+          <a href="/dashboard/settings" class="btn btn-secondary">
             Settings
           </a>
         </div>
@@ -61,27 +57,18 @@ const isSetupComplete = hasStripeAccount && sellerProfile?.metadata?.store_descr
 
       <!-- Setup Alert -->
       {!isSetupComplete && (
-        <div class="mb-8 bg-gradient-to-r from-amber-50 to-orange-50 border-l-4 border-amber-500 rounded-xl p-6 shadow-sm animate-fade-in">
+        <div class="mb-12 card-elevated p-6 bg-gradient-to-r from-amber-50 to-orange-50 border-l-4 border-amber-500">
           <div class="flex items-start gap-4">
-            <div class="flex-shrink-0">
-              <svg class="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
-            </div>
+            <svg class="w-6 h-6 text-amber-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
             <div class="flex-1">
-              <h3 class="font-bold text-amber-900 mb-2">Complete Your Store Setup</h3>
+              <h3 class="font-semibold text-amber-900 mb-2">Complete Your Store Setup</h3>
               <p class="text-amber-800 mb-4">
-                {!hasStripeAccount && !sellerProfile?.metadata?.store_description
-                  ? 'Add your Stripe Account ID and store description to start receiving payments.'
-                  : !hasStripeAccount
-                  ? 'Add your Stripe Account ID to start receiving payments.'
-                  : 'Add a store description to help customers find you.'}
+                {!hasStripeAccount ? 'Add your Stripe Account ID to start receiving payments.' : 'Add a store description to help customers find you.'}
               </p>
-              <a href="/dashboard/settings" class="inline-flex items-center px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors font-medium">
-                Complete Setup
-                <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                </svg>
+              <a href="/dashboard/settings" class="btn btn-primary">
+                Complete Setup →
               </a>
             </div>
           </div>
@@ -89,200 +76,128 @@ const isSetupComplete = hasStripeAccount && sellerProfile?.metadata?.store_descr
       )}
 
       <!-- Stats Grid -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div class="bg-white rounded-2xl shadow-sm hover:shadow-md transition-shadow p-6 border border-gray-100">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+        <div class="card-elevated p-6 state-layer">
           <div class="flex items-center justify-between mb-4">
-            <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
+            <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center elevation-2">
               <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
               </svg>
             </div>
-            <span class="text-xs font-semibold text-blue-600 bg-blue-50 px-3 py-1 rounded-full">All Time</span>
+            <span class="chip bg-blue-600 text-white text-xs">All Time</span>
           </div>
           <p class="text-gray-600 text-sm font-medium mb-1">Total Orders</p>
-          <p class="text-4xl font-bold text-gray-900">{totalOrders}</p>
+          <p class="text-4xl font-medium text-gray-900">{totalOrders}</p>
         </div>
 
-        <div class="bg-white rounded-2xl shadow-sm hover:shadow-md transition-shadow p-6 border border-gray-100">
+        <div class="card-elevated p-6 state-layer">
           <div class="flex items-center justify-between mb-4">
-            <div class="w-12 h-12 bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg">
+            <div class="w-12 h-12 bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl flex items-center justify-center elevation-2">
               <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
-            {pendingOrders > 0 && (
-              <span class="text-xs font-semibold text-orange-600 bg-orange-50 px-3 py-1 rounded-full animate-pulse">
-                Needs Action
-              </span>
-            )}
+            {pendingOrders > 0 && <span class="chip bg-orange-600 text-white text-xs animate-pulse">Action</span>}
           </div>
           <p class="text-gray-600 text-sm font-medium mb-1">Pending Orders</p>
-          <p class="text-4xl font-bold text-gray-900">{pendingOrders}</p>
+          <p class="text-4xl font-medium text-gray-900">{pendingOrders}</p>
         </div>
 
-        <div class="bg-white rounded-2xl shadow-sm hover:shadow-md transition-shadow p-6 border border-gray-100">
+        <div class="card-elevated p-6 state-layer">
           <div class="flex items-center justify-between mb-4">
-            <div class="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg">
+            <div class="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center elevation-2">
               <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
-            <span class="text-xs font-semibold text-green-600 bg-green-50 px-3 py-1 rounded-full">USD</span>
+            <span class="chip text-xs">USD</span>
           </div>
           <p class="text-gray-600 text-sm font-medium mb-1">Total Revenue</p>
-          <p class="text-4xl font-bold text-gray-900">${totalRevenue.toFixed(2)}</p>
+          <p class="text-4xl font-medium text-gray-900">${totalRevenue.toFixed(2)}</p>
         </div>
       </div>
 
       <!-- Quick Actions -->
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-        <a href="/dashboard/products" class="bg-white rounded-xl p-4 hover:shadow-md transition-all border border-gray-100 group">
-          <div class="flex items-center gap-3">
-            <div class="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center group-hover:bg-blue-100 transition-colors">
-              <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
+        {[
+          { href: '/dashboard/products', icon: 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4', label: 'Products', color: 'blue' },
+          { href: '/dashboard/orders', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2', label: 'Orders', color: 'purple' },
+          { href: '/dashboard/analytics', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z', label: 'Analytics', color: 'green' },
+          { href: '/dashboard/settings', icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z', label: 'Settings', color: 'gray' }
+        ].map(action => (
+          <a href={action.href} class="card state-layer p-4 group">
+            <div class={`w-10 h-10 bg-${action.color}-50 rounded-xl flex items-center justify-center mb-3 group-hover:bg-${action.color}-100 motion-emphasized`}>
+              <svg class={`w-5 h-5 text-${action.color}-600`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={action.icon} />
               </svg>
             </div>
-            <div>
-              <p class="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">Products</p>
-              <p class="text-xs text-gray-500">Manage inventory</p>
-            </div>
-          </div>
-        </a>
-
-        <a href="/dashboard/orders" class="bg-white rounded-xl p-4 hover:shadow-md transition-all border border-gray-100 group">
-          <div class="flex items-center gap-3">
-            <div class="w-10 h-10 bg-purple-50 rounded-lg flex items-center justify-center group-hover:bg-purple-100 transition-colors">
-              <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-              </svg>
-            </div>
-            <div>
-              <p class="font-semibold text-gray-900 group-hover:text-purple-600 transition-colors">Orders</p>
-              <p class="text-xs text-gray-500">View all orders</p>
-            </div>
-          </div>
-        </a>
-
-        <a href="/dashboard/analytics" class="bg-white rounded-xl p-4 hover:shadow-md transition-all border border-gray-100 group">
-          <div class="flex items-center gap-3">
-            <div class="w-10 h-10 bg-green-50 rounded-lg flex items-center justify-center group-hover:bg-green-100 transition-colors">
-              <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-              </svg>
-            </div>
-            <div>
-              <p class="font-semibold text-gray-900 group-hover:text-green-600 transition-colors">Analytics</p>
-              <p class="text-xs text-gray-500">View insights</p>
-            </div>
-          </div>
-        </a>
-
-        <a href="/dashboard/settings" class="bg-white rounded-xl p-4 hover:shadow-md transition-all border border-gray-100 group">
-          <div class="flex items-center gap-3">
-            <div class="w-10 h-10 bg-gray-50 rounded-lg flex items-center justify-center group-hover:bg-gray-100 transition-colors">
-              <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-            </div>
-            <div>
-              <p class="font-semibold text-gray-900 group-hover:text-gray-600 transition-colors">Settings</p>
-              <p class="text-xs text-gray-500">Store config</p>
-            </div>
-          </div>
-        </a>
+            <p class="font-medium text-gray-900">{action.label}</p>
+          </a>
+        ))}
       </div>
 
       <!-- Recent Orders -->
-      <div class="bg-white rounded-2xl shadow-sm p-6 md:p-8 border border-gray-100">
+      <div class="card-elevated p-8">
         <div class="flex items-center justify-between mb-6">
           <div>
-            <h2 class="text-2xl font-bold text-gray-900">Recent Orders</h2>
-            <p class="text-sm text-gray-500 mt-1">Your latest customer orders</p>
+            <h2 class="text-3xl font-medium text-gray-900">Recent Orders</h2>
+            <p class="text-gray-600 mt-1">Your latest customer orders</p>
           </div>
-          <a href="/dashboard/orders" class="text-accent font-semibold hover:underline flex items-center gap-1 group">
-            View All
-            <svg class="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-            </svg>
+          <a href="/dashboard/orders" class="text-blue-600 font-medium hover:underline flex items-center gap-1">
+            View All →
           </a>
         </div>
 
         {orders.length === 0 ? (
-          <div class="text-center py-16 bg-gray-50 rounded-xl">
+          <div class="text-center py-20 bg-gray-50 rounded-3xl">
             <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <svg class="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
               </svg>
             </div>
-            <h3 class="text-xl font-bold text-gray-900 mb-2">No Orders Yet</h3>
-            <p class="text-gray-600 mb-6">When customers purchase your products, orders will appear here</p>
-            <a href="/dashboard/products" class="btn btn-primary inline-flex items-center">
-              <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-              </svg>
-              Add Your First Product
-            </a>
+            <h3 class="text-2xl font-medium text-gray-900 mb-2">No Orders Yet</h3>
+            <p class="text-gray-600 mb-6">Orders will appear here when customers purchase your products</p>
+            <a href="/dashboard/products" class="btn btn-primary">Add Your First Product</a>
           </div>
         ) : (
-          <div class="overflow-x-auto -mx-6 md:mx-0">
-            <div class="inline-block min-w-full align-middle">
-              <table class="min-w-full">
-                <thead class="bg-gray-50">
-                  <tr>
-                    <th class="text-left py-3 px-4 font-semibold text-gray-700 text-sm">Order #</th>
-                    <th class="text-left py-3 px-4 font-semibold text-gray-700 text-sm">Customer</th>
-                    <th class="text-left py-3 px-4 font-semibold text-gray-700 text-sm">Product</th>
-                    <th class="text-left py-3 px-4 font-semibold text-gray-700 text-sm">Total</th>
-                    <th class="text-left py-3 px-4 font-semibold text-gray-700 text-sm">Status</th>
-                    <th class="text-left py-3 px-4 font-semibold text-gray-700 text-sm">Action</th>
+          <div class="overflow-x-auto">
+            <table class="min-w-full">
+              <thead class="border-b border-gray-200">
+                <tr>
+                  <th class="text-left py-3 px-4 font-medium text-gray-700">Order #</th>
+                  <th class="text-left py-3 px-4 font-medium text-gray-700">Customer</th>
+                  <th class="text-left py-3 px-4 font-medium text-gray-700">Product</th>
+                  <th class="text-left py-3 px-4 font-medium text-gray-700">Total</th>
+                  <th class="text-left py-3 px-4 font-medium text-gray-700">Status</th>
+                  <th class="text-left py-3 px-4 font-medium text-gray-700">Action</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-100">
+                {orders.slice(0, 5).map((order: Order) => (
+                  <tr class="hover:bg-gray-50 motion-standard">
+                    <td class="py-4 px-4 font-mono text-sm font-medium">#{order.metadata.order_number}</td>
+                    <td class="py-4 px-4">
+                      <div>
+                        <p class="font-medium text-gray-900">{order.metadata.buyer_name}</p>
+                        <p class="text-sm text-gray-500">{order.metadata.buyer_email}</p>
+                      </div>
+                    </td>
+                    <td class="py-4 px-4 font-medium">{order.metadata.product?.metadata?.product_name || 'Unknown'}</td>
+                    <td class="py-4 px-4 font-semibold">${order.metadata.order_total.toFixed(2)}</td>
+                    <td class="py-4 px-4">
+                      <span class={`chip text-xs ${statusStyles[order.metadata.order_status as keyof typeof statusStyles] || statusStyles.default}`}>
+                        {order.metadata.order_status}
+                      </span>
+                    </td>
+                    <td class="py-4 px-4">
+                      <a href={`/dashboard/orders/${order.id}`} class="text-blue-600 hover:underline font-medium">
+                        View
+                      </a>
+                    </td>
                   </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-100">
-                  {orders.slice(0, 5).map((order: Order) => (
-                    <tr class="hover:bg-gray-50 transition-colors">
-                      <td class="py-4 px-4">
-                        <span class="font-mono text-sm font-semibold text-gray-900">
-                          #{order.metadata.order_number}
-                        </span>
-                      </td>
-                      <td class="py-4 px-4">
-                        <div>
-                          <p class="font-semibold text-gray-900">{order.metadata.buyer_name}</p>
-                          <p class="text-sm text-gray-500">{order.metadata.buyer_email}</p>
-                        </div>
-                      </td>
-                      <td class="py-4 px-4">
-                        <p class="text-gray-900 font-medium">
-                          {order.metadata.product?.metadata?.product_name || 'Unknown'}
-                        </p>
-                      </td>
-                      <td class="py-4 px-4">
-                        <span class="font-bold text-gray-900">
-                          ${order.metadata.order_total.toFixed(2)}
-                        </span>
-                      </td>
-                      <td class="py-4 px-4">
-                        <span class={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${
-                          order.metadata.order_status === 'delivered' ? 'bg-green-100 text-green-800' :
-                          order.metadata.order_status === 'shipped' ? 'bg-blue-100 text-blue-800' :
-                          order.metadata.order_status === 'processing' ? 'bg-yellow-100 text-yellow-800' :
-                          'bg-gray-100 text-gray-800'
-                        }`}>
-                          {order.metadata.order_status}
-                        </span>
-                      </td>
-                      <td class="py-4 px-4">
-                        <a href={`/dashboard/orders/${order.id}`} class="text-accent hover:underline font-medium text-sm">
-                          View Details
-                        </a>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </div>
