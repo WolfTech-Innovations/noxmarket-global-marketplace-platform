@@ -14,36 +14,23 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
     const businessName = formData.get('business_name')?.toString();
     const storeDescription = formData.get('store_description')?.toString();
     const phone = formData.get('phone')?.toString();
-    const stripeAccountId = formData.get('stripe_account_id')?.toString();
 
     console.log('Updating seller settings:', {
       sellerId: session.sellerId,
-      businessName,
-      hasStripeId: !!stripeAccountId
+      businessName
     });
 
     if (!businessName) {
       return redirect('/dashboard/settings?error=Business name is required');
     }
 
-    if (!stripeAccountId) {
-      return redirect('/dashboard/settings?error=Stripe Account ID is required');
-    }
-
-    // Validate Stripe Account ID format
-    if (!stripeAccountId.startsWith('acct_')) {
-      return redirect('/dashboard/settings?error=Invalid Stripe Account ID format. It should start with "acct_"');
-    }
-
-    // Update seller profile in Cosmic
+    // Update seller profile in Cosmic (preserve existing Stripe data)
     await cosmic.objects.updateOne(session.sellerId, {
       title: businessName,
       metadata: {
         business_name: businessName,
         store_description: storeDescription || '',
-        phone: phone || '',
-        stripe_account_id: stripeAccountId,
-        stripe_onboarding_complete: true
+        phone: phone || ''
       }
     });
 
