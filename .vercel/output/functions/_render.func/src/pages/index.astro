@@ -1,0 +1,121 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import Header from '@/components/Header.astro';
+import Footer from '@/components/Footer.astro';
+import ProductCard from '@/components/ProductCard.astro';
+import SearchBar from '@/components/SearchBar.astro';
+import { getProducts } from '@/lib/cosmic';
+import type { Product } from '@/types';
+
+const products = await getProducts();
+const featuredProducts = products.slice(0, 6);
+---
+
+<Layout title="NoxMarket - Global Marketplace">
+  <Header />
+  
+  <main>
+    <!-- Hero Section -->
+    <section class="bg-gradient-to-br from-primary via-gray-dark to-primary text-secondary py-20">
+      <div class="container-custom">
+        <div class="max-w-3xl mx-auto text-center animate-fade-in">
+          <h1 class="text-5xl md:text-6xl font-bold mb-6 animate-slide-up">
+            Welcome to <span class="text-accent">NoxMarket</span>
+          </h1>
+          <p class="text-xl text-gray-300 mb-8 animate-slide-up animation-delay-100">
+            Discover unique products from sellers around the globe
+          </p>
+          <div class="max-w-2xl mx-auto animate-slide-up animation-delay-200">
+            <SearchBar />
+          </div>
+          <div class="flex items-center justify-center gap-4 mt-8 animate-slide-up animation-delay-300">
+            <a href="/products" class="btn btn-accent">
+              Browse Products
+            </a>
+            <a href="/signup?type=seller" class="btn btn-secondary">
+              Become a Seller
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+    
+    <!-- Featured Products -->
+    {featuredProducts.length > 0 && (
+      <section class="py-20">
+        <div class="container-custom">
+          <div class="text-center mb-12">
+            <h2 class="text-4xl font-bold mb-4">Featured Products</h2>
+            <p class="text-gray-600 text-lg">Check out our latest and most popular items</p>
+          </div>
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {featuredProducts.map((product: Product) => (
+              <ProductCard product={product} />
+            ))}
+          </div>
+          
+          <div class="text-center mt-12">
+            <a href="/products" class="btn btn-primary">
+              View All Products
+            </a>
+          </div>
+        </div>
+      </section>
+    )}
+    
+    <!-- Features Section -->
+    <section class="py-20 bg-gray-light">
+      <div class="container-custom">
+        <div class="text-center mb-12">
+          <h2 class="text-4xl font-bold mb-4">Why Choose NoxMarket?</h2>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div class="card p-8 text-center animate-slide-up">
+            <div class="w-16 h-16 bg-accent rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+            </div>
+            <h3 class="text-xl font-bold mb-2">Secure Payments</h3>
+            <p class="text-gray-600">All transactions powered by Stripe for maximum security</p>
+          </div>
+          
+          <div class="card p-8 text-center animate-slide-up animation-delay-100">
+            <div class="w-16 h-16 bg-accent rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+            </div>
+            <h3 class="text-xl font-bold mb-2">Easy Shopping</h3>
+            <p class="text-gray-600">Simple and intuitive shopping experience</p>
+          </div>
+          
+          <div class="card p-8 text-center animate-slide-up animation-delay-200">
+            <div class="w-16 h-16 bg-accent rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+            </div>
+            <h3 class="text-xl font-bold mb-2">Fast Delivery</h3>
+            <p class="text-gray-600">Quick and reliable shipping worldwide</p>
+          </div>
+        </div>
+      </div>
+    </section>
+    
+    <!-- CTA Section -->
+    <section class="py-20 bg-primary text-secondary">
+      <div class="container-custom text-center">
+        <h2 class="text-4xl font-bold mb-4">Ready to Start Selling?</h2>
+        <p class="text-xl text-gray-300 mb-8">Join thousands of sellers on NoxMarket today</p>
+        <a href="/signup?type=seller" class="btn btn-accent text-lg">
+          Get Started Now
+        </a>
+      </div>
+    </section>
+  </main>
+  
+  <Footer />
+</Layout>

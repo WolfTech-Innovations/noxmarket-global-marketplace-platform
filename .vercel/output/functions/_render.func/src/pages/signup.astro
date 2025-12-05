@@ -1,0 +1,114 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import Header from '@/components/Header.astro';
+import Footer from '@/components/Footer.astro';
+import { getSessionFromCookies } from '@/lib/auth';
+
+const session = getSessionFromCookies(Astro.cookies);
+
+if (session) {
+  return Astro.redirect('/profile');
+}
+
+const userType = Astro.url.searchParams.get('type') || 'buyer';
+const error = Astro.url.searchParams.get('error');
+---
+
+<Layout title="Sign Up - NoxMarket">
+  <Header />
+  
+  <main class="py-12">
+    <div class="container-custom">
+      <div class="max-w-md mx-auto">
+        <div class="card p-8">
+          <h1 class="text-3xl font-bold mb-6 text-center">Sign Up</h1>
+          
+          {error && (
+            <div class="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <p class="text-red-800 text-sm">{error}</p>
+            </div>
+          )}
+          
+          <div class="flex gap-2 mb-6">
+            <a 
+              href="/signup?type=buyer"
+              class={`flex-1 py-2 text-center rounded-lg font-medium transition-colors ${userType === 'buyer' ? 'bg-primary text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+            >
+              Buyer
+            </a>
+            <a 
+              href="/signup?type=seller"
+              class={`flex-1 py-2 text-center rounded-lg font-medium transition-colors ${userType === 'seller' ? 'bg-primary text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+            >
+              Seller
+            </a>
+          </div>
+          
+          <form action="/api/auth/signup" method="POST" class="space-y-4">
+            <input type="hidden" name="userType" value={userType} />
+            
+            <div>
+              <label class="block font-medium mb-2">Name</label>
+              <input 
+                type="text" 
+                name="name" 
+                required 
+                class="input"
+                placeholder="Your name"
+              />
+            </div>
+            
+            <div>
+              <label class="block font-medium mb-2">Email</label>
+              <input 
+                type="email" 
+                name="email" 
+                required 
+                class="input"
+                placeholder="your@email.com"
+              />
+            </div>
+            
+            <div>
+              <label class="block font-medium mb-2">Password</label>
+              <input 
+                type="password" 
+                name="password" 
+                required 
+                minlength="8"
+                class="input"
+                placeholder="••••••••"
+              />
+            </div>
+            
+            {userType === 'seller' && (
+              <div>
+                <label class="block font-medium mb-2">Business Name</label>
+                <input 
+                  type="text" 
+                  name="businessName" 
+                  required 
+                  class="input"
+                  placeholder="Your business name"
+                />
+              </div>
+            )}
+            
+            <button type="submit" class="btn btn-primary w-full">
+              Create Account
+            </button>
+          </form>
+          
+          <div class="mt-6 text-center">
+            <p class="text-gray-600">
+              Already have an account? 
+              <a href="/login" class="text-accent font-medium hover:underline">Login</a>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+  
+  <Footer />
+</Layout>
