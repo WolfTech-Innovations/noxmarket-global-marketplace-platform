@@ -38,7 +38,8 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
       // For sellers, create ONLY a seller object with all needed fields
       const sellerData = {
         type: 'sellers',
-        title: businessName,
+        title: businessName || `Seller - ${name}`,
+        slug: `seller-${nanoid(10)}`, // Add explicit slug
         metadata: {
           business_name: businessName,
           email,
@@ -52,15 +53,16 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
         }
       };
 
-      console.log('Creating seller:', { businessName, email });
+      console.log('Creating seller with data:', JSON.stringify(sellerData, null, 2));
       user = await createUser(sellerData);
-      console.log('Seller created:', user.id);
+      console.log('Seller created successfully:', user.id);
 
     } else {
       // For buyers, create a regular user object
       const userData = {
         type: 'users',
         title: name,
+        slug: `user-${nanoid(10)}`, // Add explicit slug
         metadata: {
           name,
           email,
@@ -69,9 +71,9 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
         }
       };
 
-      console.log('Creating buyer:', { name, email });
+      console.log('Creating buyer with data:', JSON.stringify(userData, null, 2));
       user = await createUser(userData);
-      console.log('Buyer created:', user.id);
+      console.log('Buyer created successfully:', user.id);
     }
 
     // Create session
@@ -98,7 +100,7 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
 
     // Redirect based on user type
     if (userType === 'seller') {
-      return redirect('/seller/dashboard');
+      return redirect('/dashboard');
     }
 
     return redirect('/profile');
