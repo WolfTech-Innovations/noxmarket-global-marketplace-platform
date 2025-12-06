@@ -1,0 +1,195 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import Header from '@/components/Header.astro';
+import Footer from '@/components/Footer.astro';
+import { getSessionFromCookies } from '@/lib/auth';
+import { cosmic } from '@/lib/cosmic';
+import type { Product } from '@/types';
+
+const session = getSessionFromCookies(Astro.cookies);
+
+if (!session || !session.isSeller || !session.sellerId) {
+  return Astro.redirect('/login');
+}
+
+// Get seller's products
+let products: Product[] = [];
+try {
+  const response = await cosmic.objects
+    .find({
+      type: 'products',
+      'metadata.seller': session.sellerId
+    })
+    .props('id,slug,title,metadata,created_at')
+    .depth(1);
+  
+  products = response.objects || [];
+} catch (error) {
+  console.error('Error fetching products:', error);
+}
+
+const successMessage = Astro.url.searchParams.get('success');
+const errorMessage = Astro.url.searchParams.get('error');
+---
+
+<Layout title="Manage Products - NoxMarket">
+  <Header />
+
+  <main class="py-16 bg-gray-50 min-h-screen">
+    <div class="container-custom">
+      <!-- Header -->
+      <div class="mb-12 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <a href="/dashboard" class="text-blue-600 hover:underline mb-4 inline-flex items-center gap-2 font-medium">
+            ← Back to Dashboard
+          </a>
+          <h1 class="text-5xl font-medium tracking-tight text-gray-900 mb-2 mt-4">Your Products</h1>
+          <p class="text-xl text-gray-600">Manage your inventory and listings</p>
+        </div>
+        <a href="/dashboard/products/new" class="btn btn-primary">
+          Add New Product
+        </a>
+      </div>
+
+      <!-- Success/Error Messages -->
+      {successMessage && (
+        <div class="mb-8 card-elevated p-4 bg-green-50 border-l-4 border-green-500">
+          <div class="flex items-center gap-3">
+            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+            <p class="text-green-800 font-medium">{successMessage}</p>
+          </div>
+        </div>
+      )}
+
+      {errorMessage && (
+        <div class="mb-8 card-elevated p-4 bg-red-50 border-l-4 border-red-500">
+          <div class="flex items-center gap-3">
+            <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+            <p class="text-red-800 font-medium">{errorMessage}</p>
+          </div>
+        </div>
+      )}
+
+      <!-- Products Grid -->
+      {products.length === 0 ? (
+        <div class="card-elevated p-20 text-center">
+          <div class="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <svg class="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+            </svg>
+          </div>
+          <h2 class="text-3xl font-medium text-gray-900 mb-3">No Products Yet</h2>
+          <p class="text-gray-600 mb-8 text-lg">Start by adding your first product to your store</p>
+          <a href="/dashboard/products/new" class="btn btn-primary text-lg">
+            Add Your First Product
+          </a>
+        </div>
+      ) : (
+        <>
+          <!-- Stats -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="card-elevated p-6">
+              <p class="text-gray-600 text-sm font-medium mb-1">Total Products</p>
+              <p class="text-4xl font-medium text-gray-900">{products.length}</p>
+            </div>
+            <div class="card-elevated p-6">
+              <p class="text-gray-600 text-sm font-medium mb-1">In Stock</p>
+              <p class="text-4xl font-medium text-gray-900">
+                {products.filter(p => p.metadata.in_stock).length}
+              </p>
+            </div>
+            <div class="card-elevated p-6">
+              <p class="text-gray-600 text-sm font-medium mb-1">Out of Stock</p>
+              <p class="text-4xl font-medium text-gray-900">
+                {products.filter(p => !p.metadata.in_stock).length}
+              </p>
+            </div>
+          </div>
+
+          <!-- Products Table -->
+          <div class="card-elevated p-8">
+            <div class="overflow-x-auto">
+              <table class="min-w-full">
+                <thead class="border-b border-gray-200">
+                  <tr>
+                    <th class="text-left py-3 px-4 font-medium text-gray-700">Product</th>
+                    <th class="text-left py-3 px-4 font-medium text-gray-700">Price</th>
+                    <th class="text-left py-3 px-4 font-medium text-gray-700">Stock</th>
+                    <th class="text-left py-3 px-4 font-medium text-gray-700">Status</th>
+                    <th class="text-left py-3 px-4 font-medium text-gray-700">Actions</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                  {products.map((product: Product) => (
+                    <tr class="hover:bg-gray-50 motion-standard">
+                      <td class="py-4 px-4">
+                        <div class="flex items-center gap-3">
+                          {product.metadata.product_images?.[0] ? (
+                            <img 
+                              src={product.metadata.product_images[0].imgix_url || product.metadata.product_images[0].url}
+                              alt={product.metadata.product_name}
+                              class="w-12 h-12 rounded-lg object-cover"
+                            />
+                          ) : (
+                            <div class="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
+                              <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                              </svg>
+                            </div>
+                          )}
+                          <div>
+                            <p class="font-medium text-gray-900">{product.metadata.product_name}</p>
+                            <p class="text-sm text-gray-500 line-clamp-1">{product.metadata.description}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td class="py-4 px-4 font-semibold text-gray-900">
+                        ${product.metadata.price.toFixed(2)}
+                      </td>
+                      <td class="py-4 px-4 text-gray-900">
+                        {product.metadata.stock_quantity || 0}
+                      </td>
+                      <td class="py-4 px-4">
+                        <span class={`chip text-xs ${
+                          product.metadata.in_stock 
+                            ? 'bg-green-100 text-green-800' 
+                            : 'bg-red-100 text-red-800'
+                        }`}>
+                          {product.metadata.in_stock ? 'In Stock' : 'Out of Stock'}
+                        </span>
+                      </td>
+                      <td class="py-4 px-4">
+                        <div class="flex items-center gap-2">
+                          <a 
+                            href={`/dashboard/products/edit/${product.id}`}
+                            class="text-blue-600 hover:underline font-medium"
+                          >
+                            Edit
+                          </a>
+                          <span class="text-gray-300">|</span>
+                          <a 
+                            href={`/products/${product.slug}`}
+                            target="_blank"
+                            class="text-gray-600 hover:underline"
+                          >
+                            View
+                          </a>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  </main>
+
+  <Footer />
+</Layout>
