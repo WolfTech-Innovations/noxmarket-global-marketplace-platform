@@ -135,7 +135,7 @@ const errorMessage = Astro.url.searchParams.get('error');
                   class="input w-full"
                 >
                   <option value="">Select a category</option>
-                  {categories.map((category) => (
+                  {categories.map((category: any) => (
                     <option value={category.id}>
                       {category.metadata.category_name}
                     </option>
