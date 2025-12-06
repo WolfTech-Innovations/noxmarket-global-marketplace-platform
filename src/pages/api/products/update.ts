@@ -29,7 +29,11 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
       id: productId
     }).props('metadata');
 
-    if (existingProduct.object.metadata.seller !== session.sellerId) {
+    const sellerId = typeof existingProduct.object.metadata.seller === 'string'
+      ? existingProduct.object.metadata.seller
+      : existingProduct.object.metadata.seller?.id;
+
+    if (sellerId !== session.sellerId) {
       return redirect('/dashboard/products?error=Unauthorized');
     }
 
