@@ -29,7 +29,11 @@ try {
   product = response.object as Product;
 
   // Verify this product belongs to the seller
-  if (product.metadata.seller !== session.sellerId) {
+  const sellerId = typeof product.metadata.seller === 'string' 
+    ? product.metadata.seller 
+    : product.metadata.seller?.id;
+    
+  if (sellerId !== session.sellerId) {
     return Astro.redirect('/dashboard/products?error=Unauthorized');
   }
 } catch (error) {
