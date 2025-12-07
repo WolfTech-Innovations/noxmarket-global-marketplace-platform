@@ -10,7 +10,7 @@ export interface SEOProps {
 }
 
 export function generateMetaTags(seo: SEOProps) {
-  const baseUrl = import.meta.env.SITE || 'https://noxmarket.vercel.app';
+  const baseUrl = import.meta.env.SITE || 'https://nox.wolfos.uk';
   const fullUrl = seo.url ? `${baseUrl}${seo.url}` : baseUrl;
   const imageUrl = seo.image || `${baseUrl}/og-image.jpg`;
   
@@ -57,8 +57,8 @@ export function generateOrganizationJsonLd(baseUrl: string) {
   return {
     '@context': 'https://schema.org',
     '@type': 'Organization',
-    name: 'NoxMarket',
-    description: 'Global marketplace powered by WolfTech Innovations',
+    name: 'Nox',
+    description: 'Used PC part market by WolfTech Innovations',
     url: baseUrl,
     logo: `${baseUrl}/logo.png`
   };
