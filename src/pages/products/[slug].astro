@@ -26,13 +26,29 @@ if (!product) {
   return Astro.redirect('/404');
 }
 
-// Extract and prepare product data with proper null checks
-const productImages = product.metadata.product_images ?? [];
-const primaryImage = productImages[0];
-const imageUrl = primaryImage 
-  ? `${primaryImage.imgix_url}?w=1200&h=1200&fit=crop&auto=format,compress` 
-  : '';
+// Normalize product images to always be an array
+let productImages = product.metadata.product_images;
 
+if (!productImages) {
+  // No images at all
+  productImages = [];
+} else if (!Array.isArray(productImages)) {
+  // Single image (object or string) - wrap in array
+  productImages = [productImages];
+} else {
+  // Already an array - filter out any invalid entries
+  productImages = productImages.filter(img => 
+    img && (img.imgix_url || img.url)
+  );
+}
+
+// Extract primary image with safe access
+const primaryImage = productImages[0];
+const imageUrl = primaryImage?.imgix_url 
+  ? `${primaryImage.imgix_url}?w=1200&h=1200&fit=crop&auto=format,compress` 
+  : primaryImage?.url || '';
+
+// Price and stock data with proper null checks
 const price = product.metadata.price ?? 0;
 const formattedPrice = price > 0 ? `$${price.toFixed(2)}` : 'Price not available';
 const inStock = product.metadata.in_stock ?? false;
@@ -50,6 +66,7 @@ const categoryIcon = category?.metadata?.category_icon;
 // SEO data with error handling
 const baseUrl = import.meta.env.SITE || 'https://noxmarket.com';
 let jsonLd;
+
 try {
   jsonLd = generateProductJsonLd(product, baseUrl);
 } catch (error) {
@@ -60,11 +77,14 @@ try {
     "@type": "Product",
     "name": product.metadata.product_name,
     "description": product.metadata.description?.substring(0, 160) || '',
+    ...(imageUrl && { "image": imageUrl }),
     "offers": {
       "@type": "Offer",
       "price": price,
       "priceCurrency": "USD",
-      "availability": inStock ? "https://schema.org/InStock" : "https://schema.org/OutOfStock"
+      "availability": inStock 
+        ? "https://schema.org/InStock" 
+        : "https://schema.org/OutOfStock"
     }
   };
 }
@@ -79,8 +99,10 @@ try {
 
     <!-- Open Graph meta tags for better social sharing -->
     <meta property="og:title" content={`${product.metadata.product_name} - NoxMarket`} />
-    <meta property="og:description" content={product.metadata.description?.substring(0, 160)} />
-    <meta property="og:image" content={imageUrl} />
+    {product.metadata.description && (
+      <meta property="og:description" content={product.metadata.description.substring(0, 160)} />
+    )}
+    {imageUrl && <meta property="og:image" content={imageUrl} />}
     <meta property="og:type" content="product" />
     <meta property="product:price:amount" content={price.toString()} />
     <meta property="product:price:currency" content="USD" />
@@ -135,18 +157,24 @@ try {
               <!-- Additional images preview (if multiple images exist) -->
               {productImages.length > 1 && (
                 <div class="mt-4 grid grid-cols-4 gap-2">
-                  {productImages.slice(1, 5).map((img: { imgix_url: string }) => (
-                    <div class="aspect-square rounded-lg overflow-hidden bg-gray-100 border-2 border-transparent hover:border-primary transition-all cursor-pointer">
-                      <img 
-                        src={`${img.imgix_url}?w=200&h=200&fit=crop&auto=format,compress`}
-                        alt={`${product.metadata.product_name} additional view`}
-                        class="w-full h-full object-cover"
-                        width="100"
-                        height="100"
-                        loading="lazy"
-                      />
-                    </div>
-                  ))}
+                  {productImages.slice(1, 5).map((img) => {
+                    const thumbUrl = img.imgix_url 
+                      ? `${img.imgix_url}?w=200&h=200&fit=crop&auto=format,compress`
+                      : img.url;
+                    
+                    return thumbUrl ? (
+                      <div class="aspect-square rounded-lg overflow-hidden bg-gray-100 border-2 border-transparent hover:border-primary transition-all cursor-pointer">
+                        <img 
+                          src={thumbUrl}
+                          alt={`${product.metadata.product_name} additional view`}
+                          class="w-full h-full object-cover"
+                          width="100"
+                          height="100"
+                          loading="lazy"
+                        />
+                      </div>
+                    ) : null;
+                  })}
                 </div>
               )}
             </div>
@@ -269,7 +297,7 @@ try {
                 href={`/products?category=${category.slug}`}
                 class="inline-flex items-center gap-3 px-5 py-3 bg-white rounded-xl hover:bg-gray-50 transition-all border border-gray-200 shadow-sm hover:shadow-md group"
               >
-                {categoryIcon && (
+                {categoryIcon?.imgix_url && (
                   <img 
                     src={`${categoryIcon.imgix_url}?w=40&h=40&fit=crop&auto=format,compress`}
                     alt=""
