@@ -1,0 +1,28 @@
+{
+  "background_color": "#ffffff",
+  "description": "Nox, PC part market powered by WolfTech Innovations",
+  "dir": "ltr",
+  "display": "standalone",
+  "name": "nox.wolfos.uk",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "short_name": "nox.wolfos",
+  "start_url": "nox.wolfos.uk",
+  "theme_color": "#ffffff",
+  "icons": [
+    {
+      "src": "https://nox.wolfos.uk/favicon.svg",
+      "type": "image/svg+xml",
+      "isSquare": false,
+      "isPng": false,
+      "isWebp": false,
+      "isJpg": false,
+      "width": 0,
+      "is512x512": false,
+      "is256x256": false,
+      "is192x192": false
+    }
+  ],
+  "id": "100",
+  "lang": "en"
+}
