@@ -1,2 +1,2 @@
-# NoxMarket - Global Marketplace
-## NoxMarket -- The Marketplace of now
+# NoxMarket - Used PC part Marketplace
+## NoxMarket -- The PC part Marketplace of now and then
