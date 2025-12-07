@@ -25,8 +25,8 @@ const errorMessage = Astro.url.searchParams.get('error');
         <a href="/dashboard/products" class="text-blue-600 hover:underline mb-4 inline-flex items-center gap-2 font-medium">
           ← Back to Products
         </a>
-        <h1 class="text-5xl font-medium tracking-tight text-gray-900 mb-2 mt-4">Add New Product</h1>
-        <p class="text-xl text-gray-600">List a new product in your store</p>
+        <h1 class="text-5xl font-medium tracking-tight text-gray-900 mb-2 mt-4">List New Component</h1>
+        <p class="text-xl text-gray-600">Add a verified PC component to your store</p>
       </div>
 
       <!-- Error Message -->
@@ -143,6 +143,149 @@ const errorMessage = Astro.url.searchParams.get('error');
                 </select>
               </div>
             )}
+          </div>
+        </div>
+
+        <!-- Verification & Testing (NEW) -->
+        <div class="card-elevated p-8 bg-gradient-to-br from-blue-50 to-indigo-50">
+          <div class="flex items-center gap-3 mb-6">
+            <div class="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center">
+              <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0121 12c0 5.523-4.477 10-10 10S1 17.523 1 12 5.477 2 11 2c1.821 0 3.532.49 5.003 1.343" />
+              </svg>
+            </div>
+            <div>
+              <h2 class="text-2xl font-medium text-gray-900">Verification & Benchmarks</h2>
+              <p class="text-gray-600">Required for all PC components</p>
+            </div>
+          </div>
+
+          <div class="space-y-5">
+            <div>
+              <label for="condition" class="block text-sm font-medium text-gray-700 mb-2">
+                Component Condition <span class="text-red-500">*</span>
+              </label>
+              <select id="condition" name="condition" class="input w-full" required>
+                <option value="">Select condition</option>
+                <option value="new">Brand New - Sealed</option>
+                <option value="like-new">Like New - Opened, never used</option>
+                <option value="excellent">Excellent - Lightly used</option>
+                <option value="good">Good - Normal wear</option>
+                <option value="fair">Fair - Heavy use, fully functional</option>
+              </select>
+            </div>
+
+            <div>
+              <label for="benchmark_results" class="block text-sm font-medium text-gray-700 mb-2">
+                Benchmark Results <span class="text-red-500">*</span>
+              </label>
+              <textarea
+                id="benchmark_results"
+                name="benchmark_results"
+                rows="4"
+                class="input w-full resize-none"
+                placeholder="e.g., 3DMark Time Spy: 12,543 | Cinebench R23: 18,245 | UserBenchmark: 95th percentile"
+                required
+              ></textarea>
+              <p class="text-sm text-gray-500 mt-2">Include results from 3DMark, Cinebench, UserBenchmark, or other standard tools</p>
+            </div>
+
+            <div>
+              <label for="testing_notes" class="block text-sm font-medium text-gray-700 mb-2">
+                Testing Notes
+              </label>
+              <textarea
+                id="testing_notes"
+                name="testing_notes"
+                rows="3"
+                class="input w-full resize-none"
+                placeholder="Hours tested, temperatures, stability testing results, etc."
+              ></textarea>
+            </div>
+
+            <div>
+              <label for="warranty_info" class="block text-sm font-medium text-gray-700 mb-2">
+                Warranty Information
+              </label>
+              <input
+                type="text"
+                id="warranty_info"
+                name="warranty_info"
+                class="input w-full"
+                placeholder="e.g., 2 years manufacturer warranty remaining"
+              />
+            </div>
+          </div>
+        </div>
+
+        <!-- Compatibility Info (NEW) -->
+        <div class="card-elevated p-8">
+          <div class="flex items-center gap-3 mb-6">
+            <div class="w-12 h-12 bg-green-100 rounded-2xl flex items-center justify-center">
+              <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+              </svg>
+            </div>
+            <div>
+              <h2 class="text-2xl font-medium text-gray-900">Compatibility Information</h2>
+              <p class="text-gray-600">Help buyers ensure compatibility</p>
+            </div>
+          </div>
+
+          <div class="space-y-5">
+            <div class="grid md:grid-cols-2 gap-5">
+              <div>
+                <label for="socket_type" class="block text-sm font-medium text-gray-700 mb-2">
+                  Socket/Interface Type
+                </label>
+                <input
+                  type="text"
+                  id="socket_type"
+                  name="socket_type"
+                  class="input w-full"
+                  placeholder="e.g., LGA 1700, AM5, PCIe 4.0 x16"
+                />
+              </div>
+
+              <div>
+                <label for="form_factor" class="block text-sm font-medium text-gray-700 mb-2">
+                  Form Factor
+                </label>
+                <input
+                  type="text"
+                  id="form_factor"
+                  name="form_factor"
+                  class="input w-full"
+                  placeholder="e.g., ATX, Micro-ATX, M.2 2280"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label for="power_requirements" class="block text-sm font-medium text-gray-700 mb-2">
+                Power Requirements
+              </label>
+              <input
+                type="text"
+                id="power_requirements"
+                name="power_requirements"
+                class="input w-full"
+                placeholder="e.g., 750W+ recommended, 2x 8-pin PCIe"
+              />
+            </div>
+
+            <div>
+              <label for="dimensions" class="block text-sm font-medium text-gray-700 mb-2">
+                Dimensions (L x W x H)
+              </label>
+              <input
+                type="text"
+                id="dimensions"
+                name="dimensions"
+                class="input w-full"
+                placeholder="e.g., 300mm x 120mm x 40mm"
+              />
+            </div>
           </div>
         </div>
 
