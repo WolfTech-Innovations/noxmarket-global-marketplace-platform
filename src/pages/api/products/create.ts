@@ -19,15 +19,15 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
     const categoryId = formData.get('category')?.toString();
     const inStock = formData.get('in_stock') === 'true';
     
-    // PC-specific fields
-    const condition = formData.get('condition')?.toString();
-    const benchmarkResults = formData.get('benchmark_results')?.toString();
-    const testingNotes = formData.get('testing_notes')?.toString();
-    const warrantyInfo = formData.get('warranty_info')?.toString();
-    const socketType = formData.get('socket_type')?.toString();
-    const formFactor = formData.get('form_factor')?.toString();
-    const powerRequirements = formData.get('power_requirements')?.toString();
-    const dimensions = formData.get('dimensions')?.toString();
+    // PC-specific fields (optional, with defaults)
+    const condition = formData.get('condition')?.toString() || 'good';
+    const benchmarkResults = formData.get('benchmark_results')?.toString() || 'Not provided';
+    const testingNotes = formData.get('testing_notes')?.toString() || '';
+    const warrantyInfo = formData.get('warranty_info')?.toString() || '';
+    const socketType = formData.get('socket_type')?.toString() || '';
+    const formFactor = formData.get('form_factor')?.toString() || '';
+    const powerRequirements = formData.get('power_requirements')?.toString() || '';
+    const dimensions = formData.get('dimensions')?.toString() || '';
 
     console.log('Creating product:', {
       productName,
@@ -37,11 +37,11 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
       sellerId: session.sellerId
     });
 
-    if (!productName || !description || price <= 0 || !condition || !benchmarkResults) {
-      return redirect('/dashboard/products/new?error=Please fill in all required fields including condition and benchmarks');
+    if (!productName || !description || price <= 0) {
+      return redirect('/dashboard/products/new?error=Please fill in all required fields');
     }
 
-    // Create product data
+    // Create product data - Cosmic will auto-create missing metafields
     const productData: any = {
       type: 'products',
       title: productName,
@@ -53,17 +53,17 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
         stock_quantity: stockQuantity,
         in_stock: inStock,
         seller: session.sellerId,
-        // PC-specific verification fields
+        // PC-specific verification fields (auto-created if missing)
         condition: condition,
         benchmark_results: benchmarkResults,
-        testing_notes: testingNotes || '',
-        warranty_info: warrantyInfo || '',
-        // Compatibility fields
-        socket_type: socketType || '',
-        form_factor: formFactor || '',
-        power_requirements: powerRequirements || '',
-        dimensions: dimensions || '',
-        // Trust features
+        testing_notes: testingNotes,
+        warranty_info: warrantyInfo,
+        // Compatibility fields (auto-created if missing)
+        socket_type: socketType,
+        form_factor: formFactor,
+        power_requirements: powerRequirements,
+        dimensions: dimensions,
+        // Trust features (auto-created if missing)
         verified: true,
         escrow_eligible: true
       }
