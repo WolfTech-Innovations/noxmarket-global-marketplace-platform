@@ -47,9 +47,27 @@ const category = product.metadata.category;
 const categoryName = category?.metadata?.category_name || 'Uncategorized';
 const categoryIcon = category?.metadata?.category_icon;
 
-// SEO data
+// SEO data with error handling
 const baseUrl = import.meta.env.SITE || 'https://noxmarket.com';
-const jsonLd = generateProductJsonLd(product, baseUrl);
+let jsonLd;
+try {
+  jsonLd = generateProductJsonLd(product, baseUrl);
+} catch (error) {
+  console.error('Error generating JSON-LD:', error);
+  // Create minimal fallback JSON-LD
+  jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    "name": product.metadata.product_name,
+    "description": product.metadata.description?.substring(0, 160) || '',
+    "offers": {
+      "@type": "Offer",
+      "price": price,
+      "priceCurrency": "USD",
+      "availability": inStock ? "https://schema.org/InStock" : "https://schema.org/OutOfStock"
+    }
+  };
+}
 ---
 
 <Layout 
@@ -58,7 +76,7 @@ const jsonLd = generateProductJsonLd(product, baseUrl);
 >
   <Fragment slot="head">
     <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} is:inline />
-    
+
     <!-- Open Graph meta tags for better social sharing -->
     <meta property="og:title" content={`${product.metadata.product_name} - NoxMarket`} />
     <meta property="og:description" content={product.metadata.description?.substring(0, 160)} />
@@ -67,9 +85,9 @@ const jsonLd = generateProductJsonLd(product, baseUrl);
     <meta property="product:price:amount" content={price.toString()} />
     <meta property="product:price:currency" content="USD" />
   </Fragment>
-  
+
   <Header />
-  
+
   <main class="py-8 md:py-12">
     <div class="container-custom">
       <!-- Breadcrumb navigation -->
@@ -113,7 +131,7 @@ const jsonLd = generateProductJsonLd(product, baseUrl);
                   loading="eager"
                 />
               </div>
-              
+
               <!-- Additional images preview (if multiple images exist) -->
               {productImages.length > 1 && (
                 <div class="mt-4 grid grid-cols-4 gap-2">
@@ -140,14 +158,14 @@ const jsonLd = generateProductJsonLd(product, baseUrl);
             </div>
           )}
         </div>
-        
+
         <!-- Product Details Section -->
         <div class="animate-slide-up">
           <!-- Product Title -->
           <h1 class="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 leading-tight">
             {product.metadata.product_name}
           </h1>
-          
+
           <!-- Price and Stock Status -->
           <div class="flex flex-wrap items-center gap-4 mb-6 pb-6 border-b border-gray-200">
             <div>
@@ -156,7 +174,7 @@ const jsonLd = generateProductJsonLd(product, baseUrl);
                 {formattedPrice}
               </span>
             </div>
-            
+
             <div class="flex items-center gap-2">
               {inStock ? (
                 <span class="flex items-center gap-2 px-4 py-2 bg-green-50 text-green-700 rounded-full text-sm font-medium border border-green-200">
@@ -175,7 +193,7 @@ const jsonLd = generateProductJsonLd(product, baseUrl);
               )}
             </div>
           </div>
-          
+
           <!-- Seller Information -->
           {seller && (
             <div class="mb-6 p-5 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl border border-gray-200">
@@ -191,7 +209,7 @@ const jsonLd = generateProductJsonLd(product, baseUrl);
               </div>
             </div>
           )}
-          
+
           <!-- Product Description -->
           <div class="mb-8">
             <h2 class="text-xl font-bold mb-3">Product Description</h2>
@@ -200,12 +218,12 @@ const jsonLd = generateProductJsonLd(product, baseUrl);
               set:html={product.metadata.description || 'No description available.'}
             />
           </div>
-          
+
           <!-- Purchase Form -->
           {inStock ? (
             <form action="/api/checkout" method="POST" class="space-y-5 p-6 bg-gray-50 rounded-xl border border-gray-200">
               <input type="hidden" name="productId" value={product.slug} />
-              
+
               <div>
                 <label for="quantity" class="block text-sm font-semibold mb-2 text-gray-900">
                   Quantity
@@ -222,7 +240,7 @@ const jsonLd = generateProductJsonLd(product, baseUrl);
                 />
                 <p class="text-xs text-gray-500 mt-1">Maximum: {stockQuantity} units</p>
               </div>
-              
+
               <button 
                 type="submit" 
                 class="btn btn-primary w-full text-lg py-4 font-semibold shadow-lg hover:shadow-xl transition-all"
@@ -242,7 +260,7 @@ const jsonLd = generateProductJsonLd(product, baseUrl);
               <p class="text-sm text-gray-500">This product is out of stock. Check back later!</p>
             </div>
           )}
-          
+
           <!-- Category Badge -->
           {category && (
             <div class="mt-8 pt-6 border-t border-gray-200">
@@ -273,6 +291,6 @@ const jsonLd = generateProductJsonLd(product, baseUrl);
       </div>
     </div>
   </main>
-  
+
   <Footer />
 </Layout>
