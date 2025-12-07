@@ -10,7 +10,7 @@ export interface SEOProps {
 }
 
 export function generateMetaTags(seo: SEOProps) {
-  const baseUrl = import.meta.env.SITE || 'https://noxmarket.com';
+  const baseUrl = import.meta.env.SITE || 'https://noxmarket.vercel.app';
   const fullUrl = seo.url ? `${baseUrl}${seo.url}` : baseUrl;
   const imageUrl = seo.image || `${baseUrl}/og-image.jpg`;
   
