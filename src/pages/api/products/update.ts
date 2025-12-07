@@ -47,10 +47,15 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
       return redirect('/dashboard/products?error=Unauthorized');
     }
 
-    // Update product - Cosmic will auto-create missing metafields
+    // Get existing metadata to preserve fields we're not updating
+    const existingMetadata = existingProduct.object.metadata;
+
+    // Update product - merge with existing metadata to preserve everything
     const updateData: any = {
       title: productName,
       metadata: {
+        ...existingMetadata, // Preserve all existing fields
+        // Update specific fields
         product_name: productName,
         description: description,
         price: price,
