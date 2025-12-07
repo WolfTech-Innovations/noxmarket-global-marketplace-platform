@@ -18,16 +18,27 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
     const stockQuantity = parseInt(formData.get('stock_quantity')?.toString() || '0');
     const categoryId = formData.get('category')?.toString();
     const inStock = formData.get('in_stock') === 'true';
+    
+    // PC-specific fields
+    const condition = formData.get('condition')?.toString();
+    const benchmarkResults = formData.get('benchmark_results')?.toString();
+    const testingNotes = formData.get('testing_notes')?.toString();
+    const warrantyInfo = formData.get('warranty_info')?.toString();
+    const socketType = formData.get('socket_type')?.toString();
+    const formFactor = formData.get('form_factor')?.toString();
+    const powerRequirements = formData.get('power_requirements')?.toString();
+    const dimensions = formData.get('dimensions')?.toString();
 
     console.log('Creating product:', {
       productName,
       price,
       stockQuantity,
+      condition,
       sellerId: session.sellerId
     });
 
-    if (!productName || !description || price <= 0) {
-      return redirect('/dashboard/products/new?error=Please fill in all required fields');
+    if (!productName || !description || price <= 0 || !condition || !benchmarkResults) {
+      return redirect('/dashboard/products/new?error=Please fill in all required fields including condition and benchmarks');
     }
 
     // Create product data
@@ -41,7 +52,20 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
         price: price,
         stock_quantity: stockQuantity,
         in_stock: inStock,
-        seller: session.sellerId
+        seller: session.sellerId,
+        // PC-specific verification fields
+        condition: condition,
+        benchmark_results: benchmarkResults,
+        testing_notes: testingNotes || '',
+        warranty_info: warrantyInfo || '',
+        // Compatibility fields
+        socket_type: socketType || '',
+        form_factor: formFactor || '',
+        power_requirements: powerRequirements || '',
+        dimensions: dimensions || '',
+        // Trust features
+        verified: true,
+        escrow_eligible: true
       }
     };
 
