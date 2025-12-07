@@ -25,6 +25,19 @@ export interface Product extends CosmicObject {
     seller: Seller;
     stock_quantity: number;
     in_stock: boolean;
+    // PC-specific verification fields
+    condition?: string;
+    benchmark_results?: string;
+    testing_notes?: string;
+    warranty_info?: string;
+    // Compatibility fields
+    socket_type?: string;
+    form_factor?: string;
+    power_requirements?: string;
+    dimensions?: string;
+    // Trust features
+    verified?: boolean;
+    escrow_eligible?: boolean;
   };
 }
 
