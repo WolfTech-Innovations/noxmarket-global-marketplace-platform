@@ -1,0 +1,214 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import Header from '@/components/Header.astro';
+import Footer from '@/components/Footer.astro';
+import { getSessionFromCookies } from '@/lib/auth';
+import { getSellerOrders } from '@/lib/cosmic';
+import type { Order } from '@/types';
+
+const session = getSessionFromCookies(Astro.cookies);
+
+if (!session || !session.isSeller || !session.sellerId) {
+  return Astro.redirect('/login');
+}
+
+const orders = await getSellerOrders(session.sellerId);
+
+// Sort by most recent
+const sortedOrders = orders.sort((a: Order, b: Order) => 
+  new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+);
+
+const successMessage = Astro.url.searchParams.get('success');
+
+const statusColors = {
+  pending: 'bg-yellow-100 text-yellow-800',
+  processing: 'bg-blue-100 text-blue-800',
+  shipped: 'bg-purple-100 text-purple-800',
+  delivered: 'bg-green-100 text-green-800',
+  cancelled: 'bg-red-100 text-red-800'
+};
+
+const paymentColors = {
+  pending: 'bg-yellow-100 text-yellow-800',
+  paid: 'bg-green-100 text-green-800',
+  refunded: 'bg-gray-100 text-gray-800'
+};
+---
+
+<Layout title="Orders - Nox Dashboard">
+  <Header />
+
+  <main class="py-16 bg-gray-50 min-h-screen">
+    <div class="container-custom">
+      <!-- Header -->
+      <div class="mb-12">
+        <a href="/dashboard" class="text-blue-600 hover:underline mb-4 inline-flex items-center gap-2 font-medium">
+          ← Back to Dashboard
+        </a>
+        <h1 class="text-5xl font-medium tracking-tight text-gray-900 mb-2 mt-4">Orders</h1>
+        <p class="text-xl text-gray-600">Manage your component sales</p>
+      </div>
+
+      <!-- Success Message -->
+      {successMessage && (
+        <div class="mb-8 card-elevated p-4 bg-green-50 border-l-4 border-green-500">
+          <div class="flex items-center gap-3">
+            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+            <p class="text-green-800 font-medium">{successMessage}</p>
+          </div>
+        </div>
+      )}
+
+      <!-- Stats -->
+      <div class="grid md:grid-cols-4 gap-6 mb-8">
+        <div class="card-elevated p-6">
+          <p class="text-gray-600 text-sm font-medium mb-1">Total Orders</p>
+          <p class="text-4xl font-medium text-gray-900">{orders.length}</p>
+        </div>
+        <div class="card-elevated p-6">
+          <p class="text-gray-600 text-sm font-medium mb-1">Pending</p>
+          <p class="text-4xl font-medium text-yellow-600">
+            {orders.filter((o: Order) => o.metadata.order_status === 'pending').length}
+          </p>
+        </div>
+        <div class="card-elevated p-6">
+          <p class="text-gray-600 text-sm font-medium mb-1">Shipped</p>
+          <p class="text-4xl font-medium text-purple-600">
+            {orders.filter((o: Order) => o.metadata.order_status === 'shipped').length}
+          </p>
+        </div>
+        <div class="card-elevated p-6">
+          <p class="text-gray-600 text-sm font-medium mb-1">Delivered</p>
+          <p class="text-4xl font-medium text-green-600">
+            {orders.filter((o: Order) => o.metadata.order_status === 'delivered').length}
+          </p>
+        </div>
+      </div>
+
+      <!-- Orders Table -->
+      {orders.length === 0 ? (
+        <div class="card-elevated p-24 text-center">
+          <div class="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <svg class="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+          </div>
+          <h2 class="text-3xl font-medium text-gray-900 mb-3">No Orders Yet</h2>
+          <p class="text-gray-600 text-lg mb-8 max-w-md mx-auto">
+            When customers purchase your components, orders will appear here
+          </p>
+          <a href="/dashboard/products" class="btn btn-primary">
+            View Your Products
+          </a>
+        </div>
+      ) : (
+        <div class="card-elevated overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="min-w-full">
+              <thead class="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th class="text-left py-4 px-6 font-medium text-gray-700">Order #</th>
+                  <th class="text-left py-4 px-6 font-medium text-gray-700">Customer</th>
+                  <th class="text-left py-4 px-6 font-medium text-gray-700">Component</th>
+                  <th class="text-left py-4 px-6 font-medium text-gray-700">Total</th>
+                  <th class="text-left py-4 px-6 font-medium text-gray-700">Order Status</th>
+                  <th class="text-left py-4 px-6 font-medium text-gray-700">Payment</th>
+                  <th class="text-left py-4 px-6 font-medium text-gray-700">Date</th>
+                  <th class="text-left py-4 px-6 font-medium text-gray-700">Actions</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-100">
+                {sortedOrders.map((order: Order) => (
+                  <tr class="hover:bg-gray-50 motion-standard">
+                    <td class="py-4 px-6">
+                      <span class="font-mono text-sm font-semibold text-gray-900">
+                        #{order.metadata.order_number}
+                      </span>
+                    </td>
+                    <td class="py-4 px-6">
+                      <div>
+                        <p class="font-medium text-gray-900">{order.metadata.buyer_name}</p>
+                        <p class="text-sm text-gray-500">{order.metadata.buyer_email}</p>
+                      </div>
+                    </td>
+                    <td class="py-4 px-6">
+                      <p class="text-gray-900 font-medium">
+                        {order.metadata.product?.metadata?.product_name || 'Unknown'}
+                      </p>
+                    </td>
+                    <td class="py-4 px-6">
+                      <span class="font-semibold text-gray-900">
+                        ${order.metadata.order_total.toFixed(2)}
+                      </span>
+                    </td>
+                    <td class="py-4 px-6">
+                      <span class={`chip text-xs ${statusColors[order.metadata.order_status as keyof typeof statusColors] || 'bg-gray-100 text-gray-800'}`}>
+                        {order.metadata.order_status}
+                      </span>
+                    </td>
+                    <td class="py-4 px-6">
+                      <span class={`chip text-xs ${paymentColors[order.metadata.payment_status as keyof typeof paymentColors] || 'bg-gray-100 text-gray-800'}`}>
+                        {order.metadata.payment_status}
+                      </span>
+                    </td>
+                    <td class="py-4 px-6 text-sm text-gray-600">
+                      {new Date(order.created_at).toLocaleDateString()}
+                    </td>
+                    <td class="py-4 px-6">
+                      <a 
+                        href={`/dashboard/orders/${order.id}`}
+                        class="text-blue-600 hover:underline font-medium"
+                      >
+                        View Details
+                      </a>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      <!-- Help Section -->
+      <div class="mt-12 card-elevated p-8 bg-gradient-to-br from-blue-50 to-indigo-50">
+        <div class="flex items-start gap-4">
+          <div class="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center flex-shrink-0">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <div>
+            <h3 class="font-semibold text-gray-900 mb-2">Escrow Protection Active</h3>
+            <p class="text-gray-700 mb-4">
+              All orders are protected by our 30-day escrow system. Funds are held securely until the buyer confirms the component works properly. Update order status promptly to ensure smooth transactions.
+            </p>
+            <div class="flex flex-wrap gap-4">
+              <div class="flex items-center gap-2 text-sm">
+                <span class="w-2 h-2 bg-yellow-500 rounded-full"></span>
+                <span class="text-gray-700"><strong>Pending:</strong> Awaiting shipment</span>
+              </div>
+              <div class="flex items-center gap-2 text-sm">
+                <span class="w-2 h-2 bg-blue-500 rounded-full"></span>
+                <span class="text-gray-700"><strong>Processing:</strong> Being prepared</span>
+              </div>
+              <div class="flex items-center gap-2 text-sm">
+                <span class="w-2 h-2 bg-purple-500 rounded-full"></span>
+                <span class="text-gray-700"><strong>Shipped:</strong> In transit</span>
+              </div>
+              <div class="flex items-center gap-2 text-sm">
+                <span class="w-2 h-2 bg-green-500 rounded-full"></span>
+                <span class="text-gray-700"><strong>Delivered:</strong> Complete</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <Footer />
+</Layout>
