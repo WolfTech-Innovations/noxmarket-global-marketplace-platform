@@ -130,7 +130,7 @@ try {
 
               {productImages.length > 1 && (
                 <div class="mt-4 grid grid-cols-4 gap-2">
-                  {productImages.slice(1, 5).map((img) => {
+                  {productImages.slice(1, 5).map((img: { url: string; imgix_url: string }) => {
                     const thumbUrl = img.imgix_url ? `${img.imgix_url}?w=200&h=200&fit=crop` : img.url;
                     return thumbUrl ? (
                       <div class="aspect-square rounded-2xl overflow-hidden bg-gray-100 border-2 border-transparent hover:border-blue-500 transition-all cursor-pointer">
