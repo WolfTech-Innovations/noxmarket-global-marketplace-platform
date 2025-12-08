@@ -12,25 +12,9 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
   try {
     const formData = await request.formData();
     const productId = formData.get('product_id')?.toString();
-    const productName = formData.get('product_name')?.toString();
-    const description = formData.get('description')?.toString();
-    const price = parseFloat(formData.get('price')?.toString() || '0');
-    const stockQuantity = parseInt(formData.get('stock_quantity')?.toString() || '0');
-    const categoryId = formData.get('category')?.toString();
-    const inStock = formData.get('in_stock') === 'true';
-    
-    // PC-specific fields (optional, with defaults)
-    const condition = formData.get('condition')?.toString() || 'good';
-    const benchmarkResults = formData.get('benchmark_results')?.toString() || 'Not provided';
-    const testingNotes = formData.get('testing_notes')?.toString() || '';
-    const warrantyInfo = formData.get('warranty_info')?.toString() || '';
-    const socketType = formData.get('socket_type')?.toString() || '';
-    const formFactor = formData.get('form_factor')?.toString() || '';
-    const powerRequirements = formData.get('power_requirements')?.toString() || '';
-    const dimensions = formData.get('dimensions')?.toString() || '';
 
-    if (!productId || !productName || !description || price <= 0) {
-      return redirect(`/dashboard/products/edit/${productId}?error=Please fill in all required fields`);
+    if (!productId) {
+      return redirect('/dashboard/products?error=Product ID missing');
     }
 
     // Verify product belongs to this seller
@@ -47,30 +31,69 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
       return redirect('/dashboard/products?error=Unauthorized');
     }
 
-    // Get existing metadata to preserve fields we're not updating
-    const existingMetadata = existingProduct.object.metadata;
+    // Parse form fields
+    const productName = formData.get('product_name')?.toString();
+    const description = formData.get('description')?.toString();
+    const price = parseFloat(formData.get('price')?.toString() || '0');
+    const stockQuantity = parseInt(formData.get('stock_quantity')?.toString() || '0');
+    const categoryId = formData.get('category')?.toString();
+    const inStock = formData.get('in_stock') === 'true';
 
-    // Update product - merge with existing metadata to preserve everything
+    if (!productName || !description || price <= 0) {
+      return redirect(`/dashboard/products/edit/${productId}?error=Please fill in all required fields`);
+    }
+
+    // Handle image uploads
+    const imageFiles = formData.getAll('product_images') as File[];
+    let productImages = existingProduct.object.metadata.product_images;
+
+    // Check if new images were uploaded
+    const hasNewImages = imageFiles.some(file => file.size > 0);
+
+    if (hasNewImages) {
+      const uploadedImages = [];
+      
+      for (const file of imageFiles) {
+        if (file.size > 0) {
+          try {
+            const uploadResult = await cosmic.media.insertOne({
+              media: file,
+              folder: 'product-images'
+            });
+            uploadedImages.push(uploadResult.media);
+          } catch (uploadError) {
+            console.error('Error uploading image:', uploadError);
+          }
+        }
+      }
+      
+      if (uploadedImages.length > 0) {
+        productImages = uploadedImages;
+      }
+    }
+
+    // Get existing metadata and remove product_images from spread
+    const { product_images, ...metadataWithoutImages } = existingProduct.object.metadata;
+
+    // Build update data
     const updateData: any = {
       title: productName,
       metadata: {
-        ...existingMetadata, // Preserve all existing fields
-        // Update specific fields
+        ...metadataWithoutImages,
         product_name: productName,
         description: description,
         price: price,
         stock_quantity: stockQuantity,
         in_stock: inStock,
-        // PC-specific verification fields (auto-created if missing)
-        condition: condition,
-        benchmark_results: benchmarkResults,
-        testing_notes: testingNotes,
-        warranty_info: warrantyInfo,
-        // Compatibility fields (auto-created if missing)
-        socket_type: socketType,
-        form_factor: formFactor,
-        power_requirements: powerRequirements,
-        dimensions: dimensions
+        condition: formData.get('condition')?.toString() || 'good',
+        benchmark_results: formData.get('benchmark_results')?.toString() || 'Not provided',
+        testing_notes: formData.get('testing_notes')?.toString() || '',
+        warranty_info: formData.get('warranty_info')?.toString() || '',
+        socket_type: formData.get('socket_type')?.toString() || '',
+        form_factor: formData.get('form_factor')?.toString() || '',
+        power_requirements: formData.get('power_requirements')?.toString() || '',
+        dimensions: formData.get('dimensions')?.toString() || '',
+        product_images: productImages // Add back the images (new or existing)
       }
     };
 
