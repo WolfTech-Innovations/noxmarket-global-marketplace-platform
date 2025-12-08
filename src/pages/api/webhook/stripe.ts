@@ -62,7 +62,7 @@ export const POST: APIRoute = async ({ request }) => {
 
         if (sellerId) {
           // Generate order number
-          const orderNumber = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+          const orderNumber = `ORD-${Date.now()}-${Math.random().toString(36).substring(2, 11).toUpperCase()}`;
 
           // Prepare order data matching your dashboard structure
           const orderData = {
