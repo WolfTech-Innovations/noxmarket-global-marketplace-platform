@@ -35,7 +35,7 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
 
     // Handle image uploads
     const imageFiles = formData.getAll('product_images') as File[];
-    const uploadedImages = [];
+    const uploadedImageNames = [];
 
     for (const file of imageFiles) {
       if (file.size > 0) {
@@ -44,7 +44,8 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
             media: file,
             folder: 'product-images'
           });
-          uploadedImages.push(uploadResult.media);
+          // Use the 'name' property for file metafields!
+          uploadedImageNames.push(uploadResult.media.name);
         } catch (uploadError) {
           console.error('Error uploading image:', uploadError);
         }
@@ -52,7 +53,7 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
     }
 
     // Require at least one image
-    if (uploadedImages.length === 0) {
+    if (uploadedImageNames.length === 0) {
       return redirect('/dashboard/products/new?error=Please upload at least one product image');
     }
 
@@ -68,7 +69,7 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
         stock_quantity: stockQuantity,
         in_stock: inStock,
         seller: session.sellerId,
-        product_images: uploadedImages, // Add the uploaded images
+        product_images: uploadedImageNames, // Add the uploaded image names
         condition: condition,
         benchmark_results: benchmarkResults,
         testing_notes: testingNotes,
