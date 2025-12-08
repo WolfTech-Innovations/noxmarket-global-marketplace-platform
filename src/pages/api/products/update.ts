@@ -44,34 +44,34 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
     }
 
     // Handle image uploads
-    const imageFiles = formData.getAll('product_images') as File[];
+    const imageFiles = formData.getAll('product_images');
     let productImages = existingProduct.object.metadata.product_images;
 
-    // Check if new images were uploaded
-    const hasNewImages = imageFiles.some(file => file.size > 0);
+    // Filter out empty file inputs and check if we have real files
+    const validFiles = imageFiles.filter((file): file is File => 
+      file instanceof File && file.size > 0
+    );
 
-    if (hasNewImages) {
+    if (validFiles.length > 0) {
       const uploadedImageNames = [];
       
-      for (const file of imageFiles) {
-        if (file.size > 0) {
-          try {
-            // Convert File to Buffer for Node.js environment
-            const arrayBuffer = await file.arrayBuffer();
-            const buffer = Buffer.from(arrayBuffer);
-            
-            const uploadResult = await cosmic.media.insertOne({
-              media: {
-                buffer: buffer,
-                originalname: file.name
-              },
-              folder: 'product-images'
-            });
-            // Use the 'name' property for file metafields!
-            uploadedImageNames.push(uploadResult.media.name);
-          } catch (uploadError) {
-            console.error('Error uploading image:', uploadError);
-          }
+      for (const file of validFiles) {
+        try {
+          // Convert File to Buffer for Node.js environment
+          const arrayBuffer = await file.arrayBuffer();
+          const buffer = Buffer.from(arrayBuffer);
+          
+          const uploadResult = await cosmic.media.insertOne({
+            media: {
+              buffer: buffer,
+              originalname: file.name
+            },
+            folder: 'product-images'
+          });
+          // Use the 'name' property for file metafields!
+          uploadedImageNames.push(uploadResult.media.name);
+        } catch (uploadError) {
+          console.error('Error uploading image:', uploadError);
         }
       }
       
