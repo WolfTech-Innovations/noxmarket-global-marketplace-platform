@@ -1,287 +1,181 @@
----
-import Layout from '@/layouts/Layout.astro';
-import Header from '@/components/Header.astro';
-import Footer from '@/components/Footer.astro';
-import { getSessionFromCookies } from '@/lib/auth';
-import { getSellerOrders, getSeller } from '@/lib/cosmic';
-import type { Order } from '@/types';
+// src/pages/api/webhook/stripe.ts
+import type { APIRoute } from 'astro';
+import Stripe from 'stripe';
+import { createBucketClient } from '@cosmicjs/sdk';
 
-const session = getSessionFromCookies(Astro.cookies);
-
-if (!session || !session.isSeller || !session.sellerId) {
-  return Astro.redirect('/login');
+// Initialize Stripe with type-safe environment variable
+const stripeSecretKey = import.meta.env.STRIPE_SECRET_KEY;
+if (!stripeSecretKey) {
+  throw new Error('STRIPE_SECRET_KEY is not defined in environment variables');
 }
 
-const orders = await getSellerOrders(session.sellerId);
-const sellerProfile = await getSeller(session.sellerId);
+export const stripe = new Stripe(stripeSecretKey, {
+  apiVersion: '2025-02-24.acacia',
+});
 
-const totalOrders = orders.length;
-const pendingOrders = orders.filter((o: Order) => o.metadata.order_status === 'pending').length;
-const totalRevenue = orders.reduce((sum: number, order: Order) => 
-  order.metadata.payment_status === 'paid' ? sum + (order.metadata.order_total || 0) : sum, 0
-);
+// Initialize Cosmic
+const cosmic = createBucketClient({
+  bucketSlug: import.meta.env.COSMIC_BUCKET_SLUG || '',
+  readKey: import.meta.env.COSMIC_READ_KEY || '',
+  writeKey: import.meta.env.COSMIC_WRITE_KEY || '',
+});
 
-const hasStripeAccount = sellerProfile?.metadata?.stripe_account_id;
-const isSetupComplete = hasStripeAccount && sellerProfile?.metadata?.store_description;
+const endpointSecret = import.meta.env.STRIPE_WEBHOOK_SECRET;
 
-const statusStyles = {
-  delivered: 'bg-green-100 text-green-800',
-  shipped: 'bg-blue-100 text-blue-800',
-  processing: 'bg-yellow-100 text-yellow-800',
-  pending: 'bg-orange-100 text-orange-800',
-  default: 'bg-gray-100 text-gray-800'
+export const POST: APIRoute = async ({ request }) => {
+  const body = await request.text();
+  const sig = request.headers.get('stripe-signature');
+
+  if (!sig) {
+    return new Response('No signature', { status: 400 });
+  }
+
+  if (!endpointSecret) {
+    return new Response('Webhook secret not configured', { status: 500 });
+  }
+
+  let event: Stripe.Event;
+
+  try {
+    event = stripe.webhooks.constructEvent(body, sig, endpointSecret);
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+    console.log(`Webhook signature verification failed:`, errorMessage);
+    return new Response(`Webhook Error: ${errorMessage}`, { status: 400 });
+  }
+
+  // Handle the event
+  try {
+    switch (event.type) {
+      case 'checkout.session.completed': {
+        const session = event.data.object as Stripe.Checkout.Session;
+        console.log('Checkout session completed:', session.id);
+
+        // Retrieve full session with line items expanded
+        const fullSession = await stripe.checkout.sessions.retrieve(session.id, {
+          expand: ['line_items.data.price.product']
+        });
+
+        // Get the seller ID from metadata
+        const sellerId = session.metadata?.sellerId;
+        const productId = session.metadata?.productId;
+
+        if (sellerId) {
+          // Generate order number
+          const orderNumber = `ORD-${Date.now()}-${Math.random().toString(36).substring(2, 11).toUpperCase()}`;
+
+          // Prepare order data matching your dashboard structure
+          const orderData = {
+            // Order identifiers
+            order_id: fullSession.id,
+            order_number: orderNumber,
+            seller_id: sellerId,
+            product_id: productId,
+            order_status: 'pending',
+            
+            // Customer/Buyer details
+            buyer_name: fullSession.customer_details?.name || '',
+            buyer_email: fullSession.customer_details?.email || '',
+            
+            // Shipping details
+            shipping_name: fullSession.shipping_details?.name || '',
+            shipping_address: fullSession.shipping_details?.address ? {
+              line1: fullSession.shipping_details.address.line1,
+              line2: fullSession.shipping_details.address.line2,
+              city: fullSession.shipping_details.address.city,
+              state: fullSession.shipping_details.address.state,
+              postal_code: fullSession.shipping_details.address.postal_code,
+              country: fullSession.shipping_details.address.country
+            } : null,
+            
+            // Order items
+            line_items: fullSession.line_items?.data.map(item => ({
+              product_name: (item.price?.product as Stripe.Product)?.name || 'Unknown Product',
+              product_id: typeof item.price?.product === 'string' ? item.price.product : (item.price?.product as Stripe.Product)?.id,
+              quantity: item.quantity,
+              amount: item.amount_total,
+              currency: item.currency
+            })) || [],
+            
+            // Payment details
+            order_total: (fullSession.amount_total || 0) / 100, // Convert from cents to dollars
+            amount_total: fullSession.amount_total || 0, // Keep in cents for Stripe compatibility
+            amount_subtotal: fullSession.amount_subtotal || 0,
+            currency: fullSession.currency || 'usd',
+            payment_status: fullSession.payment_status === 'paid' ? 'paid' : 'unpaid',
+            
+            // Timestamps
+            created_at: new Date().toISOString(),
+            paid_at: new Date(session.created * 1000).toISOString(),
+            order_date: new Date().toISOString()
+          };
+
+          // Create order in Cosmic CMS
+          try {
+            await cosmic.objects.insertOne({
+              title: `Order ${fullSession.id}`,
+              type: 'orders',
+              metadata: orderData
+            });
+            
+            console.log(`Created order ${fullSession.id} for seller ${sellerId}`);
+          } catch (cosmicError) {
+            console.error('Failed to create order in Cosmic:', cosmicError);
+          }
+
+          // Update seller's earnings in Cosmic
+          const sellerResponse = await cosmic.objects.find({
+            type: 'sellers',
+            'metadata.user_id': sellerId
+          });
+
+          if (sellerResponse.objects && sellerResponse.objects.length > 0) {
+            const seller = sellerResponse.objects[0];
+            const currentEarnings = seller.metadata?.total_earnings || 0;
+            const sessionAmount = session.amount_total || 0;
+            const platformFee = sessionAmount * 0.1; // 10% platform fee
+            const sellerEarnings = (sessionAmount - platformFee) / 100; // Convert from cents
+            const newEarnings = currentEarnings + sellerEarnings;
+
+            await cosmic.objects.updateOne(seller.id, {
+              metadata: {
+                ...seller.metadata,
+                total_earnings: newEarnings,
+                total_orders: (seller.metadata?.total_orders || 0) + 1
+              }
+            });
+
+            console.log(`Updated seller ${sellerId} earnings to $${newEarnings}`);
+          }
+        }
+        break;
+      }
+
+      case 'payment_intent.succeeded': {
+        const paymentIntent = event.data.object as Stripe.PaymentIntent;
+        console.log('PaymentIntent succeeded:', paymentIntent.id);
+        break;
+      }
+
+      case 'payment_intent.payment_failed': {
+        const paymentIntent = event.data.object as Stripe.PaymentIntent;
+        console.log('PaymentIntent failed:', paymentIntent.id);
+        break;
+      }
+
+      default:
+        console.log(`Unhandled event type: ${event.type}`);
+    }
+
+    return new Response(JSON.stringify({ received: true }), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+    console.error('Error processing webhook:', errorMessage);
+    return new Response(`Webhook processing error: ${errorMessage}`, { status: 500 });
+  }
 };
-
-// Helper function to format address
-function formatAddress(address: any) {
-  if (!address) return 'No shipping address';
-  const parts = [
-    address.line1,
-    address.line2,
-    address.city,
-    address.state,
-    address.postal_code,
-    address.country
-  ].filter(Boolean);
-  return parts.join(', ');
-}
----
-
-<Layout title="Seller Dashboard - NoxMarket">
-  <Header />
-
-  <main class="py-16 bg-gray-50 min-h-screen">
-    <div class="container-custom">
-      <!-- Header -->
-      <div class="mb-12 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 class="text-5xl font-medium tracking-tight text-gray-900 mb-2">
-            Welcome back, {session.businessName || session.name}! 👋
-          </h1>
-          <p class="text-xl text-gray-600">Here's what's happening with your store today</p>
-        </div>
-        <div class="flex gap-3">
-          <a href="/dashboard/products" class="btn btn-primary">
-            Add Product
-          </a>
-          <a href="/dashboard/settings" class="btn btn-secondary">
-            Settings
-          </a>
-        </div>
-      </div>
-
-      <!-- Setup Alert -->
-      {!isSetupComplete && (
-        <div class="mb-12 card-elevated p-6 bg-gradient-to-r from-amber-50 to-orange-50 border-l-4 border-amber-500">
-          <div class="flex items-start gap-4">
-            <svg class="w-6 h-6 text-amber-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
-            <div class="flex-1">
-              <h3 class="font-semibold text-amber-900 mb-2">Complete Your Store Setup</h3>
-              <p class="text-amber-800 mb-4">
-                {!hasStripeAccount ? 'Add your Stripe Account ID to start receiving payments.' : 'Add a store description to help customers find you.'}
-              </p>
-              <a href="/dashboard/settings" class="btn btn-primary">
-                Complete Setup →
-              </a>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <!-- Stats Grid -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-        <div class="card-elevated p-6 state-layer">
-          <div class="flex items-center justify-between mb-4">
-            <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center elevation-2">
-              <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-              </svg>
-            </div>
-            <span class="chip bg-blue-600 text-white text-xs">All Time</span>
-          </div>
-          <p class="text-gray-600 text-sm font-medium mb-1">Total Orders</p>
-          <p class="text-4xl font-medium text-gray-900">{totalOrders}</p>
-        </div>
-
-        <div class="card-elevated p-6 state-layer">
-          <div class="flex items-center justify-between mb-4">
-            <div class="w-12 h-12 bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl flex items-center justify-center elevation-2">
-              <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            {pendingOrders > 0 && <span class="chip bg-orange-600 text-white text-xs animate-pulse">Action</span>}
-          </div>
-          <p class="text-gray-600 text-sm font-medium mb-1">Pending Orders</p>
-          <p class="text-4xl font-medium text-gray-900">{pendingOrders}</p>
-        </div>
-
-        <div class="card-elevated p-6 state-layer">
-          <div class="flex items-center justify-between mb-4">
-            <div class="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center elevation-2">
-              <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <span class="chip text-xs">USD</span>
-          </div>
-          <p class="text-gray-600 text-sm font-medium mb-1">Total Revenue</p>
-          <p class="text-4xl font-medium text-gray-900">${totalRevenue.toFixed(2)}</p>
-        </div>
-      </div>
-
-      <!-- Quick Actions -->
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
-        {[
-          { href: '/dashboard/products', icon: 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4', label: 'Products', color: 'blue' },
-          { href: '/dashboard/orders', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2', label: 'Orders', color: 'purple' },
-          { href: '/dashboard/analytics', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z', label: 'Analytics', color: 'green' },
-          { href: '/dashboard/settings', icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z', label: 'Settings', color: 'gray' }
-        ].map(action => (
-          <a href={action.href} class="card state-layer p-4 group">
-            <div class={`w-10 h-10 bg-${action.color}-50 rounded-xl flex items-center justify-center mb-3 group-hover:bg-${action.color}-100 motion-emphasized`}>
-              <svg class={`w-5 h-5 text-${action.color}-600`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={action.icon} />
-              </svg>
-            </div>
-            <p class="font-medium text-gray-900">{action.label}</p>
-          </a>
-        ))}
-      </div>
-
-      <!-- Recent Orders with Shipping Info -->
-      <div class="card-elevated p-8">
-        <div class="flex items-center justify-between mb-6">
-          <div>
-            <h2 class="text-3xl font-medium text-gray-900">Recent Orders</h2>
-            <p class="text-gray-600 mt-1">Your latest customer orders with shipping details</p>
-          </div>
-          <a href="/dashboard/orders" class="text-blue-600 font-medium hover:underline flex items-center gap-1">
-            View All →
-          </a>
-        </div>
-
-        {orders.length === 0 ? (
-          <div class="text-center py-20 bg-gray-50 rounded-3xl">
-            <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg class="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-              </svg>
-            </div>
-            <h3 class="text-2xl font-medium text-gray-900 mb-2">No Orders Yet</h3>
-            <p class="text-gray-600 mb-6">Orders will appear here when customers purchase your products</p>
-            <a href="/dashboard/products" class="btn btn-primary">Add Your First Product</a>
-          </div>
-        ) : (
-          <div class="space-y-4">
-            {orders.slice(0, 5).map((order: Order) => (
-              <div class="card p-6 hover:shadow-lg transition-shadow">
-                <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
-                  <!-- Left: Order Info -->
-                  <div class="flex-1">
-                    <div class="flex items-start justify-between mb-4">
-                      <div>
-                        <div class="flex items-center gap-3 mb-2">
-                          <h3 class="font-mono text-lg font-semibold text-gray-900">
-                            #{order.metadata.order_number}
-                          </h3>
-                          <span class={`chip text-xs ${statusStyles[order.metadata.order_status as keyof typeof statusStyles] || statusStyles.default}`}>
-                            {order.metadata.order_status}
-                          </span>
-                        </div>
-                        <p class="text-sm text-gray-500">
-                          {new Date(order.metadata.order_date).toLocaleDateString('en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                            year: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })}
-                        </p>
-                      </div>
-                      <div class="text-right">
-                        <p class="text-2xl font-bold text-gray-900">${order.metadata.order_total.toFixed(2)}</p>
-                        <p class="text-sm text-gray-500">{order.metadata.currency.toUpperCase()}</p>
-                      </div>
-                    </div>
-
-                    <!-- Customer Info -->
-                    <div class="mb-4 p-4 bg-gray-50 rounded-xl">
-                      <p class="text-xs font-medium text-gray-500 mb-2">CUSTOMER</p>
-                      <p class="font-medium text-gray-900">{order.metadata.buyer_name}</p>
-                      <p class="text-sm text-gray-600">{order.metadata.buyer_email}</p>
-                    </div>
-
-                    <!-- Product Info -->
-                    {order.metadata.line_items && order.metadata.line_items.length > 0 && (
-                      <div class="mb-4">
-                        <p class="text-xs font-medium text-gray-500 mb-2">PRODUCTS</p>
-                        <div class="space-y-2">
-                          {order.metadata.line_items.map((item: any) => (
-                            <div class="flex items-center justify-between text-sm">
-                              <span class="font-medium text-gray-900">{item.product_name}</span>
-                              <span class="text-gray-600">Qty: {item.quantity}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  <!-- Right: Shipping Info -->
-                  <div class="lg:w-1/3 border-l-0 lg:border-l lg:pl-6">
-                    <div class="flex items-center gap-2 mb-4">
-                      <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                      </svg>
-                      <h4 class="font-semibold text-gray-900">Shipping Address</h4>
-                    </div>
-                    
-                    {order.metadata.shipping_address ? (
-                      <div class="bg-blue-50 rounded-xl p-4 space-y-2">
-                        <p class="font-medium text-gray-900">{order.metadata.shipping_name || order.metadata.buyer_name}</p>
-                        <div class="text-sm text-gray-700 space-y-1">
-                          <p>{order.metadata.shipping_address.line1}</p>
-                          {order.metadata.shipping_address.line2 && <p>{order.metadata.shipping_address.line2}</p>}
-                          <p>
-                            {order.metadata.shipping_address.city}, {order.metadata.shipping_address.state} {order.metadata.shipping_address.postal_code}
-                          </p>
-                          <p class="font-medium">{order.metadata.shipping_address.country}</p>
-                        </div>
-                      </div>
-                    ) : (
-                      <div class="bg-gray-50 rounded-xl p-4">
-                        <p class="text-sm text-gray-500 italic">No shipping address provided</p>
-                      </div>
-                    )}
-
-                    <!-- Payment Status -->
-                    <div class="mt-4 pt-4 border-t">
-                      <div class="flex items-center justify-between text-sm">
-                        <span class="text-gray-600">Payment Status:</span>
-                        <span class={`chip text-xs ${order.metadata.payment_status === 'paid' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                          {order.metadata.payment_status}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Action Button -->
-                <div class="mt-6 pt-6 border-t flex justify-end">
-                  <a href={`/dashboard/orders/${order.id}`} class="btn btn-primary">
-                    View Full Details →
-                  </a>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  </main>
-
-  <Footer />
-</Layout>
