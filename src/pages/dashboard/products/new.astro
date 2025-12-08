@@ -20,7 +20,6 @@ const errorMessage = Astro.url.searchParams.get('error');
 
   <main class="py-16 bg-gray-50 min-h-screen">
     <div class="container-custom max-w-4xl">
-      <!-- Header -->
       <div class="mb-12">
         <a href="/dashboard/products" class="text-blue-600 hover:underline mb-4 inline-flex items-center gap-2 font-medium">
           ← Back to Products
@@ -29,7 +28,6 @@ const errorMessage = Astro.url.searchParams.get('error');
         <p class="text-xl text-gray-600">Add a verified PC component to your store</p>
       </div>
 
-      <!-- Error Message -->
       {errorMessage && (
         <div class="mb-8 card-elevated p-4 bg-red-50 border-l-4 border-red-500">
           <div class="flex items-center gap-3">
@@ -41,12 +39,36 @@ const errorMessage = Astro.url.searchParams.get('error');
         </div>
       )}
 
-      <!-- Form -->
       <form action="/api/products/create" method="POST" enctype="multipart/form-data" class="space-y-6">
+        <!-- Product Image -->
+        <div class="card-elevated p-8">
+          <h2 class="text-2xl font-medium text-gray-900 mb-2">Product Image</h2>
+          <p class="text-gray-600 mb-6">Upload a clear photo of your component <span class="text-red-500">*</span></p>
+
+          <div>
+            <label class="block">
+              <div class="border-2 border-dashed border-gray-300 rounded-2xl p-8 text-center hover:border-blue-500 transition-colors cursor-pointer">
+                <svg class="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <p class="text-gray-700 font-medium mb-1">Click to upload image</p>
+                <p class="text-sm text-gray-500">PNG, JPG, WEBP up to 10MB</p>
+              </div>
+              <input
+                type="file"
+                name="product_images"
+                accept="image/*"
+                class="hidden"
+                required
+              />
+            </label>
+          </div>
+        </div>
+
         <!-- Basic Info -->
         <div class="card-elevated p-8">
           <h2 class="text-2xl font-medium text-gray-900 mb-6">Basic Information</h2>
-          
+
           <div class="space-y-5">
             <div>
               <label for="product_name" class="block text-sm font-medium text-gray-700 mb-2">
@@ -57,7 +79,7 @@ const errorMessage = Astro.url.searchParams.get('error');
                 id="product_name"
                 name="product_name"
                 class="input w-full"
-                placeholder="e.g. Premium Wireless Headphones"
+                placeholder="e.g., NVIDIA RTX 4090 Founders Edition"
                 required
               />
             </div>
@@ -71,7 +93,7 @@ const errorMessage = Astro.url.searchParams.get('error');
                 name="description"
                 rows="5"
                 class="input w-full resize-none"
-                placeholder="Describe your product in detail..."
+                placeholder="Describe your component in detail..."
                 required
               ></textarea>
             </div>
@@ -112,33 +134,13 @@ const errorMessage = Astro.url.searchParams.get('error');
               </div>
             </div>
 
-            <div class="p-4 bg-amber-50 border border-amber-200 rounded-2xl">
-              <div class="flex gap-3">
-                <svg class="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-                <div class="text-sm text-amber-900">
-                  <p class="font-semibold mb-1">Manual Stock Management</p>
-                  <p class="text-amber-800">Stock levels are not automatically updated when orders are placed. You'll need to manually update your inventory after each sale to keep quantities accurate.</p>
-                </div>
-              </div>
-            </div>
-
             {categories.length > 0 && (
               <div>
-                <label for="category" class="block text-sm font-medium text-gray-700 mb-2">
-                  Category
-                </label>
-                <select
-                  id="category"
-                  name="category"
-                  class="input w-full"
-                >
+                <label for="category" class="block text-sm font-medium text-gray-700 mb-2">Category</label>
+                <select id="category" name="category" class="input w-full">
                   <option value="">Select a category</option>
                   {categories.map((category: any) => (
-                    <option value={category.id}>
-                      {category.metadata.category_name}
-                    </option>
+                    <option value={category.id}>{category.metadata.category_name}</option>
                   ))}
                 </select>
               </div>
@@ -146,7 +148,7 @@ const errorMessage = Astro.url.searchParams.get('error');
           </div>
         </div>
 
-        <!-- Verification & Testing (NEW) -->
+        <!-- Verification & Testing -->
         <div class="card-elevated p-8 bg-gradient-to-br from-blue-50 to-indigo-50">
           <div class="flex items-center gap-3 mb-6">
             <div class="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center">
@@ -184,160 +186,67 @@ const errorMessage = Astro.url.searchParams.get('error');
                 name="benchmark_results"
                 rows="4"
                 class="input w-full resize-none"
-                placeholder="e.g., 3DMark Time Spy: 12,543 | Cinebench R23: 18,245 | UserBenchmark: 95th percentile"
+                placeholder="e.g., 3DMark Time Spy: 12,543 | Cinebench R23: 18,245"
                 required
               ></textarea>
               <p class="text-sm text-gray-500 mt-2">Include results from 3DMark, Cinebench, UserBenchmark, or other standard tools</p>
             </div>
 
-            <div>
-              <label for="testing_notes" class="block text-sm font-medium text-gray-700 mb-2">
-                Testing Notes
-              </label>
-              <textarea
-                id="testing_notes"
-                name="testing_notes"
-                rows="3"
-                class="input w-full resize-none"
-                placeholder="Hours tested, temperatures, stability testing results, etc."
-              ></textarea>
-            </div>
-
-            <div>
-              <label for="warranty_info" class="block text-sm font-medium text-gray-700 mb-2">
-                Warranty Information
-              </label>
-              <input
-                type="text"
-                id="warranty_info"
-                name="warranty_info"
-                class="input w-full"
-                placeholder="e.g., 2 years manufacturer warranty remaining"
-              />
+            <div class="grid md:grid-cols-2 gap-5">
+              <div>
+                <label for="testing_notes" class="block text-sm font-medium text-gray-700 mb-2">Testing Notes</label>
+                <textarea id="testing_notes" name="testing_notes" rows="3" class="input w-full resize-none" placeholder="Hours tested, temps, etc."></textarea>
+              </div>
+              <div>
+                <label for="warranty_info" class="block text-sm font-medium text-gray-700 mb-2">Warranty Info</label>
+                <input type="text" id="warranty_info" name="warranty_info" class="input w-full" placeholder="e.g., 2 years remaining" />
+              </div>
             </div>
           </div>
         </div>
 
-        <!-- Compatibility Info (NEW) -->
+        <!-- Compatibility Info -->
         <div class="card-elevated p-8">
-          <div class="flex items-center gap-3 mb-6">
-            <div class="w-12 h-12 bg-green-100 rounded-2xl flex items-center justify-center">
-              <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
-              </svg>
-            </div>
-            <div>
-              <h2 class="text-2xl font-medium text-gray-900">Compatibility Information</h2>
-              <p class="text-gray-600">Help buyers ensure compatibility</p>
-            </div>
-          </div>
+          <h2 class="text-2xl font-medium text-gray-900 mb-6">Compatibility Information</h2>
 
           <div class="space-y-5">
             <div class="grid md:grid-cols-2 gap-5">
               <div>
-                <label for="socket_type" class="block text-sm font-medium text-gray-700 mb-2">
-                  Socket/Interface Type
-                </label>
-                <input
-                  type="text"
-                  id="socket_type"
-                  name="socket_type"
-                  class="input w-full"
-                  placeholder="e.g., LGA 1700, AM5, PCIe 4.0 x16"
-                />
+                <label for="socket_type" class="block text-sm font-medium text-gray-700 mb-2">Socket/Interface Type</label>
+                <input type="text" id="socket_type" name="socket_type" class="input w-full" placeholder="e.g., LGA 1700, AM5" />
               </div>
-
               <div>
-                <label for="form_factor" class="block text-sm font-medium text-gray-700 mb-2">
-                  Form Factor
-                </label>
-                <input
-                  type="text"
-                  id="form_factor"
-                  name="form_factor"
-                  class="input w-full"
-                  placeholder="e.g., ATX, Micro-ATX, M.2 2280"
-                />
+                <label for="form_factor" class="block text-sm font-medium text-gray-700 mb-2">Form Factor</label>
+                <input type="text" id="form_factor" name="form_factor" class="input w-full" placeholder="e.g., ATX, M.2 2280" />
               </div>
             </div>
 
-            <div>
-              <label for="power_requirements" class="block text-sm font-medium text-gray-700 mb-2">
-                Power Requirements
-              </label>
-              <input
-                type="text"
-                id="power_requirements"
-                name="power_requirements"
-                class="input w-full"
-                placeholder="e.g., 750W+ recommended, 2x 8-pin PCIe"
-              />
-            </div>
-
-            <div>
-              <label for="dimensions" class="block text-sm font-medium text-gray-700 mb-2">
-                Dimensions (L x W x H)
-              </label>
-              <input
-                type="text"
-                id="dimensions"
-                name="dimensions"
-                class="input w-full"
-                placeholder="e.g., 300mm x 120mm x 40mm"
-              />
-            </div>
-          </div>
-        </div>
-
-        <!-- Images -->
-        <div class="card-elevated p-8">
-          <h2 class="text-2xl font-medium text-gray-900 mb-2">Product Images</h2>
-          <p class="text-gray-600 mb-6">Upload up to 5 images of your product</p>
-          
-          <div>
-            <label class="block">
-              <div class="border-2 border-dashed border-gray-300 rounded-2xl p-8 text-center hover:border-blue-500 transition-colors cursor-pointer">
-                <svg class="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                <p class="text-gray-700 font-medium mb-1">Click to upload images</p>
-                <p class="text-sm text-gray-500">PNG, JPG, WEBP up to 10MB each</p>
+            <div class="grid md:grid-cols-2 gap-5">
+              <div>
+                <label for="power_requirements" class="block text-sm font-medium text-gray-700 mb-2">Power Requirements</label>
+                <input type="text" id="power_requirements" name="power_requirements" class="input w-full" placeholder="e.g., 750W+ recommended" />
               </div>
-              <input
-                type="file"
-                name="images"
-                accept="image/*"
-                multiple
-                class="hidden"
-              />
-            </label>
+              <div>
+                <label for="dimensions" class="block text-sm font-medium text-gray-700 mb-2">Dimensions (L x W x H)</label>
+                <input type="text" id="dimensions" name="dimensions" class="input w-full" placeholder="e.g., 300mm x 120mm x 40mm" />
+              </div>
+            </div>
           </div>
         </div>
 
         <!-- Stock Status -->
         <div class="card-elevated p-8">
           <h2 class="text-2xl font-medium text-gray-900 mb-6">Availability</h2>
-          
           <label class="flex items-center gap-3 cursor-pointer">
-            <input
-              type="checkbox"
-              name="in_stock"
-              value="true"
-              checked
-              class="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-            />
+            <input type="checkbox" name="in_stock" value="true" checked class="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
             <span class="text-gray-700 font-medium">Product is in stock and available for purchase</span>
           </label>
         </div>
 
         <!-- Submit -->
         <div class="card-elevated p-6 flex items-center justify-between">
-          <a href="/dashboard/products" class="text-gray-600 hover:underline font-medium">
-            Cancel
-          </a>
-          <button type="submit" class="btn btn-primary px-8">
-            Add Product
-          </button>
+          <a href="/dashboard/products" class="text-gray-600 hover:underline font-medium">Cancel</a>
+          <button type="submit" class="btn btn-primary px-8">Add Product</button>
         </div>
       </form>
     </div>
