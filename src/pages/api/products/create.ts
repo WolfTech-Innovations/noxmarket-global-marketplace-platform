@@ -18,8 +18,8 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
     const stockQuantity = parseInt(formData.get('stock_quantity')?.toString() || '0');
     const categoryId = formData.get('category')?.toString();
     const inStock = formData.get('in_stock') === 'true';
-    
-    // PC-specific fields (optional, with defaults)
+
+    // PC-specific fields
     const condition = formData.get('condition')?.toString() || 'good';
     const benchmarkResults = formData.get('benchmark_results')?.toString() || 'Not provided';
     const testingNotes = formData.get('testing_notes')?.toString() || '';
@@ -29,19 +29,34 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
     const powerRequirements = formData.get('power_requirements')?.toString() || '';
     const dimensions = formData.get('dimensions')?.toString() || '';
 
-    console.log('Creating product:', {
-      productName,
-      price,
-      stockQuantity,
-      condition,
-      sellerId: session.sellerId
-    });
-
     if (!productName || !description || price <= 0) {
       return redirect('/dashboard/products/new?error=Please fill in all required fields');
     }
 
-    // Create product data - Cosmic will auto-create missing metafields
+    // Handle image uploads
+    const imageFiles = formData.getAll('product_images') as File[];
+    const uploadedImages = [];
+
+    for (const file of imageFiles) {
+      if (file.size > 0) {
+        try {
+          const uploadResult = await cosmic.media.insertOne({
+            media: file,
+            folder: 'product-images'
+          });
+          uploadedImages.push(uploadResult.media);
+        } catch (uploadError) {
+          console.error('Error uploading image:', uploadError);
+        }
+      }
+    }
+
+    // Require at least one image
+    if (uploadedImages.length === 0) {
+      return redirect('/dashboard/products/new?error=Please upload at least one product image');
+    }
+
+    // Create product data
     const productData: any = {
       type: 'products',
       title: productName,
@@ -53,28 +68,24 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
         stock_quantity: stockQuantity,
         in_stock: inStock,
         seller: session.sellerId,
-        // PC-specific verification fields (auto-created if missing)
+        product_images: uploadedImages, // Add the uploaded images
         condition: condition,
         benchmark_results: benchmarkResults,
         testing_notes: testingNotes,
         warranty_info: warrantyInfo,
-        // Compatibility fields (auto-created if missing)
         socket_type: socketType,
         form_factor: formFactor,
         power_requirements: powerRequirements,
         dimensions: dimensions,
-        // Trust features (auto-created if missing)
         verified: true,
         escrow_eligible: true
       }
     };
 
-    // Add category if selected
     if (categoryId) {
       productData.metadata.category = categoryId;
     }
 
-    // Create the product
     const response = await cosmic.objects.insertOne(productData);
 
     console.log('Product created successfully:', response.object.id);
