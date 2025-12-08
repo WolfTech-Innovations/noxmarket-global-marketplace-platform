@@ -10,6 +10,25 @@ export interface CosmicObject {
   modified_at: string;
 }
 
+// Shipping Address interface
+export interface ShippingAddress {
+  line1: string;
+  line2?: string | null;
+  city: string;
+  state: string;
+  postal_code: string;
+  country: string;
+}
+
+// Line Item interface
+export interface LineItem {
+  product_name: string;
+  product_id: string;
+  quantity: number;
+  amount: number;
+  currency: string;
+}
+
 // Product interface
 export interface Product extends CosmicObject {
   type: 'products';
@@ -57,6 +76,8 @@ export interface Seller extends CosmicObject {
     stripe_onboarding_complete: boolean;
     phone?: string;
     owner_name?: string;
+    total_earnings?: number;
+    total_orders?: number;
   };
 }
 
@@ -77,17 +98,43 @@ export interface Category extends CosmicObject {
 export interface Order extends CosmicObject {
   type: 'orders';
   metadata: {
+    // Order identifiers
+    order_id: string;
     order_number: string;
-    product: Product;
-    seller: Seller;
+    seller_id: string;
+    product_id?: string;
+    order_status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+    
+    // Customer/Buyer details
     buyer_name: string;
     buyer_email: string;
     buyer_phone?: string;
-    shipping_address: string;
-    order_total: number;
-    order_status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
-    payment_status: 'pending' | 'paid' | 'refunded';
+    
+    // Shipping details
+    shipping_name?: string;
+    shipping_address: ShippingAddress | null;
+    
+    // Order items
+    line_items: LineItem[];
+    
+    // Payment details
+    order_total: number; // in dollars
+    amount_total: number; // in cents
+    amount_subtotal: number; // in cents
+    currency: string;
+    payment_status: 'paid' | 'unpaid' | 'pending' | 'refunded';
+    
+    // Timestamps
+    order_date: string;
+    created_at: string;
+    paid_at?: string;
+    
+    // Stripe info
     stripe_payment_id?: string;
+    
+    // Legacy/compatibility (for old orders or backward compatibility)
+    product?: Product;
+    seller?: Seller;
   };
 }
 
