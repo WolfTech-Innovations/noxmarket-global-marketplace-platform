@@ -67,6 +67,10 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
       return redirect('/dashboard/products/new?error=Please upload at least one product image');
     }
 
+    // CRITICAL: product_images is a File metafield (single file), not Multi Media
+    // So we can only store ONE filename string, not an array
+    const primaryImage = uploadedImageNames[0]; // Just use the first image
+
     // Create product data
     const productData: any = {
       type: 'products',
@@ -79,7 +83,7 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
         stock_quantity: stockQuantity,
         in_stock: inStock,
         seller: session.sellerId,
-        product_images: uploadedImageNames, // Add the uploaded image names
+        product_images: primaryImage, // Single filename string for File metafield
         condition: condition,
         benchmark_results: benchmarkResults,
         testing_notes: testingNotes,
