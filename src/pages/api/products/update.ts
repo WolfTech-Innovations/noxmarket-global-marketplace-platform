@@ -56,8 +56,15 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
       for (const file of imageFiles) {
         if (file.size > 0) {
           try {
+            // Convert File to Buffer for Node.js environment
+            const arrayBuffer = await file.arrayBuffer();
+            const buffer = Buffer.from(arrayBuffer);
+            
             const uploadResult = await cosmic.media.insertOne({
-              media: file,
+              media: {
+                buffer: buffer,
+                originalname: file.name
+              },
               folder: 'product-images'
             });
             // Use the 'name' property for file metafields!
