@@ -34,28 +34,31 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
     }
 
     // Handle image uploads
-    const imageFiles = formData.getAll('product_images') as File[];
+    const imageFiles = formData.getAll('product_images');
     const uploadedImageNames = [];
 
-    for (const file of imageFiles) {
-      if (file.size > 0) {
-        try {
-          // Convert File to Buffer for Node.js environment
-          const arrayBuffer = await file.arrayBuffer();
-          const buffer = Buffer.from(arrayBuffer);
-          
-          const uploadResult = await cosmic.media.insertOne({
-            media: {
-              buffer: buffer,
-              originalname: file.name
-            },
-            folder: 'product-images'
-          });
-          // Use the 'name' property for file metafields!
-          uploadedImageNames.push(uploadResult.media.name);
-        } catch (uploadError) {
-          console.error('Error uploading image:', uploadError);
-        }
+    // Filter valid files
+    const validFiles = imageFiles.filter((file): file is File => 
+      file instanceof File && file.size > 0
+    );
+
+    for (const file of validFiles) {
+      try {
+        // Convert File to Buffer for Node.js environment
+        const arrayBuffer = await file.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        
+        const uploadResult = await cosmic.media.insertOne({
+          media: {
+            buffer: buffer,
+            originalname: file.name
+          },
+          folder: 'product-images'
+        });
+        // Use the 'name' property for file metafields!
+        uploadedImageNames.push(uploadResult.media.name);
+      } catch (uploadError) {
+        console.error('Error uploading image:', uploadError);
       }
     }
 
@@ -76,7 +79,7 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
         stock_quantity: stockQuantity,
         in_stock: inStock,
         seller: session.sellerId,
-        product_images: uploadedImages, // Add the uploaded images
+        product_images: uploadedImageNames, // Add the uploaded image names
         condition: condition,
         benchmark_results: benchmarkResults,
         testing_notes: testingNotes,
