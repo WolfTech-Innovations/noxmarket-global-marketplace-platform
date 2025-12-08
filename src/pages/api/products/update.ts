@@ -51,7 +51,7 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
     const hasNewImages = imageFiles.some(file => file.size > 0);
 
     if (hasNewImages) {
-      const uploadedImages = [];
+      const uploadedImageNames = [];
       
       for (const file of imageFiles) {
         if (file.size > 0) {
@@ -60,15 +60,16 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
               media: file,
               folder: 'product-images'
             });
-            uploadedImages.push(uploadResult.media);
+            // Use the 'name' property for file metafields!
+            uploadedImageNames.push(uploadResult.media.name);
           } catch (uploadError) {
             console.error('Error uploading image:', uploadError);
           }
         }
       }
       
-      if (uploadedImages.length > 0) {
-        productImages = uploadedImages;
+      if (uploadedImageNames.length > 0) {
+        productImages = uploadedImageNames;
       }
     }
 
