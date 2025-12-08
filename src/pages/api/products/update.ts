@@ -76,7 +76,9 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
       }
       
       if (uploadedImageNames.length > 0) {
-        productImages = uploadedImageNames;
+        // CRITICAL: product_images is a File metafield (single file), not Multi Media
+        // So we can only store ONE filename string, not an array
+        productImages = uploadedImageNames[0]; // Just use the first image
       }
     }
 
