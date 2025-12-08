@@ -52,10 +52,10 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
           media: {
             buffer: buffer,
             originalname: file.name
-          },
-          folder: 'product-images'
+          }
+          // Don't use folder - they need to exist first
         });
-        // Use the 'name' property for file metafields!
+        // CRITICAL: Store only the 'name' string for file metafields!
         uploadedImageNames.push(uploadResult.media.name);
       } catch (uploadError) {
         console.error('Error uploading image:', uploadError);
@@ -79,7 +79,7 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
         stock_quantity: stockQuantity,
         in_stock: inStock,
         seller: session.sellerId,
-        product_images: uploadedImageNames, // Add the uploaded image names
+        product_images: uploadedImages, // Add the uploaded images
         condition: condition,
         benchmark_results: benchmarkResults,
         testing_notes: testingNotes,
