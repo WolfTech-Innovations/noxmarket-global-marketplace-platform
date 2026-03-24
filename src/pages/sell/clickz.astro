@@ -11,316 +11,197 @@ const isModerator: boolean = session.sellerId === 'seller-nkbvjl-xak';
 const bucketSlug: string = import.meta.env.COSMIC_BUCKET_SLUG;
 const writeKey: string = import.meta.env.COSMIC_WRITE_KEY;
 ---
-
 <Layout title="Post a Clickz — Nox">
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@800&family=DM+Sans:wght@400;500&display=swap');
   *{box-sizing:border-box;margin:0;padding:0}
   body{background:#0a0a0a;color:#fff;font-family:'DM Sans',sans-serif;min-height:100dvh}
   nav{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid rgba(255,255,255,0.07);position:sticky;top:0;background:rgba(10,10,10,0.95);backdrop-filter:blur(12px);z-index:50}
   .logo{display:flex;align-items:center;gap:7px;font-family:'Syne',sans-serif;font-weight:800;font-size:1rem;color:#fff;text-decoration:none}
-  .wrap{max-width:480px;margin:0 auto;padding:32px 16px 80px}
-  h1{font-family:'Syne',sans-serif;font-size:1.6rem;font-weight:800;margin-bottom:4px}
-  h1 span{background:linear-gradient(135deg,#3b82f6,#6366f1);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-  .sub{color:rgba(255,255,255,0.4);font-size:0.83rem;margin-bottom:28px}
-  .as{display:inline-flex;align-items:center;gap:5px;font-size:0.72rem;color:rgba(255,255,255,0.35);margin-top:6px}
-
-  #drop-zone{border:1.5px dashed rgba(255,255,255,0.12);border-radius:14px;padding:36px 20px;text-align:center;cursor:pointer;transition:border-color 0.15s;position:relative;margin-bottom:20px}
-  #drop-zone:hover,#drop-zone.dragging{border-color:rgba(59,130,246,0.5)}
-  #drop-zone p{font-size:0.78rem;color:rgba(255,255,255,0.35);margin-top:6px}
-  #video-file{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
-
-  #preview-wrap{display:none;position:relative;border-radius:14px;overflow:hidden;margin-bottom:20px;aspect-ratio:9/16;background:#111;max-height:380px}
-  #preview-video{width:100%;height:100%;object-fit:cover}
-  .badge{position:absolute;top:10px;left:10px;background:rgba(0,0,0,0.55);backdrop-filter:blur(6px);border-radius:6px;padding:3px 8px;font-size:0.7rem;color:rgba(255,255,255,0.6)}
-  #timer{position:absolute;bottom:10px;right:10px;background:rgba(0,0,0,0.65);border-radius:6px;padding:3px 8px;font-family:'Syne',sans-serif;font-weight:700;font-size:0.75rem}
+  .wrap{max-width:440px;margin:0 auto;padding:28px 16px 60px}
+  .head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:20px}
+  .head h1{font-family:'Syne',sans-serif;font-size:1.4rem;font-weight:800}
+  .head h1 span{background:linear-gradient(135deg,#3b82f6,#6366f1);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+  .as{font-size:0.72rem;color:rgba(255,255,255,0.3)}
+  .toggle{display:flex;gap:5px;margin-bottom:16px}
+  .tbtn{flex:1;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.09);background:transparent;color:rgba(255,255,255,0.35);font-family:'DM Sans',sans-serif;font-size:0.8rem;cursor:pointer;transition:all 0.15s}
+  .tbtn.on{background:rgba(59,130,246,0.1);border-color:rgba(59,130,246,0.3);color:#93c5fd}
+  #drop{border:1.5px dashed rgba(255,255,255,0.1);border-radius:12px;padding:28px 16px;text-align:center;cursor:pointer;position:relative;margin-bottom:16px;transition:border-color 0.15s}
+  #drop:hover,#drop.drag{border-color:rgba(59,130,246,0.45)}
+  #drop p{font-size:0.75rem;color:rgba(255,255,255,0.3);margin-top:5px}
+  #vfile{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+  #prev{display:none;position:relative;border-radius:12px;overflow:hidden;margin-bottom:16px;aspect-ratio:9/16;background:#111;max-height:360px}
+  #pvid{width:100%;height:100%;object-fit:cover}
+  .badge{position:absolute;top:8px;left:8px;background:rgba(0,0,0,0.55);backdrop-filter:blur(6px);border-radius:5px;padding:2px 7px;font-size:0.68rem;color:rgba(255,255,255,0.55)}
+  #timer{position:absolute;bottom:8px;right:8px;background:rgba(0,0,0,0.65);border-radius:5px;padding:2px 7px;font-family:'Syne',sans-serif;font-weight:800;font-size:0.72rem}
   #timer.over{color:#f87171}#timer.ok{color:#4ade80}
-  .chg{position:absolute;top:10px;right:10px;background:rgba(0,0,0,0.55);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,0.12);border-radius:6px;padding:4px 9px;font-size:0.7rem;color:#fff;cursor:pointer}
-
-  .field{margin-bottom:14px}
-  label{display:block;font-size:0.72rem;font-weight:500;color:rgba(255,255,255,0.4);margin-bottom:6px;letter-spacing:0.04em;text-transform:uppercase}
-  input,select,textarea{width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.09);border-radius:10px;padding:11px 13px;color:#fff;font-family:'DM Sans',sans-serif;font-size:0.9rem;outline:none;transition:border-color 0.15s;-webkit-appearance:none}
+  .chg{position:absolute;top:8px;right:8px;background:rgba(0,0,0,0.55);border:1px solid rgba(255,255,255,0.1);border-radius:5px;padding:3px 8px;font-size:0.68rem;color:#fff;cursor:pointer}
+  .f{margin-bottom:12px}
+  label{display:block;font-size:0.7rem;color:rgba(255,255,255,0.35);margin-bottom:5px;text-transform:uppercase;letter-spacing:0.04em}
+  input,select,textarea{width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:9px;padding:10px 12px;color:#fff;font-family:'DM Sans',sans-serif;font-size:0.88rem;outline:none;transition:border-color 0.15s;-webkit-appearance:none}
   input:focus,select:focus,textarea:focus{border-color:rgba(59,130,246,0.4)}
   select option{background:#1a1a1a}
-  textarea{resize:vertical;min-height:72px}
-  .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-  .hint{font-size:0.68rem;color:rgba(255,255,255,0.25);margin-top:5px}
-
-  #thumb-zone{border:1px dashed rgba(255,255,255,0.1);border-radius:10px;padding:14px;text-align:center;cursor:pointer;position:relative;transition:border-color 0.15s}
-  #thumb-zone:hover{border-color:rgba(59,130,246,0.4)}
-  #thumb-zone p{font-size:0.75rem;color:rgba(255,255,255,0.35)}
-  #thumb-file{position:absolute;inset:0;opacity:0;cursor:pointer}
-  #thumb-preview{width:100%;border-radius:6px;display:none;margin-top:8px}
-
-  #submit-btn{width:100%;background:linear-gradient(135deg,#3b82f6,#6366f1);color:#fff;border:none;border-radius:12px;padding:14px;font-family:'Syne',sans-serif;font-weight:700;font-size:0.95rem;cursor:pointer;transition:opacity 0.15s,transform 0.1s;margin-top:6px}
-  #submit-btn:disabled{opacity:0.35;cursor:not-allowed}
-  #submit-btn:not(:disabled):active{transform:scale(0.98)}
-
-  #status-bar{display:none;align-items:center;gap:10px;background:rgba(255,255,255,0.05);border-radius:10px;padding:12px 14px;margin-top:12px;font-size:0.82rem;color:rgba(255,255,255,0.6)}
-  #status-bar.visible{display:flex}
-  #status-bar.success{background:rgba(74,222,128,0.08);color:#4ade80;border:1px solid rgba(74,222,128,0.15)}
-  #status-bar.error{background:rgba(248,113,113,0.08);color:#f87171;border:1px solid rgba(248,113,113,0.15)}
-  .prog-wrap{height:3px;background:rgba(255,255,255,0.07);border-radius:3px;overflow:hidden;flex:1}
-  .prog-fill{height:100%;background:linear-gradient(to right,#3b82f6,#6366f1);border-radius:3px;width:0%;transition:width 0.3s}
-
-  #mod-panel{margin-top:20px;background:rgba(251,191,36,0.04);border:1px solid rgba(251,191,36,0.15);border-radius:12px;padding:14px}
-  .mod-head{display:flex;align-items:center;gap:7px;margin-bottom:12px;font-family:'Syne',sans-serif;font-weight:700;font-size:0.72rem;color:#fbbf24;letter-spacing:0.06em;text-transform:uppercase}
-  #mod-panel label{color:rgba(251,191,36,0.5)}
-  #mod-panel input,#mod-panel select,#mod-panel textarea{border-color:rgba(251,191,36,0.15)}
-  .divider{height:1px;background:rgba(255,255,255,0.06);margin:20px 0}
+  textarea{resize:vertical;min-height:64px}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  #pfields.off{display:none}
+  #submit{width:100%;background:linear-gradient(135deg,#3b82f6,#6366f1);color:#fff;border:none;border-radius:10px;padding:13px;font-family:'Syne',sans-serif;font-weight:800;font-size:0.92rem;cursor:pointer;margin-top:4px;transition:opacity 0.15s,transform 0.1s}
+  #submit:disabled{opacity:0.3;cursor:not-allowed}
+  #submit:not(:disabled):active{transform:scale(0.98)}
+  #sbar{display:none;align-items:center;gap:8px;border-radius:9px;padding:10px 12px;margin-top:10px;font-size:0.8rem;color:rgba(255,255,255,0.55);background:rgba(255,255,255,0.04)}
+  #sbar.on{display:flex}
+  #sbar.ok{background:rgba(74,222,128,0.07);color:#4ade80;border:1px solid rgba(74,222,128,0.12)}
+  #sbar.err{background:rgba(248,113,113,0.07);color:#f87171;border:1px solid rgba(248,113,113,0.12)}
+  .bar{height:3px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden;flex:1}
+  .fill{height:100%;background:linear-gradient(to right,#3b82f6,#6366f1);width:0%;transition:width 0.3s}
+  #mod{margin-top:16px;background:rgba(251,191,36,0.04);border:1px solid rgba(251,191,36,0.12);border-radius:10px;padding:12px}
+  .mh{display:flex;align-items:center;gap:6px;margin-bottom:10px;font-family:'Syne',sans-serif;font-weight:800;font-size:0.7rem;color:#fbbf24;letter-spacing:0.06em;text-transform:uppercase}
+  #mod label{color:rgba(251,191,36,0.45)}
+  #mod input,#mod select,#mod textarea{border-color:rgba(251,191,36,0.12)}
 </style>
 
 <nav>
   <a href="/" class="logo">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
     Nox
   </a>
-  <span style="font-family:'Syne',sans-serif;font-weight:700;font-size:0.78rem;color:rgba(255,255,255,0.35);letter-spacing:0.08em">CLICKZ STUDIO</span>
-  <a href="/clickz" style="color:rgba(255,255,255,0.35);font-size:0.78rem;text-decoration:none">Feed →</a>
+  <a href="/clickz" style="color:rgba(255,255,255,0.3);font-size:0.78rem;text-decoration:none">Feed →</a>
 </nav>
 
 <div class="wrap">
-  <h1>Post a <span>Clickz</span></h1>
-  <p class="sub">8 seconds. One part. Thousands of builders.</p>
-  <div class="as">
-    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-    Posting as {sellerName}
+  <div class="head">
+    <h1>Post a <span>Clickz</span></h1>
+    <span class="as">{sellerName}</span>
   </div>
 
-  <div class="divider"></div>
-
-  <div id="drop-zone">
-    <input type="file" id="video-file" accept="video/*,.gif" />
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="2">
-      <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
-    </svg>
-    <p>MP4 · MOV · WebM · GIF &nbsp;·&nbsp; max 50MB</p>
+  <div class="toggle">
+    <button class="tbtn on" id="mode-listing">🛒 Listing</button>
+    <button class="tbtn" id="mode-video">🎬 Video</button>
   </div>
 
-  <div id="preview-wrap">
-    <video id="preview-video" playsinline muted autoplay loop></video>
+  <div id="drop">
+    <input type="file" id="vfile" accept="video/*,.gif" />
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+    <p>MP4 · MOV · WebM · GIF · max 50MB</p>
+  </div>
+
+  <div id="prev">
+    <video id="pvid" playsinline muted autoplay loop></video>
     <div class="badge">Preview</div>
     <div id="timer">—s</div>
-    <button class="chg" id="change-video">Change</button>
+    <button class="chg" id="chg">Change</button>
   </div>
 
-  <div class="field">
-    <label>Part Name</label>
-    <input type="text" id="field-title" placeholder="e.g. ASUS RTX 4080 Super OC" />
-  </div>
+  <div class="f"><label id="ltitle">Part Name</label><input id="ftitle" placeholder="e.g. ASUS RTX 4080 Super OC" /></div>
 
-  <div class="row">
-    <div class="field">
-      <label>Category</label>
-      <select id="field-category">
-        <option value="">Select…</option>
-        <option>Graphics Cards</option>
-        <option>Processors</option>
-        <option>Motherboards</option>
-        <option>Memory (RAM)</option>
-        <option>Storage</option>
-        <option>Power Supplies</option>
-        <option>Cooling</option>
-        <option>Cases</option>
-        <option>Other</option>
-      </select>
-    </div>
-    <div class="field">
-      <label>Price (USD)</label>
-      <input type="number" id="field-price" placeholder="299" min="1" />
-    </div>
-  </div>
-
-  <div class="field">
-    <label>Description</label>
-    <textarea id="field-desc" placeholder="Condition, specs, why you're selling…"></textarea>
-  </div>
-
-  <div class="field">
-    <label>Listing Slug</label>
-    <input type="text" id="field-slug" placeholder="asus-rtx-4080-super" />
-    <p class="hint">Must match your product slug on Nox</p>
-  </div>
-
-  <div class="field">
-    <label>Thumbnail <span style="opacity:0.45;font-size:0.65rem">(optional)</span></label>
-    <div id="thumb-zone">
-      <input type="file" id="thumb-file" accept="image/*" />
-      <p>Tap to upload · auto-captured if blank</p>
-      <img id="thumb-preview" alt="" />
-    </div>
-  </div>
-
-  <button id="submit-btn" disabled>Post Clickz</button>
-
-  <div id="status-bar">
-    <span id="status-text">Uploading…</span>
-    <div class="prog-wrap"><div class="prog-fill" id="progress-fill"></div></div>
-  </div>
-
-  {isModerator && (
-    <div id="mod-panel">
-      <div class="mod-head">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-        Mod Controls
-      </div>
-      <div class="field">
-        <label>Status</label>
-        <select id="mod-status">
-          <option value="published">Published</option>
-          <option value="draft">Draft</option>
-          <option value="flagged">Flagged</option>
-          <option value="removed">Removed</option>
+  <div id="pfields">
+    <div class="row">
+      <div class="f">
+        <label>Category</label>
+        <select id="fcat">
+          <option value="">Select…</option>
+          <option>Graphics Cards</option><option>Processors</option><option>Motherboards</option>
+          <option>Memory (RAM)</option><option>Storage</option><option>Power Supplies</option>
+          <option>Cooling</option><option>Cases</option><option>Other</option>
         </select>
       </div>
-      <div class="field">
-        <label>Internal Note</label>
-        <textarea id="mod-note" placeholder="Moderation note…" style="min-height:56px"></textarea>
+      <div class="f"><label>Price (USD)</label><input type="number" id="fprice" placeholder="299" min="1" /></div>
+    </div>
+    <div class="f"><label>Listing Slug</label><input id="fslug" placeholder="asus-rtx-4080-super" /></div>
+  </div>
+
+  <div class="f"><label>Description</label><textarea id="fdesc" placeholder="Condition, specs, why you're selling…"></textarea></div>
+
+  <button id="submit" disabled>Post Clickz</button>
+
+  <div id="sbar"><span id="stxt">Uploading…</span><div class="bar"><div class="fill" id="fill"></div></div></div>
+
+  {isModerator && (
+    <div id="mod">
+      <div class="mh"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Mod</div>
+      <div class="row" style="margin-bottom:8px">
+        <div class="f"><label>Status</label><select id="mstat"><option value="published">Published</option><option value="draft">Draft</option><option value="flagged">Flagged</option><option value="removed">Removed</option></select></div>
+        <div class="f"><label>Override Seller ID</label><input id="msid" placeholder="session ID" /></div>
       </div>
-      <div class="field">
-        <label>Override Seller ID</label>
-        <input type="text" id="mod-seller-override" placeholder="Leave blank to use session ID" />
-      </div>
+      <div class="f"><label>Note</label><textarea id="mnote" placeholder="Internal note…" style="min-height:48px"></textarea></div>
     </div>
   )}
 </div>
 </Layout>
 
 <script define:vars={{ bucketSlug, writeKey, sellerName, sellerId, isModerator }}>
-  window.__CS__ = bucketSlug; window.__CW__ = writeKey;
-  window.__SN__ = sellerName; window.__SI__ = sellerId; window.__MOD__ = isModerator;
+  window.__C__={s:bucketSlug,w:writeKey,n:sellerName,i:sellerId,m:isModerator};
 </script>
-
 <script>
-  const W = window as any;
-  const BUCKET = W.__CS__||'', KEY = W.__CW__||'', SNAME = W.__SN__||'', SID = W.__SI__||'', IS_MOD = !!W.__MOD__;
-  const $ = (id: string) => document.getElementById(id)!;
+  const {s:BUCKET,w:KEY,n:SNAME,i:SID,m:IS_MOD} = (window as any).__C__;
+  const $= (id:string)=>document.getElementById(id)!;
+  const drop=$('drop'),vfile=$('vfile') as HTMLInputElement,prev=$('prev'),pvid=$('pvid') as HTMLVideoElement;
+  const timer=$('timer'),submit=$('submit') as HTMLButtonElement,sbar=$('sbar'),stxt=$('stxt'),fill=$('fill');
+  let vblob:File|null=null, listing=true;
 
-  const dropZone = $('drop-zone'), videoFile = $('video-file') as HTMLInputElement;
-  const previewWrap = $('preview-wrap'), previewVid = $('preview-video') as HTMLVideoElement;
-  const timerDisp = $('timer'), changeBtn = $('change-video') as HTMLButtonElement;
-  const submitBtn = $('submit-btn') as HTMLButtonElement;
-  const statusBar = $('status-bar'), statusText = $('status-text'), progressFill = $('progress-fill');
-  const thumbFile = $('thumb-file') as HTMLInputElement, thumbPrev = $('thumb-preview') as HTMLImageElement;
-  const thumbZone = $('thumb-zone');
+  // mode toggle
+  const ml=$('mode-listing') as HTMLButtonElement, mv=$('mode-video') as HTMLButtonElement;
+  const pf=$('pfields'), lt=$('ltitle'), fd=$('fdesc') as HTMLTextAreaElement;
+  ml.onclick=()=>{ listing=true; ml.classList.add('on'); mv.classList.remove('on'); pf.classList.remove('off'); lt.textContent='Part Name'; fd.placeholder="Condition, specs, why you're selling\u2026"; chk(); };
+  mv.onclick=()=>{ listing=false; mv.classList.add('on'); ml.classList.remove('on'); pf.classList.add('off'); lt.textContent='Title'; fd.placeholder="What\u2019s this video about?"; chk(); };
 
-  let videoBlob: File|null = null, thumbBlob: File|null = null;
+  // drop / file
+  drop.addEventListener('dragover',e=>{e.preventDefault();drop.classList.add('drag')});
+  drop.addEventListener('dragleave',()=>drop.classList.remove('drag'));
+  drop.addEventListener('drop',e=>{e.preventDefault();drop.classList.remove('drag');const f=(e as DragEvent).dataTransfer?.files[0];if(f&&(f.type.startsWith('video/')||f.type==='image/gif'))load(f)});
+  vfile.addEventListener('change',()=>{const f=vfile.files?.[0];if(f)load(f)});
 
-  const setProgress = (pct: number, text: string) => { progressFill.style.width = pct+'%'; statusText.textContent = text; };
-  const showStatus = (type: 'loading'|'success'|'error', msg: string) => {
-    statusBar.className = 'visible '+(type==='loading'?'':type);
-    statusText.textContent = msg;
-    if (type !== 'loading') progressFill.style.width = '100%';
-  };
-
-  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragging'); });
-  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragging'));
-  dropZone.addEventListener('drop', e => {
-    e.preventDefault(); dropZone.classList.remove('dragging');
-    const f = (e as DragEvent).dataTransfer?.files[0];
-    if (f && (f.type.startsWith('video/') || f.type === 'image/gif')) loadVideo(f);
-  });
-  videoFile.addEventListener('change', () => { const f = videoFile.files?.[0]; if (f) loadVideo(f); });
-
-  function loadVideo(file: File) {
-    videoBlob = file;
-    if (file.type === 'image/gif') {
-      const img = document.createElement('img');
-      img.src = URL.createObjectURL(file);
-      img.style.cssText = 'width:100%;height:100%;object-fit:cover';
-      previewWrap.innerHTML = '';
-      previewWrap.appendChild(img);
-      previewWrap.insertAdjacentHTML('beforeend','<div class="badge">GIF</div><button class="chg" id="change-video">Change</button>');
-      $('change-video').addEventListener('click', resetVideo);
+  function load(file:File){
+    vblob=file;
+    if(file.type==='image/gif'){
+      const img=document.createElement('img'); img.src=URL.createObjectURL(file); img.style.cssText='width:100%;height:100%;object-fit:cover';
+      prev.innerHTML=''; prev.appendChild(img);
+      prev.insertAdjacentHTML('beforeend','<div class="badge">GIF</div><button class="chg" id="chg">Change</button>');
+      $('chg').onclick=reset;
     } else {
-      previewVid.src = URL.createObjectURL(file);
-      previewVid.addEventListener('loadedmetadata', () => {
-        const d = previewVid.duration;
-        timerDisp.textContent = d.toFixed(1)+'s';
-        timerDisp.className = d > 8.5 ? 'over' : 'ok';
-      }, { once: true });
+      pvid.src=URL.createObjectURL(file);
+      pvid.addEventListener('loadedmetadata',()=>{const d=pvid.duration;timer.textContent=d.toFixed(1)+'s';timer.className=d>8.5?'over':'ok'},{once:true});
     }
-    dropZone.style.display = 'none';
-    previewWrap.style.display = 'block';
-    checkReady();
+    drop.style.display='none'; prev.style.display='block'; chk();
   }
+  function reset(){vblob=null;pvid.src='';prev.style.display='none';drop.style.display='block';vfile.value='';chk()}
+  $('chg').onclick=reset;
 
-  function resetVideo() {
-    videoBlob = null; previewVid.src = '';
-    previewWrap.style.display = 'none'; dropZone.style.display = 'block';
-    videoFile.value = ''; checkReady();
+  const lreq=['ftitle','fcat','fprice','fslug'], vreq=['ftitle'];
+  lreq.forEach(id=>$(id)?.addEventListener('input',chk));
+  function chk(){const req=listing?lreq:vreq;submit.disabled=!vblob||!req.every(id=>($(id) as HTMLInputElement).value.trim())}
+
+  async function up(file:File,lbl:string):Promise<string>{
+    const fd=new FormData(); fd.append('media',file); fd.append('write_key',KEY);
+    const r=await fetch(`https://api.cosmicjs.com/v3/buckets/${BUCKET}/media`,{method:'POST',body:fd});
+    if(!r.ok) throw new Error((await r.json()).message||`Failed ${lbl}`);
+    return (await r.json()).media?.url||'';
   }
-  changeBtn.addEventListener('click', resetVideo);
+  function thumb():Promise<Blob>{return new Promise(res=>{const c=document.createElement('canvas');c.width=pvid.videoWidth;c.height=pvid.videoHeight;c.getContext('2d')!.drawImage(pvid,0,0);c.toBlob(b=>res(b!),'image/jpeg',0.85)})}
+  const prog=(p:number,t:string)=>{fill.style.width=p+'%';stxt.textContent=t};
+  const stat=(t:'l'|'ok'|'err',m:string)=>{sbar.className='on '+(t==='l'?'':t==='ok'?'ok':'err');stxt.textContent=m;if(t!=='l')fill.style.width='100%'};
+  const g=(id:string)=>($(id) as HTMLInputElement|HTMLSelectElement|HTMLTextAreaElement).value.trim();
 
-  thumbFile.addEventListener('change', () => {
-    const f = thumbFile.files?.[0]; if (!f) return;
-    thumbBlob = f; thumbPrev.src = URL.createObjectURL(f);
-    thumbPrev.style.display = 'block'; thumbZone.querySelector('p')!.textContent = f.name;
-  });
-
-  const required = ['field-title','field-category','field-price','field-slug'];
-  required.forEach(id => $(id)?.addEventListener('input', checkReady));
-  function checkReady() {
-    submitBtn.disabled = !videoBlob || !required.every(id => ($(id) as HTMLInputElement).value.trim());
-  }
-
-  async function uploadMedia(file: File, label: string): Promise<string> {
-    const fd = new FormData(); fd.append('media', file); fd.append('write_key', KEY);
-    const r = await fetch(`https://api.cosmicjs.com/v3/buckets/${BUCKET}/media`, { method:'POST', body:fd });
-    if (!r.ok) throw new Error((await r.json()).message || `Failed to upload ${label}`);
-    return (await r.json()).media?.url || '';
-  }
-
-  function captureThumb(): Promise<Blob> {
-    return new Promise(res => {
-      const c = document.createElement('canvas');
-      c.width = previewVid.videoWidth; c.height = previewVid.videoHeight;
-      c.getContext('2d')!.drawImage(previewVid, 0, 0);
-      c.toBlob(b => res(b!), 'image/jpeg', 0.85);
-    });
-  }
-
-  submitBtn.addEventListener('click', async () => {
-    if (!videoBlob) return;
-    submitBtn.disabled = true; statusBar.className = 'visible';
-    setProgress(5, 'Starting…');
-    try {
-      setProgress(15, 'Uploading video…');
-      const videoUrl = await uploadMedia(videoBlob, 'video');
-      setProgress(50, 'Processing thumbnail…');
-      const thumbUrl = thumbBlob
-        ? await uploadMedia(thumbBlob, 'thumbnail')
-        : await uploadMedia(new File([await captureThumb()], 'thumb.jpg', { type:'image/jpeg' }), 'thumbnail');
-      setProgress(75, 'Creating Clickz…');
-
-      const g = (id: string) => ($(id) as HTMLInputElement|HTMLSelectElement|HTMLTextAreaElement).value.trim();
-      const modStatus   = IS_MOD ? (($('mod-status') as HTMLSelectElement)?.value ?? 'published') : 'published';
-      const modNote     = IS_MOD ? g('mod-note') : '';
-      const modOverride = IS_MOD ? g('mod-seller-override') : '';
-
-      const r = await fetch(`https://api.cosmicjs.com/v3/buckets/${BUCKET}/objects`, {
-        method: 'POST',
-        headers: { 'Content-Type':'application/json', Authorization:`Bearer ${KEY}` },
-        body: JSON.stringify({
-          title: g('field-title'), type:'clickz', slug: g('field-slug'), status: modStatus,
-          metadata: {
-            video: { url: videoUrl },
-            thumbnail: { url: thumbUrl, imgix_url: thumbUrl },
-            category: g('field-category'), price: parseFloat(g('field-price')),
-            seller_name: SNAME, seller_id: modOverride || SID,
-            description: g('field-desc'), likes: 0,
-            ...(IS_MOD && modNote ? { mod_note: modNote } : {}),
-            ...(IS_MOD ? { moderated_by: SID } : {})
-          }
-        })
+  submit.onclick=async()=>{
+    if(!vblob)return; submit.disabled=true; sbar.className='on'; prog(5,'Starting\u2026');
+    try{
+      prog(15,'Uploading\u2026'); const vu=await up(vblob,'video');
+      prog(50,'Thumbnail\u2026'); const tu=await up(new File([await thumb()],'t.jpg',{type:'image/jpeg'}),'thumb');
+      prog(75,'Posting\u2026');
+      const slug=listing?g('fslug'):(g('ftitle').toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'')+'-'+Date.now());
+      const ms=IS_MOD?(($('mstat') as HTMLSelectElement)?.value??'published'):'published';
+      const r=await fetch(`https://api.cosmicjs.com/v3/buckets/${BUCKET}/objects`,{
+        method:'POST', headers:{'Content-Type':'application/json',Authorization:`Bearer ${KEY}`},
+        body:JSON.stringify({title:g('ftitle'),type:'clickz',slug,status:ms,metadata:{
+          video:{url:vu},thumbnail:{url:tu,imgix_url:tu},post_type:listing?'listing':'video',
+          ...(listing?{category:g('fcat'),price:parseFloat(g('fprice')),listing_slug:g('fslug')}:{}),
+          seller_name:SNAME,seller_id:(IS_MOD?g('msid'):'')||SID,description:g('fdesc'),likes:0,
+          ...(IS_MOD&&g('mnote')?{mod_note:g('mnote')}:{}),
+          ...(IS_MOD?{moderated_by:SID}:{})
+        }})
       });
-      if (!r.ok) throw new Error((await r.json()).message || 'Failed to create Clickz');
-      setProgress(100, '');
-      showStatus('success', 'Clickz posted — redirecting…');
-      setTimeout(() => { window.location.href = '/clickz'; }, 2000);
-    } catch (err: any) {
-      showStatus('error', err.message || 'Something went wrong.');
-      submitBtn.disabled = false;
-    }
-  });
+      if(!r.ok) throw new Error((await r.json()).message||'Failed');
+      prog(100,''); stat('ok','Posted \u2014 redirecting\u2026');
+      setTimeout(()=>{window.location.href='/clickz'},2000);
+    }catch(e:any){stat('err',e.message||'Something went wrong');submit.disabled=false}
+  };
 </script>
