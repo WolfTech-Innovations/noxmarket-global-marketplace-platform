@@ -172,9 +172,9 @@ const writeKey: string = import.meta.env.COSMIC_WRITE_KEY;
 
   async function up(file:File,lbl:string):Promise<string>{
     const fd=new FormData(); fd.append('media',file); fd.append('write_key',KEY);
-    const r=await fetch(`https://api.cosmicjs.com/v3/buckets/${BUCKET}/media`,{method:'POST',body:fd});
+    const r=await fetch(`https://workers.cosmicjs.com/v3/buckets/${BUCKET}/media`,{method:'POST',body:fd});
     if(!r.ok) throw new Error((await r.json()).message||`Failed ${lbl}`);
-    return (await r.json()).media?.url||'';
+    return (await r.json()).media?.name||''; // name is used as file metafield value per Cosmic docs
   }
   function thumb():Promise<Blob>{return new Promise(res=>{const c=document.createElement('canvas');c.width=pvid.videoWidth;c.height=pvid.videoHeight;c.getContext('2d')!.drawImage(pvid,0,0);c.toBlob(b=>res(b!),'image/jpeg',0.85)})}
   const prog=(p:number,t:string)=>{fill.style.width=p+'%';stxt.textContent=t};
@@ -192,7 +192,10 @@ const writeKey: string = import.meta.env.COSMIC_WRITE_KEY;
       const r=await fetch(`https://api.cosmicjs.com/v3/buckets/${BUCKET}/objects`,{
         method:'POST', headers:{'Content-Type':'application/json',Authorization:`Bearer ${KEY}`},
         body:JSON.stringify({title:g('ftitle'),type:'clickz',slug,status:ms,metadata:{
-          video:{url:vu},thumbnail:{url:tu,imgix_url:tu},post_type:listing?'listing':'video',
+          // file metafields: value must be media.name string (per Cosmic docs)
+          video:vu,
+          thumbnail:tu,
+          post_type:listing?'listing':'video',
           ...(listing?{category:g('fcat'),price:parseFloat(g('fprice')),listing_slug:g('fslug')}:{}),
           seller_name:SNAME,seller_id:(IS_MOD?g('msid'):'')||SID,description:g('fdesc'),likes:0,
           ...(IS_MOD&&g('mnote')?{mod_note:g('mnote')}:{}),
