@@ -1,4 +1,6 @@
 import { createBucketClient } from '@cosmicjs/sdk';
+import type { Clickz } from '@/types';
+
 
 export const cosmic = createBucketClient({
   bucketSlug: import.meta.env.COSMIC_BUCKET_SLUG,
