@@ -1,0 +1,708 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import Header from '@/components/Header.astro';
+---
+
+<Layout title="Post a Clickz — Nox Seller Studio">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap');
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0a0a0a;
+      color: #fff;
+      font-family: 'DM Sans', sans-serif;
+      min-height: 100dvh;
+    }
+
+    .studio-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+      background: rgba(10,10,10,0.95);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      backdrop-filter: blur(12px);
+    }
+
+    .studio-header .logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 1.1rem;
+      color: #fff;
+      text-decoration: none;
+    }
+
+    .studio-title {
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 0.85rem;
+      color: rgba(255,255,255,0.5);
+      letter-spacing: 0.06em;
+    }
+
+    .studio-wrap {
+      max-width: 520px;
+      margin: 0 auto;
+      padding: 24px 16px 60px;
+    }
+
+    .studio-hero {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    .studio-hero h1 {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.8rem;
+      font-weight: 800;
+      margin-bottom: 6px;
+    }
+
+    .studio-hero h1 span {
+      background: linear-gradient(135deg, #3b82f6, #6366f1);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .studio-hero p {
+      color: rgba(255,255,255,0.45);
+      font-size: 0.88rem;
+    }
+
+    /* Upload zone */
+    #drop-zone {
+      border: 2px dashed rgba(59,130,246,0.35);
+      border-radius: 18px;
+      background: rgba(59,130,246,0.04);
+      padding: 32px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+      margin-bottom: 24px;
+    }
+
+    #drop-zone.dragging {
+      border-color: #3b82f6;
+      background: rgba(59,130,246,0.1);
+    }
+
+    #drop-zone .drop-icon {
+      width: 56px; height: 56px;
+      background: rgba(59,130,246,0.15);
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 14px;
+    }
+
+    #drop-zone h3 {
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 1rem;
+      margin-bottom: 6px;
+    }
+
+    #drop-zone p {
+      font-size: 0.78rem;
+      color: rgba(255,255,255,0.4);
+    }
+
+    #video-file {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Preview */
+    #preview-wrap {
+      display: none;
+      position: relative;
+      border-radius: 18px;
+      overflow: hidden;
+      margin-bottom: 24px;
+      aspect-ratio: 9/16;
+      background: #111;
+      max-height: 400px;
+    }
+
+    #preview-video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .preview-badge {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(8px);
+      border-radius: 8px;
+      padding: 4px 10px;
+      font-size: 0.72rem;
+      color: rgba(255,255,255,0.7);
+    }
+
+    #timer-display {
+      position: absolute;
+      bottom: 12px;
+      right: 12px;
+      background: rgba(0,0,0,0.7);
+      border-radius: 8px;
+      padding: 4px 10px;
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 0.78rem;
+    }
+
+    #timer-display.over { color: #f87171; }
+    #timer-display.ok { color: #4ade80; }
+
+    .change-video-btn {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 8px;
+      padding: 5px 10px;
+      font-size: 0.72rem;
+      color: #fff;
+      cursor: pointer;
+    }
+
+    /* Form fields */
+    .field {
+      margin-bottom: 18px;
+    }
+
+    .field label {
+      display: block;
+      font-size: 0.78rem;
+      font-weight: 500;
+      color: rgba(255,255,255,0.55);
+      margin-bottom: 7px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .field input,
+    .field select,
+    .field textarea {
+      width: 100%;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px;
+      padding: 12px 14px;
+      color: #fff;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.92rem;
+      outline: none;
+      transition: border-color 0.15s;
+      -webkit-appearance: none;
+    }
+
+    .field input:focus,
+    .field select:focus,
+    .field textarea:focus {
+      border-color: rgba(59,130,246,0.5);
+    }
+
+    .field select option {
+      background: #1a1a1a;
+      color: #fff;
+    }
+
+    .field textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+
+    .field-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    /* Thumbnail upload */
+    #thumb-zone {
+      border: 1.5px dashed rgba(255,255,255,0.15);
+      border-radius: 12px;
+      padding: 16px;
+      text-align: center;
+      cursor: pointer;
+      position: relative;
+      transition: border-color 0.15s;
+    }
+
+    #thumb-zone:hover { border-color: rgba(59,130,246,0.5); }
+
+    #thumb-zone p {
+      font-size: 0.78rem;
+      color: rgba(255,255,255,0.4);
+    }
+
+    #thumb-file {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    #thumb-preview {
+      width: 100%;
+      border-radius: 8px;
+      display: none;
+      margin-top: 8px;
+    }
+
+    /* Submit */
+    #submit-btn {
+      width: 100%;
+      background: linear-gradient(135deg, #3b82f6, #6366f1);
+      color: #fff;
+      border: none;
+      border-radius: 14px;
+      padding: 15px;
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s;
+      margin-top: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    #submit-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+    #submit-btn:not(:disabled):active { transform: scale(0.98); }
+
+    /* Status bar */
+    #status-bar {
+      display: none;
+      background: rgba(255,255,255,0.06);
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin-top: 16px;
+      font-size: 0.84rem;
+      color: rgba(255,255,255,0.7);
+      align-items: center;
+      gap: 10px;
+    }
+
+    #status-bar.visible { display: flex; }
+    #status-bar.success { background: rgba(74,222,128,0.1); color: #4ade80; border: 1px solid rgba(74,222,128,0.2); }
+    #status-bar.error { background: rgba(248,113,113,0.1); color: #f87171; border: 1px solid rgba(248,113,113,0.2); }
+
+    .progress-bar-wrap {
+      height: 4px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 4px;
+      overflow: hidden;
+      flex: 1;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      background: linear-gradient(to right, #3b82f6, #6366f1);
+      border-radius: 4px;
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+
+    /* Tips */
+    .tips {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 14px;
+      padding: 16px;
+      margin-bottom: 24px;
+    }
+
+    .tips h4 {
+      font-family: 'Syne', sans-serif;
+      font-size: 0.78rem;
+      color: rgba(255,255,255,0.35);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    .tips ul {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+
+    .tips li {
+      font-size: 0.8rem;
+      color: rgba(255,255,255,0.5);
+      display: flex;
+      align-items: flex-start;
+      gap: 7px;
+    }
+
+    .tips li::before {
+      content: '⚡';
+      font-size: 0.7rem;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    /* Divider */
+    .divider {
+      height: 1px;
+      background: rgba(255,255,255,0.06);
+      margin: 24px 0;
+    }
+  </style>
+
+  <div class="studio-header">
+    <a href="/" class="logo">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+      </svg>
+      Nox
+    </a>
+    <span class="studio-title">CLICKZ STUDIO</span>
+    <a href="/clickz" style="color:rgba(255,255,255,0.4);font-size:0.8rem;text-decoration:none;">Feed →</a>
+  </div>
+
+  <div class="studio-wrap">
+    <div class="studio-hero">
+      <h1>Post a <span>Clickz</span></h1>
+      <p>8 seconds. One part. Thousands of builders.</p>
+    </div>
+
+    <!-- Tips -->
+    <div class="tips">
+      <h4>Tips for a great Clickz</h4>
+      <ul>
+        <li>Keep it exactly 8 seconds — longer clips are trimmed at preview</li>
+        <li>Film in portrait (9:16) with good lighting</li>
+        <li>Show the part from multiple angles</li>
+        <li>Mention the condition clearly in the video</li>
+      </ul>
+    </div>
+
+    <!-- Video upload -->
+    <div id="drop-zone">
+      <input type="file" id="video-file" accept="video/*" />
+      <div class="drop-icon">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2">
+          <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+        </svg>
+      </div>
+      <h3>Upload your Clickz video</h3>
+      <p>MP4, MOV, WebM · Max 50MB · Portrait recommended</p>
+    </div>
+
+    <!-- Preview -->
+    <div id="preview-wrap">
+      <video id="preview-video" playsinline muted autoplay loop></video>
+      <div class="preview-badge">Preview</div>
+      <div id="timer-display">—s</div>
+      <button class="change-video-btn" id="change-video">Change</button>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Part details form -->
+    <div class="field">
+      <label>Part Name</label>
+      <input type="text" id="field-title" placeholder="e.g. ASUS RTX 4080 Super OC" />
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label>Category</label>
+        <select id="field-category">
+          <option value="">Select…</option>
+          <option>Graphics Cards</option>
+          <option>Processors</option>
+          <option>Motherboards</option>
+          <option>Memory (RAM)</option>
+          <option>Storage</option>
+          <option>Power Supplies</option>
+          <option>Cooling</option>
+          <option>Cases</option>
+          <option>Other</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Price (USD)</label>
+        <input type="number" id="field-price" placeholder="299" min="1" />
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Seller Name / Handle</label>
+      <input type="text" id="field-seller" placeholder="@yourhandle" />
+    </div>
+
+    <div class="field">
+      <label>Short Description</label>
+      <textarea id="field-desc" placeholder="Condition, specs highlights, why you're selling…"></textarea>
+    </div>
+
+    <div class="field">
+      <label>Thumbnail Image <span style="color:rgba(255,255,255,0.25);font-size:0.72rem">(optional, auto-captured if blank)</span></label>
+      <div id="thumb-zone">
+        <input type="file" id="thumb-file" accept="image/*" />
+        <p>Tap to upload a thumbnail</p>
+        <img id="thumb-preview" alt="Thumbnail preview" />
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Link to Full Listing Slug</label>
+      <input type="text" id="field-slug" placeholder="e.g. asus-rtx-4080-super" />
+      <p style="font-size:0.72rem;color:rgba(255,255,255,0.3);margin-top:6px;">Must match your product slug on Nox</p>
+    </div>
+
+    <!-- Submit -->
+    <button id="submit-btn" disabled>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+      </svg>
+      Post Clickz
+    </button>
+
+    <!-- Status -->
+    <div id="status-bar">
+      <span id="status-text">Uploading…</span>
+      <div class="progress-bar-wrap">
+        <div class="progress-bar-fill" id="progress-fill"></div>
+      </div>
+    </div>
+  </div>
+</Layout>
+
+<script>
+  // ---- Config (replace with your actual Cosmic keys from env) ----
+  // These are PUBLIC keys only - write_key is safe client-side for object creation
+  // but you should ideally proxy through your own API route for production
+  const BUCKET_SLUG = (window as any).__COSMIC_SLUG__ || '';
+  const WRITE_KEY   = (window as any).__COSMIC_WRITE__ || '';
+  const READ_KEY    = (window as any).__COSMIC_READ__  || '';
+
+  const dropZone   = document.getElementById('drop-zone') as HTMLElement;
+  const videoFile  = document.getElementById('video-file') as HTMLInputElement;
+  const previewWrap = document.getElementById('preview-wrap') as HTMLElement;
+  const previewVid = document.getElementById('preview-video') as HTMLVideoElement;
+  const timerDisp  = document.getElementById('timer-display') as HTMLElement;
+  const changeBtn  = document.getElementById('change-video') as HTMLButtonElement;
+  const submitBtn  = document.getElementById('submit-btn') as HTMLButtonElement;
+  const statusBar  = document.getElementById('status-bar') as HTMLElement;
+  const statusText = document.getElementById('status-text') as HTMLElement;
+  const progressFill = document.getElementById('progress-fill') as HTMLElement;
+  const thumbFile  = document.getElementById('thumb-file') as HTMLInputElement;
+  const thumbPrev  = document.getElementById('thumb-preview') as HTMLImageElement;
+  const thumbZone  = document.getElementById('thumb-zone') as HTMLElement;
+
+  let videoBlob: File | null = null;
+  let thumbBlob: File | null = null;
+
+  function setProgress(pct: number, text: string) {
+    progressFill.style.width = pct + '%';
+    statusText.textContent = text;
+  }
+
+  function showStatus(type: 'loading'|'success'|'error', msg: string) {
+    statusBar.className = 'visible ' + (type === 'loading' ? '' : type);
+    statusText.textContent = msg;
+    if (type !== 'loading') progressFill.style.width = '100%';
+  }
+
+  // Drag and drop
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragging'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragging'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('dragging');
+    const file = e.dataTransfer?.files[0];
+    if (file && file.type.startsWith('video/')) loadVideo(file);
+  });
+
+  videoFile.addEventListener('change', () => {
+    const file = videoFile.files?.[0];
+    if (file) loadVideo(file);
+  });
+
+  function loadVideo(file: File) {
+    videoBlob = file;
+    const url = URL.createObjectURL(file);
+    previewVid.src = url;
+    dropZone.style.display = 'none';
+    previewWrap.style.display = 'block';
+    checkReady();
+
+    previewVid.addEventListener('loadedmetadata', () => {
+      const dur = previewVid.duration;
+      timerDisp.textContent = dur.toFixed(1) + 's';
+      timerDisp.className = dur > 8.5 ? 'over' : 'ok';
+    }, { once: true });
+  }
+
+  changeBtn.addEventListener('click', () => {
+    videoBlob = null;
+    previewVid.src = '';
+    previewWrap.style.display = 'none';
+    dropZone.style.display = 'block';
+    videoFile.value = '';
+    checkReady();
+  });
+
+  // Thumbnail
+  thumbFile.addEventListener('change', () => {
+    const file = thumbFile.files?.[0];
+    if (!file) return;
+    thumbBlob = file;
+    thumbPrev.src = URL.createObjectURL(file);
+    thumbPrev.style.display = 'block';
+    thumbZone.querySelector('p')!.textContent = file.name;
+  });
+
+  // Form validation
+  const required = ['field-title', 'field-category', 'field-price', 'field-seller', 'field-slug'];
+  required.forEach(id => {
+    document.getElementById(id)?.addEventListener('input', checkReady);
+  });
+
+  function checkReady() {
+    const filled = required.every(id => {
+      const el = document.getElementById(id) as HTMLInputElement | HTMLSelectElement;
+      return el && el.value.trim() !== '';
+    });
+    submitBtn.disabled = !videoBlob || !filled;
+  }
+
+  // Upload to Cosmic
+  async function uploadMedia(file: File, label: string): Promise<string> {
+    const formData = new FormData();
+    formData.append('media', file);
+    formData.append('write_key', WRITE_KEY);
+
+    const res = await fetch(`https://api.cosmicjs.com/v3/buckets/${BUCKET_SLUG}/media`, {
+      method: 'POST',
+      body: formData
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.message || `Failed to upload ${label}`);
+    }
+
+    const data = await res.json();
+    return data.media?.url || '';
+  }
+
+  // Auto-capture thumbnail from video if not provided
+  function captureThumb(): Promise<Blob> {
+    return new Promise(resolve => {
+      const canvas = document.createElement('canvas');
+      canvas.width = previewVid.videoWidth;
+      canvas.height = previewVid.videoHeight;
+      const ctx = canvas.getContext('2d')!;
+      ctx.drawImage(previewVid, 0, 0);
+      canvas.toBlob(b => resolve(b!), 'image/jpeg', 0.85);
+    });
+  }
+
+  submitBtn.addEventListener('click', async () => {
+    if (!videoBlob) return;
+
+    submitBtn.disabled = true;
+    statusBar.className = 'visible';
+    setProgress(5, 'Starting upload…');
+
+    try {
+      // 1. Upload video
+      setProgress(15, 'Uploading video…');
+      const videoUrl = await uploadMedia(videoBlob, 'video');
+      setProgress(50, 'Video uploaded. Processing thumbnail…');
+
+      // 2. Upload or capture thumbnail
+      let thumbUrl = '';
+      if (thumbBlob) {
+        thumbUrl = await uploadMedia(thumbBlob, 'thumbnail');
+      } else {
+        // capture from video element
+        const autoThumb = await captureThumb();
+        const autoFile = new File([autoThumb], 'thumb.jpg', { type: 'image/jpeg' });
+        thumbUrl = await uploadMedia(autoFile, 'thumbnail');
+      }
+      setProgress(75, 'Creating Clickz…');
+
+      // 3. Create object in Cosmic
+      const title = (document.getElementById('field-title') as HTMLInputElement).value.trim();
+      const category = (document.getElementById('field-category') as HTMLSelectElement).value;
+      const price = (document.getElementById('field-price') as HTMLInputElement).value.trim();
+      const seller = (document.getElementById('field-seller') as HTMLInputElement).value.trim();
+      const desc = (document.getElementById('field-desc') as HTMLTextAreaElement).value.trim();
+      const slug = (document.getElementById('field-slug') as HTMLInputElement).value.trim();
+
+      const payload = {
+        title,
+        type: 'clickz',
+        slug,
+        status: 'published',
+        metadata: {
+          video: { url: videoUrl },
+          thumbnail: { url: thumbUrl, imgix_url: thumbUrl },
+          category,
+          price: parseFloat(price),
+          seller_name: seller,
+          description: desc,
+          likes: 0
+        }
+      };
+
+      const res = await fetch(`https://api.cosmicjs.com/v3/buckets/${BUCKET_SLUG}/objects`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${WRITE_KEY}`
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || 'Failed to create Clickz');
+      }
+
+      setProgress(100, '');
+      showStatus('success', '🎉 Clickz posted! Redirecting to feed…');
+      setTimeout(() => { window.location.href = '/clickz'; }, 2000);
+
+    } catch (err: any) {
+      showStatus('error', '❌ ' + (err.message || 'Something went wrong. Try again.'));
+      submitBtn.disabled = false;
+    }
+  });
+
+  // Inject Cosmic credentials from Astro env (injected via script tag)
+  // In your Layout or this page, add:
+  // <script define:vars={{ slug: import.meta.env.COSMIC_BUCKET_SLUG, write: import.meta.env.COSMIC_WRITE_KEY, read: import.meta.env.COSMIC_READ_KEY }}>
+  //   window.__COSMIC_SLUG__ = slug; window.__COSMIC_WRITE__ = write; window.__COSMIC_READ__ = read;
+  // </script>
+</script>
