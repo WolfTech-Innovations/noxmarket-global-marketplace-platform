@@ -1,211 +1,555 @@
 ---
 import Layout from '@/layouts/Layout.astro';
-import { getSessionFromCookies } from '@/lib/auth';
+import Header from '@/components/Header.astro';
+import { getClickz } from '@/lib/cosmic';
+import type { Clickz } from '@/types';
 
-const session = getSessionFromCookies(Astro.cookies);
-if (!session || !session.isSeller || !session.sellerId) return Astro.redirect('/login?redirect=/sell/clickz');
-
-const sellerName: string = session.businessName || session.name || 'Seller';
-const sellerId: string = session.sellerId;
-const isModerator: boolean = session.sellerId === 'seller-nkbvjl-xak';
-const bucketSlug: string = import.meta.env.COSMIC_BUCKET_SLUG;
-const writeKey: string = import.meta.env.COSMIC_WRITE_KEY;
+const clickzItems = await getClickz();
 ---
-<Layout title="Post a Clickz — Nox">
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@800&family=DM+Sans:wght@400;500&display=swap');
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{background:#0a0a0a;color:#fff;font-family:'DM Sans',sans-serif;min-height:100dvh}
-  nav{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid rgba(255,255,255,0.07);position:sticky;top:0;background:rgba(10,10,10,0.95);backdrop-filter:blur(12px);z-index:50}
-  .logo{display:flex;align-items:center;gap:7px;font-family:'Syne',sans-serif;font-weight:800;font-size:1rem;color:#fff;text-decoration:none}
-  .wrap{max-width:440px;margin:0 auto;padding:28px 16px 60px}
-  .head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:20px}
-  .head h1{font-family:'Syne',sans-serif;font-size:1.4rem;font-weight:800}
-  .head h1 span{background:linear-gradient(135deg,#3b82f6,#6366f1);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-  .as{font-size:0.72rem;color:rgba(255,255,255,0.3)}
-  .toggle{display:flex;gap:5px;margin-bottom:16px}
-  .tbtn{flex:1;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.09);background:transparent;color:rgba(255,255,255,0.35);font-family:'DM Sans',sans-serif;font-size:0.8rem;cursor:pointer;transition:all 0.15s}
-  .tbtn.on{background:rgba(59,130,246,0.1);border-color:rgba(59,130,246,0.3);color:#93c5fd}
-  #drop{border:1.5px dashed rgba(255,255,255,0.1);border-radius:12px;padding:28px 16px;text-align:center;cursor:pointer;position:relative;margin-bottom:16px;transition:border-color 0.15s}
-  #drop:hover,#drop.drag{border-color:rgba(59,130,246,0.45)}
-  #drop p{font-size:0.75rem;color:rgba(255,255,255,0.3);margin-top:5px}
-  #vfile{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
-  #prev{display:none;position:relative;border-radius:12px;overflow:hidden;margin-bottom:16px;aspect-ratio:9/16;background:#111;max-height:360px}
-  #pvid{width:100%;height:100%;object-fit:cover}
-  .badge{position:absolute;top:8px;left:8px;background:rgba(0,0,0,0.55);backdrop-filter:blur(6px);border-radius:5px;padding:2px 7px;font-size:0.68rem;color:rgba(255,255,255,0.55)}
-  #timer{position:absolute;bottom:8px;right:8px;background:rgba(0,0,0,0.65);border-radius:5px;padding:2px 7px;font-family:'Syne',sans-serif;font-weight:800;font-size:0.72rem}
-  #timer.over{color:#f87171}#timer.ok{color:#4ade80}
-  .chg{position:absolute;top:8px;right:8px;background:rgba(0,0,0,0.55);border:1px solid rgba(255,255,255,0.1);border-radius:5px;padding:3px 8px;font-size:0.68rem;color:#fff;cursor:pointer}
-  .f{margin-bottom:12px}
-  label{display:block;font-size:0.7rem;color:rgba(255,255,255,0.35);margin-bottom:5px;text-transform:uppercase;letter-spacing:0.04em}
-  input,select,textarea{width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:9px;padding:10px 12px;color:#fff;font-family:'DM Sans',sans-serif;font-size:0.88rem;outline:none;transition:border-color 0.15s;-webkit-appearance:none}
-  input:focus,select:focus,textarea:focus{border-color:rgba(59,130,246,0.4)}
-  select option{background:#1a1a1a}
-  textarea{resize:vertical;min-height:64px}
-  .row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-  #pfields.off{display:none}
-  #submit{width:100%;background:linear-gradient(135deg,#3b82f6,#6366f1);color:#fff;border:none;border-radius:10px;padding:13px;font-family:'Syne',sans-serif;font-weight:800;font-size:0.92rem;cursor:pointer;margin-top:4px;transition:opacity 0.15s,transform 0.1s}
-  #submit:disabled{opacity:0.3;cursor:not-allowed}
-  #submit:not(:disabled):active{transform:scale(0.98)}
-  #sbar{display:none;align-items:center;gap:8px;border-radius:9px;padding:10px 12px;margin-top:10px;font-size:0.8rem;color:rgba(255,255,255,0.55);background:rgba(255,255,255,0.04)}
-  #sbar.on{display:flex}
-  #sbar.ok{background:rgba(74,222,128,0.07);color:#4ade80;border:1px solid rgba(74,222,128,0.12)}
-  #sbar.err{background:rgba(248,113,113,0.07);color:#f87171;border:1px solid rgba(248,113,113,0.12)}
-  .bar{height:3px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden;flex:1}
-  .fill{height:100%;background:linear-gradient(to right,#3b82f6,#6366f1);width:0%;transition:width 0.3s}
-  #mod{margin-top:16px;background:rgba(251,191,36,0.04);border:1px solid rgba(251,191,36,0.12);border-radius:10px;padding:12px}
-  .mh{display:flex;align-items:center;gap:6px;margin-bottom:10px;font-family:'Syne',sans-serif;font-weight:800;font-size:0.7rem;color:#fbbf24;letter-spacing:0.06em;text-transform:uppercase}
-  #mod label{color:rgba(251,191,36,0.45)}
-  #mod input,#mod select,#mod textarea{border-color:rgba(251,191,36,0.12)}
-</style>
 
-<nav>
-  <a href="/" class="logo">
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-    Nox
-  </a>
-  <a href="/clickz" style="color:rgba(255,255,255,0.3);font-size:0.78rem;text-decoration:none">Feed →</a>
-</nav>
+<Layout title="Clickz — Nox">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap');
 
-<div class="wrap">
-  <div class="head">
-    <h1>Post a <span>Clickz</span></h1>
-    <span class="as">{sellerName}</span>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #000;
+      color: #fff;
+      font-family: 'DM Sans', sans-serif;
+      overflow: hidden;
+    }
+
+    #clickz-header {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 20px;
+      background: linear-gradient(to bottom, rgba(0,0,0,0.85) 0%, transparent 100%);
+    }
+
+    #clickz-header .logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 1.3rem;
+      letter-spacing: -0.02em;
+      color: #fff;
+      text-decoration: none;
+    }
+
+    #clickz-header .logo svg {
+      width: 22px;
+      height: 22px;
+    }
+
+    .clickz-badge {
+      background: linear-gradient(135deg, #3b82f6, #6366f1);
+      color: #fff;
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 0.75rem;
+      letter-spacing: 0.08em;
+      padding: 4px 10px;
+      border-radius: 20px;
+    }
+
+    #feed-container {
+      height: 100dvh;
+      overflow-y: scroll;
+      scroll-snap-type: y mandatory;
+      scroll-behavior: smooth;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    #feed-container::-webkit-scrollbar { display: none; }
+
+    .clickz-slide {
+      height: 100dvh;
+      width: 100%;
+      scroll-snap-align: start;
+      position: relative;
+      display: flex;
+      align-items: flex-end;
+      background: #0a0a0a;
+      overflow: hidden;
+    }
+
+    .clickz-video {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .clickz-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        to top,
+        rgba(0,0,0,0.82) 0%,
+        rgba(0,0,0,0.3) 40%,
+        rgba(0,0,0,0.1) 70%,
+        transparent 100%
+      );
+    }
+
+    .clickz-content {
+      position: relative;
+      z-index: 10;
+      padding: 0 16px 32px 16px;
+      width: calc(100% - 72px);
+    }
+
+    .part-category {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: rgba(59,130,246,0.25);
+      border: 1px solid rgba(59,130,246,0.4);
+      border-radius: 20px;
+      padding: 3px 10px;
+      font-size: 0.7rem;
+      font-weight: 500;
+      color: #93c5fd;
+      letter-spacing: 0.04em;
+      margin-bottom: 8px;
+      backdrop-filter: blur(6px);
+    }
+
+    .clickz-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.25rem;
+      font-weight: 700;
+      line-height: 1.2;
+      margin-bottom: 6px;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+    }
+
+    .clickz-seller {
+      font-size: 0.82rem;
+      color: rgba(255,255,255,0.65);
+      margin-bottom: 10px;
+    }
+
+    .clickz-seller span {
+      color: rgba(255,255,255,0.9);
+      font-weight: 500;
+    }
+
+    .clickz-price {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: 14px;
+    }
+
+    .clickz-actions-row {
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn-view-listing {
+      flex: 1;
+      background: #fff;
+      color: #000;
+      border: none;
+      border-radius: 12px;
+      padding: 12px 16px;
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 0.88rem;
+      cursor: pointer;
+      text-align: center;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: background 0.15s, transform 0.1s;
+    }
+
+    .btn-view-listing:active { transform: scale(0.97); }
+
+    .btn-save {
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 12px;
+      padding: 12px 14px;
+      color: #fff;
+      cursor: pointer;
+      backdrop-filter: blur(8px);
+      transition: background 0.15s;
+      display: flex;
+      align-items: center;
+    }
+
+    .btn-save:hover { background: rgba(255,255,255,0.2); }
+
+    /* Right sidebar actions */
+    .clickz-sidebar {
+      position: absolute;
+      right: 14px;
+      bottom: 100px;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      align-items: center;
+    }
+
+    .sidebar-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+      background: none;
+      border: none;
+      color: #fff;
+    }
+
+    .sidebar-btn-icon {
+      width: 44px;
+      height: 44px;
+      background: rgba(255,255,255,0.15);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(8px);
+      transition: background 0.15s, transform 0.1s;
+    }
+
+    .sidebar-btn:active .sidebar-btn-icon { transform: scale(0.9); }
+    .sidebar-btn-icon:hover { background: rgba(255,255,255,0.25); }
+
+    .sidebar-btn span {
+      font-size: 0.65rem;
+      color: rgba(255,255,255,0.75);
+    }
+
+    /* Timer bar */
+    .timer-bar {
+      position: absolute;
+      bottom: 0; left: 0;
+      height: 3px;
+      background: linear-gradient(to right, #3b82f6, #6366f1);
+      width: 0%;
+      transition: width linear;
+    }
+
+    /* Mute button */
+    #mute-btn {
+      position: fixed;
+      top: 70px;
+      right: 16px;
+      z-index: 200;
+      background: rgba(0,0,0,0.5);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 50%;
+      width: 38px; height: 38px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      backdrop-filter: blur(8px);
+      color: #fff;
+    }
+
+    /* Empty state */
+    .empty-feed {
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      color: rgba(255,255,255,0.5);
+      text-align: center;
+      padding: 40px;
+    }
+
+    .empty-feed h2 {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.4rem;
+      color: #fff;
+    }
+
+    .empty-feed p {
+      font-size: 0.9rem;
+      max-width: 280px;
+      line-height: 1.6;
+    }
+
+    .empty-icon {
+      width: 64px; height: 64px;
+      background: rgba(59,130,246,0.15);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 8px;
+    }
+
+    /* Scroll indicator */
+    .scroll-hint {
+      position: absolute;
+      bottom: 48px;
+      right: 50%;
+      transform: translateX(50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      animation: bounce 1.5s ease-in-out infinite;
+      opacity: 0.5;
+      font-size: 0.65rem;
+      color: #fff;
+    }
+
+    @keyframes bounce {
+      0%, 100% { transform: translateX(50%) translateY(0); }
+      50% { transform: translateX(50%) translateY(-6px); }
+    }
+
+    .liked .sidebar-btn-icon {
+      background: rgba(239,68,68,0.4) !important;
+    }
+  </style>
+
+  <!-- Header -->
+  <div id="clickz-header">
+    <a href="/" class="logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+      </svg>
+      Nox
+    </a>
+    <span class="clickz-badge">⚡ CLICKZ</span>
+    <a href="/products" style="color:rgba(255,255,255,0.6);font-size:0.8rem;text-decoration:none;">Browse →</a>
   </div>
 
-  <div class="toggle">
-    <button class="tbtn on" id="mode-listing">🛒 Listing</button>
-    <button class="tbtn" id="mode-video">🎬 Video</button>
-  </div>
+  <!-- Mute toggle -->
+  <button id="mute-btn" title="Toggle mute">
+    <svg id="mute-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+      <line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/>
+    </svg>
+  </button>
 
-  <div id="drop">
-    <input type="file" id="vfile" accept="video/*,.gif" />
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
-    <p>MP4 · MOV · WebM · GIF · max 50MB</p>
-  </div>
-
-  <div id="prev">
-    <video id="pvid" playsinline muted autoplay loop></video>
-    <div class="badge">Preview</div>
-    <div id="timer">—s</div>
-    <button class="chg" id="chg">Change</button>
-  </div>
-
-  <div class="f"><label id="ltitle">Part Name</label><input id="ftitle" placeholder="e.g. ASUS RTX 4080 Super OC" /></div>
-
-  <div id="pfields">
-    <div class="row">
-      <div class="f">
-        <label>Category</label>
-        <select id="fcat">
-          <option value="">Select…</option>
-          <option>Graphics Cards</option><option>Processors</option><option>Motherboards</option>
-          <option>Memory (RAM)</option><option>Storage</option><option>Power Supplies</option>
-          <option>Cooling</option><option>Cases</option><option>Other</option>
-        </select>
+  <!-- Feed -->
+  <div id="feed-container">
+    {clickzItems.length === 0 ? (
+      <div class="clickz-slide">
+        <div class="empty-feed">
+          <div class="empty-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2">
+              <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+            </svg>
+          </div>
+          <h2>No Clickz yet</h2>
+          <p>Be the first seller to post an 8-second product Clickz and reach thousands of builders.</p>
+          <a href="/sell/clickz" style="margin-top:8px;background:linear-gradient(135deg,#3b82f6,#6366f1);color:#fff;padding:12px 24px;border-radius:12px;font-family:'Syne',sans-serif;font-weight:700;text-decoration:none;font-size:0.9rem;">
+            Post a Clickz →
+          </a>
+        </div>
       </div>
-      <div class="f"><label>Price (USD)</label><input type="number" id="fprice" placeholder="299" min="1" /></div>
-    </div>
-    <div class="f"><label>Listing Slug</label><input id="fslug" placeholder="asus-rtx-4080-super" /></div>
+    ) : (
+      clickzItems.map((item: Clickz, i: number) => (
+        <div class="clickz-slide" data-index={i} data-id={item.id}>
+          <!-- Video -->
+          <video
+            class="clickz-video"
+            src={item.metadata?.video?.url || ''}
+            playsinline
+            loop
+            muted
+            preload={i === 0 ? 'auto' : 'none'}
+            poster={item.metadata?.thumbnail?.imgix_url || ''}
+          />
+
+          <div class="clickz-overlay" />
+
+          <!-- Timer bar -->
+          <div class="timer-bar" />
+
+          <!-- Right sidebar -->
+          <div class="clickz-sidebar">
+            <button class="sidebar-btn like-btn" data-id={item.id}>
+              <div class="sidebar-btn-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                </svg>
+              </div>
+              <span class="like-count">{item.metadata?.likes || 0}</span>
+            </button>
+
+            <button class="sidebar-btn share-btn" data-slug={item.slug}>
+              <div class="sidebar-btn-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+                  <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+                </svg>
+              </div>
+              <span>Share</span>
+            </button>
+
+            <a href={`/products/${item.slug}`} class="sidebar-btn">
+              <div class="sidebar-btn-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+                  <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+                </svg>
+              </div>
+              <span>Buy</span>
+            </a>
+          </div>
+
+          <!-- Main content -->
+          <div class="clickz-content">
+            <div class="part-category">
+              ⚡ {item.metadata?.category || 'PC Part'}
+            </div>
+            <div class="clickz-title">{item.title}</div>
+            <div class="clickz-seller">by <span>{item.metadata?.seller_name || 'Seller'}</span></div>
+            <div class="clickz-price">${item.metadata?.price || '—'}</div>
+            <div class="clickz-actions-row">
+              <a href={`/products/${item.slug}`} class="btn-view-listing">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                  <circle cx="12" cy="12" r="3"/>
+                </svg>
+                View Full Listing
+              </a>
+              <button class="btn-save">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          {i === 0 && (
+            <div class="scroll-hint">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="6 9 12 15 18 9"/>
+              </svg>
+              Scroll
+            </div>
+          )}
+        </div>
+      ))
+    )}
   </div>
-
-  <div class="f"><label>Description</label><textarea id="fdesc" placeholder="Condition, specs, why you're selling…"></textarea></div>
-
-  <button id="submit" disabled>Post Clickz</button>
-
-  <div id="sbar"><span id="stxt">Uploading…</span><div class="bar"><div class="fill" id="fill"></div></div></div>
-
-  {isModerator && (
-    <div id="mod">
-      <div class="mh"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Mod</div>
-      <div class="row" style="margin-bottom:8px">
-        <div class="f"><label>Status</label><select id="mstat"><option value="published">Published</option><option value="draft">Draft</option><option value="flagged">Flagged</option><option value="removed">Removed</option></select></div>
-        <div class="f"><label>Override Seller ID</label><input id="msid" placeholder="session ID" /></div>
-      </div>
-      <div class="f"><label>Note</label><textarea id="mnote" placeholder="Internal note…" style="min-height:48px"></textarea></div>
-    </div>
-  )}
-</div>
 </Layout>
 
-<script define:vars={{ bucketSlug, writeKey, sellerName, sellerId, isModerator }}>
-  window.__C__={s:bucketSlug,w:writeKey,n:sellerName,i:sellerId,m:isModerator};
-</script>
 <script>
-  const {s:BUCKET,w:KEY,n:SNAME,i:SID,m:IS_MOD} = (window as any).__C__;
-  const $= (id:string)=>document.getElementById(id)!;
-  const drop=$('drop'),vfile=$('vfile') as HTMLInputElement,prev=$('prev'),pvid=$('pvid') as HTMLVideoElement;
-  const timer=$('timer'),submit=$('submit') as HTMLButtonElement,sbar=$('sbar'),stxt=$('stxt'),fill=$('fill');
-  let vblob:File|null=null, listing=true;
+  const feed = document.getElementById('feed-container');
+  const slides = document.querySelectorAll('.clickz-slide');
+  const muteBtn = document.getElementById('mute-btn');
+  const muteIcon = document.getElementById('mute-icon');
+  let isMuted = true;
+  let currentVideo: HTMLVideoElement | null = null;
+  let timerInterval: ReturnType<typeof setInterval> | null = null;
 
-  // mode toggle
-  const ml=$('mode-listing') as HTMLButtonElement, mv=$('mode-video') as HTMLButtonElement;
-  const pf=$('pfields'), lt=$('ltitle'), fd=$('fdesc') as HTMLTextAreaElement;
-  ml.onclick=()=>{ listing=true; ml.classList.add('on'); mv.classList.remove('on'); pf.classList.remove('off'); lt.textContent='Part Name'; fd.placeholder="Condition, specs, why you're selling\u2026"; chk(); };
-  mv.onclick=()=>{ listing=false; mv.classList.add('on'); ml.classList.remove('on'); pf.classList.add('off'); lt.textContent='Title'; fd.placeholder="What\u2019s this video about?"; chk(); };
+  const MUTE_SVG = `<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/>`;
+  const UNMUTE_SVG = `<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>"`;
 
-  // drop / file
-  drop.addEventListener('dragover',e=>{e.preventDefault();drop.classList.add('drag')});
-  drop.addEventListener('dragleave',()=>drop.classList.remove('drag'));
-  drop.addEventListener('drop',e=>{e.preventDefault();drop.classList.remove('drag');const f=(e as DragEvent).dataTransfer?.files[0];if(f&&(f.type.startsWith('video/')||f.type==='image/gif'))load(f)});
-  vfile.addEventListener('change',()=>{const f=vfile.files?.[0];if(f)load(f)});
+  function playSlide(slide: Element) {
+    const video = slide.querySelector('video') as HTMLVideoElement;
+    const bar = slide.querySelector('.timer-bar') as HTMLElement;
 
-  function load(file:File){
-    vblob=file;
-    if(file.type==='image/gif'){
-      const img=document.createElement('img'); img.src=URL.createObjectURL(file); img.style.cssText='width:100%;height:100%;object-fit:cover';
-      prev.innerHTML=''; prev.appendChild(img);
-      prev.insertAdjacentHTML('beforeend','<div class="badge">GIF</div><button class="chg" id="chg">Change</button>');
-      $('chg').onclick=reset;
-    } else {
-      pvid.src=URL.createObjectURL(file);
-      pvid.addEventListener('loadedmetadata',()=>{const d=pvid.duration;timer.textContent=d.toFixed(1)+'s';timer.className=d>8.5?'over':'ok'},{once:true});
+    if (currentVideo && currentVideo !== video) {
+      currentVideo.pause();
+      currentVideo.currentTime = 0;
     }
-    drop.style.display='none'; prev.style.display='block'; chk();
+
+    if (timerInterval) clearInterval(timerInterval);
+
+    if (video) {
+      video.muted = isMuted;
+      video.currentTime = 0;
+      video.play().catch(() => {});
+      currentVideo = video;
+
+      // 8-second timer bar
+      let elapsed = 0;
+      bar.style.transition = 'none';
+      bar.style.width = '0%';
+
+      timerInterval = setInterval(() => {
+        elapsed += 100;
+        const pct = Math.min((elapsed / 8000) * 100, 100);
+        bar.style.transition = 'width 0.1s linear';
+        bar.style.width = pct + '%';
+        if (elapsed >= 8000) {
+          clearInterval(timerInterval!);
+          // Auto advance
+          const next = slide.nextElementSibling;
+          if (next) next.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 100);
+    }
   }
-  function reset(){vblob=null;pvid.src='';prev.style.display='none';drop.style.display='block';vfile.value='';chk()}
-  $('chg').onclick=reset;
 
-  const lreq=['ftitle','fcat','fprice','fslug'], vreq=['ftitle'];
-  lreq.forEach(id=>$(id)?.addEventListener('input',chk));
-  function chk(){const req=listing?lreq:vreq;submit.disabled=!vblob||!req.every(id=>($(id) as HTMLInputElement).value.trim())}
+  // Intersection Observer to detect active slide
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        playSlide(entry.target);
+      }
+    });
+  }, { threshold: 0.7 });
 
-  async function up(file:File,lbl:string):Promise<string>{
-    const fd=new FormData(); fd.append('media',file);
-    const r=await fetch('/api/upload',{method:'POST',body:fd});
-    const json=await r.json();
-    if(!r.ok) throw new Error(json.error||`Failed ${lbl}`);
-    return json.name||'';
-  }
-  function thumb():Promise<Blob>{return new Promise(res=>{const c=document.createElement('canvas');c.width=pvid.videoWidth;c.height=pvid.videoHeight;c.getContext('2d')!.drawImage(pvid,0,0);c.toBlob(b=>res(b!),'image/jpeg',0.85)})}
-  const prog=(p:number,t:string)=>{fill.style.width=p+'%';stxt.textContent=t};
-  const stat=(t:'l'|'ok'|'err',m:string)=>{sbar.className='on '+(t==='l'?'':t==='ok'?'ok':'err');stxt.textContent=m;if(t!=='l')fill.style.width='100%'};
-  const g=(id:string)=>($(id) as HTMLInputElement|HTMLSelectElement|HTMLTextAreaElement).value.trim();
+  slides.forEach(slide => observer.observe(slide));
 
-  submit.onclick=async()=>{
-    if(!vblob)return; submit.disabled=true; sbar.className='on'; prog(5,'Starting\u2026');
-    try{
-      prog(15,'Uploading\u2026'); const vu=await up(vblob,'video');
-      prog(50,'Thumbnail\u2026'); const tu=await up(new File([await thumb()],'t.jpg',{type:'image/jpeg'}),'thumb');
-      prog(75,'Posting\u2026');
-      const slug=listing?g('fslug'):(g('ftitle').toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'')+'-'+Date.now());
-      const ms=IS_MOD?(($('mstat') as HTMLSelectElement)?.value??'published'):'published';
-      const r=await fetch(`https://api.cosmicjs.com/v3/buckets/${BUCKET}/objects`,{
-        method:'POST', headers:{'Content-Type':'application/json',Authorization:`Bearer ${KEY}`},
-        body:JSON.stringify({title:g('ftitle'),type:'clickz',slug,status:ms,metadata:{
-          // file metafields: value must be media.name string (per Cosmic docs)
-          video:vu,
-          thumbnail:tu,
-          post_type:listing?'listing':'video',
-          ...(listing?{category:g('fcat'),price:parseFloat(g('fprice')),listing_slug:g('fslug')}:{}),
-          seller_name:SNAME,seller_id:(IS_MOD?g('msid'):'')||SID,description:g('fdesc'),likes:0,
-          ...(IS_MOD&&g('mnote')?{mod_note:g('mnote')}:{}),
-          ...(IS_MOD?{moderated_by:SID}:{})
-        }})
-      });
-      if(!r.ok) throw new Error((await r.json()).message||'Failed');
-      prog(100,''); stat('ok','Posted \u2014 redirecting\u2026');
-      setTimeout(()=>{window.location.href='/clickz'},2000);
-    }catch(e:any){stat('err',e.message||'Something went wrong');submit.disabled=false}
-  };
+  // Mute toggle
+  muteBtn?.addEventListener('click', () => {
+    isMuted = !isMuted;
+    if (currentVideo) currentVideo.muted = isMuted;
+    if (muteIcon) muteIcon.innerHTML = isMuted ? MUTE_SVG : UNMUTE_SVG;
+  });
+
+  // Like buttons
+  document.querySelectorAll('.like-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const parent = btn.closest('.sidebar-btn');
+      const icon = btn.querySelector('.sidebar-btn-icon');
+      const count = btn.querySelector('.like-count');
+      if (!parent || !icon || !count) return;
+
+      const liked = parent.classList.toggle('liked');
+      const current = parseInt(count.textContent || '0');
+      count.textContent = String(liked ? current + 1 : Math.max(0, current - 1));
+
+      // Pulse animation
+      icon.animate([
+        { transform: 'scale(1)' },
+        { transform: 'scale(1.35)' },
+        { transform: 'scale(1)' }
+      ], { duration: 250, easing: 'ease-out' });
+    });
+  });
+
+  // Share button
+  document.querySelectorAll('.share-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const slug = (btn as HTMLElement).dataset.slug;
+      const url = `${window.location.origin}/products/${slug}`;
+      if (navigator.share) {
+        navigator.share({ title: 'Check this out on Nox', url });
+      } else {
+        navigator.clipboard.writeText(url);
+        alert('Link copied!');
+      }
+    });
+  });
 </script>
