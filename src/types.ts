@@ -93,7 +93,20 @@ export interface Category extends CosmicObject {
     };
   };
 }
-
+export interface Clickz {
+  id: string;
+  slug: string;
+  title: string;
+  metadata: {
+    video: { url: string };
+    thumbnail: { url: string; imgix_url: string };
+    category: string;
+    price: number;
+    seller_name: string;
+    description: string;
+    likes: number;
+  };
+}
 // Order interface
 export interface Order extends CosmicObject {
   type: 'orders';
