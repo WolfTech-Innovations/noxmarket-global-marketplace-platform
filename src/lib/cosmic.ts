@@ -59,7 +59,17 @@ export async function getCategories() {
     throw new Error('Failed to fetch categories');
   }
 }
-
+export async function getClickz(): Promise<Clickz[]> {
+  try {
+    const res = await cosmic.objects
+      .find({ type: 'clickz' })
+      .props('id,slug,title,metadata')
+      .limit(50);
+    return res.objects as Clickz[];
+  } catch (error) {
+    return [];
+  }
+}
 // Seller functions
 export async function getSeller(id: string) {
   try {
