@@ -10,682 +10,117 @@ const products = await getProducts();
 const featuredProducts = products.slice(0, 8);
 ---
 
-<Layout title="Nox - The PC Part Marketplace of Now and Then">
+<Layout title="Nox - PC Part Marketplace">
   <Header />
 
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap');
 
     :root {
-      --bg: #080808;
-      --surface: #111111;
-      --border: rgba(255,255,255,0.07);
-      --accent: #3b82f6;
-      --accent2: #6366f1;
-      --text: #f0f0f0;
-      --muted: rgba(255,255,255,0.4);
+      --bg: #fff;
+      --text: #000;
+      --muted: rgba(0,0,0,0.6);
+      --border: rgba(0,0,0,0.1);
     }
 
-    .nox-main {
+    body {
       background: var(--bg);
       color: var(--text);
       font-family: 'DM Sans', sans-serif;
+      margin: 0;
+      padding: 0;
     }
 
-    /* ── HERO ── */
-    .hero {
-      position: relative;
-      min-height: 100dvh;
-      display: flex;
-      align-items: center;
-      overflow: hidden;
-      padding: 120px 0 80px;
-    }
+    main { max-width: 1200px; margin: 0 auto; padding: 24px; }
+    h1, h2 { color: var(--text); margin-bottom: 16px; }
+    p { color: var(--muted); line-height: 1.6; margin-bottom: 24px; }
 
-    .hero-bg {
-      position: absolute;
-      inset: 0;
-      background:
-        radial-gradient(ellipse 80% 60% at 60% 40%, rgba(59,130,246,0.12) 0%, transparent 70%),
-        radial-gradient(ellipse 40% 40% at 20% 80%, rgba(99,102,241,0.08) 0%, transparent 60%),
-        var(--bg);
-    }
-
-    .hero-grid {
-      position: absolute;
-      inset: 0;
-      background-image:
-        linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
-      background-size: 48px 48px;
-      mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 30%, transparent 100%);
-    }
-
-    .hero-inner {
-      position: relative;
-      z-index: 2;
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 0 24px;
-    }
-
-    .hero-eyebrow {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      background: rgba(59,130,246,0.1);
-      border: 1px solid rgba(59,130,246,0.25);
-      border-radius: 4px;
-      padding: 6px 14px;
-      font-family: 'DM Mono', monospace;
-      font-size: 0.72rem;
-      color: #60a5fa;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      margin-bottom: 32px;
-    }
-
-    .hero-eyebrow::before {
-      content: '';
-      width: 6px; height: 6px;
-      background: #4ade80;
-      border-radius: 50%;
-      box-shadow: 0 0 8px #4ade80;
-      animation: pulse-dot 2s ease-in-out infinite;
-    }
-
-    @keyframes pulse-dot {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.3; }
-    }
-
-    .hero-h1 {
-      font-family: 'Syne', sans-serif;
-      font-weight: 800;
-      font-size: clamp(2.8rem, 7vw, 5.5rem);
-      line-height: 1.0;
-      letter-spacing: -0.03em;
-      margin-bottom: 24px;
-    }
-
-    .hero-h1 .dim { color: rgba(255,255,255,0.3); }
-    .hero-h1 .accent { 
-      background: linear-gradient(135deg, #60a5fa, #818cf8);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-
-    .hero-sub {
-      font-size: 1.1rem;
-      color: var(--muted);
-      max-width: 520px;
-      line-height: 1.7;
-      margin-bottom: 48px;
-    }
-
-    .hero-btns {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      align-items: center;
-    }
-
-    .btn-primary {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      background: #fff;
-      color: #000;
-      font-family: 'Syne', sans-serif;
+    a { text-decoration: none; }
+    .btn-primary, .btn-ghost {
+      display: inline-block;
+      padding: 12px 24px;
+      border-radius: 6px;
       font-weight: 700;
-      font-size: 0.9rem;
-      padding: 14px 28px;
-      border-radius: 8px;
-      text-decoration: none;
-      transition: opacity 0.15s, transform 0.1s;
-      letter-spacing: 0.01em;
-    }
-
-    .btn-primary:hover { opacity: 0.88; }
-    .btn-primary:active { transform: scale(0.97); }
-
-    .btn-ghost {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      background: transparent;
-      color: var(--text);
-      font-family: 'Syne', sans-serif;
-      font-weight: 700;
-      font-size: 0.9rem;
-      padding: 13px 24px;
-      border-radius: 8px;
-      border: 1px solid var(--border);
-      text-decoration: none;
-      transition: border-color 0.15s, background 0.15s, transform 0.1s;
-    }
-
-    .btn-ghost:hover { border-color: rgba(255,255,255,0.2); background: rgba(255,255,255,0.04); }
-    .btn-ghost:active { transform: scale(0.97); }
-
-    .btn-clickz {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      background: linear-gradient(135deg, var(--accent), var(--accent2));
-      color: #fff;
-      font-family: 'Syne', sans-serif;
-      font-weight: 700;
-      font-size: 0.9rem;
-      padding: 14px 24px;
-      border-radius: 8px;
-      text-decoration: none;
-      transition: opacity 0.15s, transform 0.1s;
-    }
-
-    .btn-clickz:hover { opacity: 0.88; }
-    .btn-clickz:active { transform: scale(0.97); }
-
-    .hero-stat-row {
-      display: flex;
-      gap: 40px;
-      margin-top: 64px;
-      padding-top: 32px;
-      border-top: 1px solid var(--border);
-    }
-
-    .hero-stat-label {
-      font-family: 'DM Mono', monospace;
-      font-size: 0.68rem;
-      color: var(--muted);
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      margin-bottom: 4px;
-    }
-
-    .hero-stat-val {
-      font-family: 'Syne', sans-serif;
-      font-size: 1.4rem;
-      font-weight: 800;
-      color: var(--text);
-    }
-
-    /* ── TRUST STRIP ── */
-    .trust-strip {
-      background: var(--surface);
-      border-top: 1px solid var(--border);
-      border-bottom: 1px solid var(--border);
-      padding: 56px 0;
-    }
-
-    .trust-grid {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 0 24px;
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 2px;
-    }
-
-    @media (max-width: 768px) {
-      .trust-grid { grid-template-columns: 1fr 1fr; }
-      .hero-stat-row { gap: 24px; flex-wrap: wrap; }
-    }
-
-    .trust-item {
-      padding: 28px 32px;
-      border-right: 1px solid var(--border);
-    }
-
-    .trust-item:last-child { border-right: none; }
-
-    .trust-icon {
-      width: 36px; height: 36px;
-      background: rgba(59,130,246,0.12);
-      border: 1px solid rgba(59,130,246,0.2);
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-bottom: 16px;
-      color: #60a5fa;
-    }
-
-    .trust-title {
-      font-family: 'Syne', sans-serif;
-      font-weight: 700;
-      font-size: 0.95rem;
-      margin-bottom: 6px;
-      color: var(--text);
-    }
-
-    .trust-desc {
-      font-size: 0.8rem;
-      color: var(--muted);
-      line-height: 1.6;
-    }
-
-    /* ── FEATURED ── */
-    .section {
-      padding: 80px 0;
-    }
-
-    .section-inner {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 0 24px;
-    }
-
-    .section-label {
-      font-family: 'DM Mono', monospace;
-      font-size: 0.68rem;
-      color: var(--accent);
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
+      margin-right: 12px;
       margin-bottom: 12px;
-    }
-
-    .section-title {
-      font-family: 'Syne', sans-serif;
-      font-weight: 800;
-      font-size: clamp(1.8rem, 4vw, 2.8rem);
-      letter-spacing: -0.02em;
-      line-height: 1.1;
-      color: var(--text);
-    }
-
-    .section-sub {
-      color: var(--muted);
-      font-size: 1rem;
-      margin-top: 8px;
-    }
-
-    .section-head {
-      display: flex;
-      align-items: flex-end;
-      justify-content: space-between;
-      margin-bottom: 40px;
-      gap: 16px;
-      flex-wrap: wrap;
-    }
-
-    .products-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 16px;
-    }
-
-    @media (max-width: 1024px) { .products-grid { grid-template-columns: repeat(2, 1fr); } }
-    @media (max-width: 640px) { .products-grid { grid-template-columns: 1fr; } }
-
-    /* ── CATEGORIES ── */
-    .cats-section {
-      background: var(--surface);
-      border-top: 1px solid var(--border);
-      border-bottom: 1px solid var(--border);
-      padding: 80px 0;
-    }
-
-    .cats-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 12px;
-    }
-
-    @media (max-width: 768px) { .cats-grid { grid-template-columns: repeat(2, 1fr); } }
-
-    .cat-card {
-      position: relative;
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      padding: 24px;
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      text-decoration: none;
-      overflow: hidden;
-      transition: border-color 0.2s, transform 0.15s;
-      group: true;
-    }
-
-    .cat-card:hover {
-      border-color: rgba(255,255,255,0.15);
-      transform: translateY(-2px);
-    }
-
-    .cat-card:hover .cat-glow { opacity: 1; }
-
-    .cat-glow {
-      position: absolute;
-      inset: 0;
-      opacity: 0;
-      transition: opacity 0.3s;
-      pointer-events: none;
-    }
-
-    .cat-emoji {
-      font-size: 1.8rem;
-      margin-bottom: 16px;
-      position: relative;
-      z-index: 1;
-    }
-
-    .cat-name {
-      font-family: 'Syne', sans-serif;
-      font-weight: 700;
-      font-size: 0.92rem;
-      color: var(--text);
-      position: relative;
-      z-index: 1;
-    }
-
-    .cat-arrow {
-      position: absolute;
-      bottom: 20px;
-      right: 20px;
-      color: var(--muted);
-      font-size: 0.8rem;
-      transition: color 0.2s, transform 0.2s;
-    }
-
-    .cat-card:hover .cat-arrow {
-      color: var(--text);
-      transform: translate(2px, -2px);
-    }
-
-    /* ── HOW IT WORKS ── */
-    .how-section {
-      padding: 80px 0;
-    }
-
-    .how-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 2px;
-      margin-top: 48px;
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      overflow: hidden;
-    }
-
-    @media (max-width: 768px) { .how-grid { grid-template-columns: 1fr; } }
-
-    .how-item {
-      padding: 40px 36px;
-      background: var(--surface);
-      border-right: 1px solid var(--border);
-      position: relative;
-    }
-
-    .how-item:last-child { border-right: none; }
-
-    .how-num {
-      font-family: 'DM Mono', monospace;
-      font-size: 0.68rem;
-      color: var(--accent);
-      letter-spacing: 0.1em;
-      margin-bottom: 20px;
-    }
-
-    .how-title {
-      font-family: 'Syne', sans-serif;
-      font-weight: 700;
-      font-size: 1.1rem;
-      color: var(--text);
-      margin-bottom: 10px;
-    }
-
-    .how-desc {
-      font-size: 0.85rem;
-      color: var(--muted);
-      line-height: 1.7;
-    }
-
-    /* ── CTA ── */
-    .cta-section {
-      padding: 80px 24px;
       text-align: center;
-      background: var(--surface);
-      border-top: 1px solid var(--border);
+      transition: opacity 0.15s, transform 0.1s;
     }
+    .btn-primary { background: #000; color: #fff; }
+    .btn-primary:hover { opacity: 0.88; transform: scale(0.97); }
+    .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text); }
+    .btn-ghost:hover { opacity: 0.88; transform: scale(0.97); }
 
-    .cta-title {
-      font-family: 'Syne', sans-serif;
-      font-weight: 800;
-      font-size: clamp(2rem, 5vw, 3.5rem);
-      letter-spacing: -0.02em;
-      margin-bottom: 16px;
-    }
+    .hero { padding: 80px 0; text-align: center; }
+    .hero-btns { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin-top: 24px; }
 
-    .cta-sub {
-      color: var(--muted);
-      font-size: 1rem;
-      max-width: 440px;
-      margin: 0 auto 40px;
-      line-height: 1.7;
-    }
+    .products-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-top: 32px; }
+    .cats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; margin-top: 32px; }
+    .cat-card { padding: 24px; border: 1px solid var(--border); border-radius: 10px; text-align: center; transition: transform 0.15s; }
+    .cat-card:hover { transform: translateY(-2px); }
+    .cat-emoji { font-size: 2rem; margin-bottom: 8px; }
+    .cat-name { font-weight: 700; }
 
-    .cta-btns {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      justify-content: center;
-    }
-
-    /* ── EMPTY STATE ── */
-    .empty-state {
-      text-align: center;
-      padding: 80px 24px;
-      border: 1px dashed var(--border);
-      border-radius: 12px;
-    }
-
-    .empty-icon {
-      width: 64px; height: 64px;
-      background: rgba(59,130,246,0.1);
-      border: 1px solid rgba(59,130,246,0.2);
-      border-radius: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 0 auto 20px;
-      color: #60a5fa;
-    }
-
-    .empty-title {
-      font-family: 'Syne', sans-serif;
-      font-weight: 700;
-      font-size: 1.3rem;
-      margin-bottom: 8px;
-    }
-
-    .empty-desc {
-      color: var(--muted);
-      font-size: 0.9rem;
-      margin-bottom: 24px;
-    }
+    .section { padding: 80px 0; }
   </style>
 
-  <main class="nox-main">
+  <main>
 
     <!-- Hero -->
     <section class="hero">
-      <div class="hero-bg"></div>
-      <div class="hero-grid"></div>
-      <div class="hero-inner">
-        <div class="hero-eyebrow">All parts verified &amp; benchmarked</div>
-        <h1 class="hero-h1">
-          The PC Part<br/>
-          Marketplace<br/>
-          <span class="accent">of Now and Then</span>
-        </h1>
-        <p class="hero-sub">
-          Buy and sell verified PC components with confidence. Every part tested, benchmarked, and compatibility-checked.
-        </p>
-        <div class="hero-btns">
-          <a href="/products" class="btn-primary">
-            Browse Components
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
-          </a>
-          <a href="/become-seller" class="btn-ghost">Start Selling</a>
-          <a href="/clickz" class="btn-clickz">
-            ⚡ Clickz Feed
-          </a>
-          <a href="/sell/clickz" class="btn-ghost">Post a Clickz</a>
-        </div>
-        <div class="hero-stat-row">
-          <div>
-            <div class="hero-stat-label">Listed Parts</div>
-            <div class="hero-stat-val">2,400+</div>
-          </div>
-          <div>
-            <div class="hero-stat-label">Verified Sellers</div>
-            <div class="hero-stat-val">380+</div>
-          </div>
-          <div>
-            <div class="hero-stat-label">Avg. Response</div>
-            <div class="hero-stat-val">&lt; 2h</div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Trust Strip -->
-    <section class="trust-strip">
-      <div class="trust-grid">
-        {[
-          {
-            icon: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0121 12c0 5.523-4.477 10-10 10S1 17.523 1 12 5.477 2 11 2c1.821 0 3.532.49 5.003 1.343',
-            title: 'Verified Testing',
-            desc: 'Every component tested and benchmarked before listing'
-          },
-          {
-            icon: 'M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z',
-            title: 'Compatibility Check',
-            desc: 'Ensure parts work together with compatibility checklists'
-          },
-          {
-            icon: 'M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z',
-            title: 'Payment Protection',
-            desc: 'Stripe-secured transactions for buyers and sellers'
-          },
-          {
-            icon: 'M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z',
-            title: 'Seller Reputation',
-            desc: 'Hardware-specific ratings and verified reviews'
-          }
-        ].map(f => (
-          <div class="trust-item">
-            <div class="trust-icon">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d={f.icon} />
-              </svg>
-            </div>
-            <div class="trust-title">{f.title}</div>
-            <div class="trust-desc">{f.desc}</div>
-          </div>
-        ))}
+      <h1>PC Part Marketplace</h1>
+      <p>Buy and sell verified PC components with confidence.</p>
+      <div class="hero-btns">
+        <a href="/products" class="btn-primary">Browse Components</a>
+        <a href="/become-seller" class="btn-ghost">Start Selling</a>
+        <a href="/clickz" class="btn-primary">⚡ Clickz Feed</a>
+        <a href="/sell/clickz" class="btn-ghost">Post a Clickz</a>
       </div>
     </section>
 
     <!-- Featured Components -->
-    <section class="section" style="background: var(--bg);">
-      <div class="section-inner">
-        <div class="section-head">
-          <div>
-            <div class="section-label">// featured</div>
-            <h2 class="section-title">Featured Components</h2>
-            <p class="section-sub">Verified, tested, and ready to ship</p>
-          </div>
-          <a href="/products" class="btn-ghost" style="white-space:nowrap">Browse all →</a>
+    <section class="section">
+      <h2>Featured Components</h2>
+      <p>Verified and ready to ship</p>
+      {featuredProducts.length > 0 ? (
+        <div class="products-grid">
+          {featuredProducts.map((product: Product) => (
+            <ProductCard product={product} />
+          ))}
         </div>
-
-        {featuredProducts.length > 0 ? (
-          <div class="products-grid">
-            {featuredProducts.map((product: Product) => (
-              <ProductCard product={product} />
-            ))}
-          </div>
-        ) : (
-          <div class="empty-state">
-            <div class="empty-icon">
-              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-              </svg>
-            </div>
-            <div class="empty-title">Components Coming Soon</div>
-            <div class="empty-desc">Be the first to list verified PC parts on Nox</div>
-            <a href="/become-seller" class="btn-primary">List Your Components</a>
-          </div>
-        )}
-      </div>
+      ) : (
+        <p>No components yet. Be the first to list!</p>
+      )}
     </section>
 
     <!-- Categories -->
-    <section class="cats-section">
-      <div class="section-inner">
-        <div class="section-head">
-          <div>
-            <div class="section-label">// shop by type</div>
-            <h2 class="section-title">Component Categories</h2>
-          </div>
-        </div>
-        <div class="cats-grid">
-          {[
-            { name: 'Graphics Cards', icon: '🎮', glow: 'rgba(168,85,247,0.08)' },
-            { name: 'Processors',     icon: '⚡', glow: 'rgba(59,130,246,0.08)' },
-            { name: 'Motherboards',   icon: '🔧', glow: 'rgba(34,197,94,0.08)' },
-            { name: 'Memory (RAM)',   icon: '💾', glow: 'rgba(249,115,22,0.08)' },
-            { name: 'Storage',        icon: '💿', glow: 'rgba(99,102,241,0.08)' },
-            { name: 'Power Supplies', icon: '🔋', glow: 'rgba(234,179,8,0.08)' },
-            { name: 'Cooling',        icon: '❄️', glow: 'rgba(6,182,212,0.08)' },
-            { name: 'Cases',          icon: '📦', glow: 'rgba(156,163,175,0.08)' },
-          ].map(cat => (
-            <a href={`/products?category=${cat.name.toLowerCase()}`} class="cat-card">
-              <div class="cat-glow" style={`background: radial-gradient(circle at 30% 30%, ${cat.glow}, transparent 70%)`}></div>
-              <div class="cat-emoji">{cat.icon}</div>
-              <div class="cat-name">{cat.name}</div>
-              <span class="cat-arrow">↗</span>
-            </a>
-          ))}
-        </div>
-      </div>
-    </section>
-
-    <!-- How It Works -->
-    <section class="how-section" style="background: var(--bg);">
-      <div class="section-inner">
-        <div>
-          <div class="section-label">// process</div>
-          <h2 class="section-title">How Nox Works</h2>
-          <p class="section-sub">Safe, verified PC component marketplace</p>
-        </div>
-        <div class="how-grid">
-          {[
-            { num: '01', title: 'List & Verify', desc: 'Sellers submit benchmark results and testing documentation for each component.' },
-            { num: '02', title: 'Check Compatibility', desc: 'Sellers list benchmarks and a compatibility sheet buyers can verify against their build.' },
-            { num: '03', title: 'Secure Transactions', desc: 'Stripe enables secure SSL transactions supporting all major card companies.' },
-          ].map(item => (
-            <div class="how-item">
-              <div class="how-num">STEP {item.num}</div>
-              <div class="how-title">{item.title}</div>
-              <div class="how-desc">{item.desc}</div>
-            </div>
-          ))}
-        </div>
+    <section class="section">
+      <h2>Component Categories</h2>
+      <div class="cats-grid">
+        {[
+          { name: 'Graphics Cards', icon: '🎮' },
+          { name: 'Processors', icon: '⚡' },
+          { name: 'Motherboards', icon: '🔧' },
+          { name: 'Memory (RAM)', icon: '💾' },
+          { name: 'Storage', icon: '💿' },
+          { name: 'Power Supplies', icon: '🔋' },
+          { name: 'Cooling', icon: '❄️' },
+          { name: 'Cases', icon: '📦' },
+        ].map(cat => (
+          <a href={`/products?category=${cat.name.toLowerCase()}`} class="cat-card">
+            <div class="cat-emoji">{cat.icon}</div>
+            <div class="cat-name">{cat.name}</div>
+          </a>
+        ))}
       </div>
     </section>
 
     <!-- CTA -->
-    <section class="cta-section">
-      <h2 class="cta-title">Ready to Build<br/>or Upgrade?</h2>
-      <p class="cta-sub">Join our community of PC builders buying and selling verified components with confidence.</p>
-      <div class="cta-btns">
-        <a href="/products" class="btn-primary">Browse Components</a>
-        <a href="/signup" class="btn-ghost">Create Account</a>
-      </div>
+    <section class="section" style="text-align:center;">
+      <h2>Ready to Build or Upgrade?</h2>
+      <p>Join our community of PC builders buying and selling verified components.</p>
+      <a href="/products" class="btn-primary">Browse Components</a>
+      <a href="/signup" class="btn-ghost">Create Account</a>
     </section>
 
   </main>
