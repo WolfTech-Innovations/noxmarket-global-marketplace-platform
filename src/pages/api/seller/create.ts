@@ -83,7 +83,9 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
     const sessionToken = createSessionToken();
     setSessionCookie(cookies, sessionToken, updatedSession);
 
-    return redirect('/dashboard?success=Seller account created successfully');
+    // Instead of updating session, just clear it and send to login
+cookies.delete('session', { path: '/' });
+return redirect('/login?message=Seller account created! Please log back in.');
   } catch (error) {
     console.error('Become seller error:', error);
     return redirect('/become-seller?error=Failed to create seller account');
