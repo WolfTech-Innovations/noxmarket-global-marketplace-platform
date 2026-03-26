@@ -151,7 +151,7 @@ const clickzItems = await getClickz();
   const CATS = ['gpu','cpu','ram','ssd','case','psu','cooler','mobo','monitor','peripheral'];
   const clamp = (v: number) => Math.max(0, Math.min(1, v));
   const catHash = (c: string) => { const i = CATS.findIndex(x => c.toLowerCase().includes(x)); return i === -1 ? 0.5 : (i+1)/CATS.length; };
-  const dot = (a: number[], b: number[]) => a.reduce((s,v,i) => s + v*b[i], 0);
+  const dot = (a: number[], b: number[]) => a.reduce((s,v,i) => s + v*(b[i] ?? 0), 0);
   const mag = (a: number[]) => Math.sqrt(a.reduce((s,v) => s+v*v, 0));
   const cosine = (a: number[], b: number[]) => { const m = mag(a)*mag(b); return m ? dot(a,b)/m : 0; };
 
@@ -165,7 +165,7 @@ const clickzItems = await getClickz();
   const nudge = (id: string, signal: number) => {
     const cv = cvMap[id]; if (!cv) return;
     const err = signal - cosine(uv, cv);
-    uv = uv.map((v,i) => clamp(v + lr * err * cv[i]));
+    uv = uv.map((v,i) => clamp(v + lr * err * (cv[i] ?? 0)));
     ic++; lr = Math.max(0.01, 0.08 / Math.sqrt(1 + ic * 0.1));
     saveUV();
   };
@@ -249,9 +249,10 @@ const clickzItems = await getClickz();
     }
   }
 
-  new IntersectionObserver(entries => {
+  const observer = new IntersectionObserver(entries => {
     entries.forEach(e => { if (e.isIntersecting) playSlide(e.target); });
-  }, { threshold: 0.7 }).observe(document.querySelectorAll('.clickz-slide'));
+  }, { threshold: 0.7 });
+  document.querySelectorAll('.clickz-slide').forEach(s => observer.observe(s));
 
   // Mute
   muteBtn.addEventListener('click', () => {
