@@ -3,10 +3,10 @@ import Layout from '@/layouts/Layout.astro';
 import { getSessionFromCookies } from '@/lib/auth';
 
 const session = getSessionFromCookies(Astro.cookies);
-if (!session || !session.isSeller || !session.sellerId) return Astro.redirect('/login?redirect=/sell/clickz');
+if (!session) return Astro.redirect('/login?redirect=/sell/clickz');
 
-const sellerName: string = session.businessName || session.name || 'Seller';
-const sellerId: string = session.sellerId;
+const sellerName: string = session.businessName || session.name || 'User';
+const sellerId: string = session.sellerId || session.userId;
 const isModerator: boolean = session.sellerId === 'seller-nkbvjl-xak';
 const bucketSlug: string = import.meta.env.COSMIC_BUCKET_SLUG;
 const writeKey: string = import.meta.env.COSMIC_WRITE_KEY;
@@ -128,7 +128,7 @@ const writeKey: string = import.meta.env.COSMIC_WRITE_KEY;
 </div>
 </Layout>
 
-<script define:vars={{ bucketSlug, writeKey, sellerName, sellerId, isModerator }}>
+<script define:vars={{ bucketSlug, writeKey, sellerName, sellerId, isModerator }} is:inline>
   window.__C__={s:bucketSlug,w:writeKey,n:sellerName,i:sellerId,m:isModerator};
 </script>
 <script>
@@ -138,13 +138,11 @@ const writeKey: string = import.meta.env.COSMIC_WRITE_KEY;
   const timer=$('timer'),submit=$('submit') as HTMLButtonElement,sbar=$('sbar'),stxt=$('stxt'),fill=$('fill');
   let vblob:File|null=null, listing=true;
 
-  // mode toggle
   const ml=$('mode-listing') as HTMLButtonElement, mv=$('mode-video') as HTMLButtonElement;
   const pf=$('pfields'), lt=$('ltitle'), fd=$('fdesc') as HTMLTextAreaElement;
   ml.onclick=()=>{ listing=true; ml.classList.add('on'); mv.classList.remove('on'); pf.classList.remove('off'); lt.textContent='Part Name'; fd.placeholder="Condition, specs, why you're selling\u2026"; chk(); };
   mv.onclick=()=>{ listing=false; mv.classList.add('on'); ml.classList.remove('on'); pf.classList.add('off'); lt.textContent='Title'; fd.placeholder="What\u2019s this video about?"; chk(); };
 
-  // drop / file
   drop.addEventListener('dragover',e=>{e.preventDefault();drop.classList.add('drag')});
   drop.addEventListener('dragleave',()=>drop.classList.remove('drag'));
   drop.addEventListener('drop',e=>{e.preventDefault();drop.classList.remove('drag');const f=(e as DragEvent).dataTransfer?.files[0];if(f&&(f.type.startsWith('video/')||f.type==='image/gif'))load(f)});
@@ -193,7 +191,6 @@ const writeKey: string = import.meta.env.COSMIC_WRITE_KEY;
       const r=await fetch(`https://api.cosmicjs.com/v3/buckets/${BUCKET}/objects`,{
         method:'POST', headers:{'Content-Type':'application/json',Authorization:`Bearer ${KEY}`},
         body:JSON.stringify({title:g('ftitle'),type:'clickz',slug,status:ms,metadata:{
-          // file metafields: value must be media.name string (per Cosmic docs)
           video:vu,
           thumbnail:tu,
           post_type:listing?'listing':'video',
