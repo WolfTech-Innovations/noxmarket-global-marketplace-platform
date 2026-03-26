@@ -1,13 +1,11 @@
 // src/pages/api/seller/create.ts
 import type { APIRoute } from 'astro';
 import { createUser, cosmic } from '@/lib/cosmic';
-import { getSessionFromCookies, setSessionCookie, createSessionToken } from '@/lib/auth';
+import { getSessionFromCookies } from '@/lib/auth';
 import { nanoid } from 'nanoid';
-import type { AuthSession } from '@/types';
 
 export const POST: APIRoute = async ({ request, cookies, redirect }) => {
   try {
-    // Get session from cookies
     const session = getSessionFromCookies(cookies);
 
     if (!session || !session.userId) {
@@ -23,27 +21,21 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
       return redirect('/become-seller?error=Business name is required');
     }
 
-    // Check if user already has a seller profile
+    // Check if already a seller
     try {
       const existingSeller = await cosmic.objects
-        .findOne({
-          type: 'sellers',
-          'metadata.user_id': session.userId
-        })
+        .findOne({ type: 'sellers', 'metadata.user_id': session.userId })
         .props('id');
 
       if (existingSeller.object) {
         return redirect('/dashboard?error=You already have a seller account');
       }
     } catch (error: any) {
-      // 404 is fine, means they don't have a seller profile yet
-      if (error?.status !== 404) {
-        throw error;
-      }
+      if (error?.status !== 404) throw error;
     }
 
     // Create seller profile
-    const sellerData = {
+    const sellerProfile = await createUser({
       type: 'sellers',
       title: businessName,
       slug: `seller-${nanoid(10)}`,
@@ -58,34 +50,19 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
         owner_name: session.name,
         created_at: new Date().toISOString()
       }
-    };
-
-    console.log('Creating seller profile for user:', session.userId);
-    const sellerProfile = await createUser(sellerData);
-    console.log('Seller profile created:', sellerProfile.id);
-
-    // Update user to mark them as a seller
-    await cosmic.objects.updateOne(session.userId, {
-      metadata: {
-        is_seller: true
-      }
     });
 
-    // Update session with new seller info
-    const updatedSession: AuthSession = {
-      ...session,
-      isSeller: true,
-      sellerId: sellerProfile.id,
-      businessName: businessName
-    };
+    console.log('Seller profile created:', sellerProfile.id);
 
-    // Store updated session in cookies
-    const sessionToken = createSessionToken();
-    setSessionCookie(cookies, sessionToken, updatedSession);
+    // Mark user as seller in Cosmic
+    await cosmic.objects.updateOne(session.userId, {
+      metadata: { is_seller: true }
+    });
 
-    // Instead of updating session, just clear it and send to login
-cookies.delete('session', { path: '/' });
-return redirect('/login?message=Seller account created! Please log back in.');
+    // Clear session and force re-login
+    cookies.delete('session', { path: '/' });
+    return redirect('/login?message=Seller account created! Please log back in.');
+
   } catch (error) {
     console.error('Become seller error:', error);
     return redirect('/become-seller?error=Failed to create seller account');
