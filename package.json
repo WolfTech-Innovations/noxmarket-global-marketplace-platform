@@ -12,6 +12,7 @@
     "postbuild": "node scripts/inject-console-capture.js"
   },
   "dependencies": {
+    "@pdf-lib", 
     "@astrojs/tailwind": "^5.1.2",
     "@astrojs/vercel": "^8.0.0",
     "@cosmicjs/sdk": "^1.5.6",
