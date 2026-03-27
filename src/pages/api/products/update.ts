@@ -17,7 +17,6 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
       return redirect('/dashboard/products?error=Product ID missing');
     }
 
-    // Verify product belongs to this seller
     const existingProduct = await cosmic.objects.findOne({
       type: 'products',
       id: productId
@@ -31,13 +30,12 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
       return redirect('/dashboard/products?error=Unauthorized');
     }
 
-    // Parse form fields
-    const productName = formData.get('product_name')?.toString();
-    const description = formData.get('description')?.toString();
-    const price = parseFloat(formData.get('price')?.toString() || '0');
-    const stockQuantity = parseInt(formData.get('stock_quantity')?.toString() || '0');
-    const categoryId = formData.get('category')?.toString();
-    const inStock = formData.get('in_stock') === 'true';
+    const productName    = formData.get('product_name')?.toString();
+    const description    = formData.get('description')?.toString();
+    const price          = parseFloat(formData.get('price')?.toString() || '0');
+    const stockQuantity  = parseInt(formData.get('stock_quantity')?.toString() || '0');
+    const categoryId     = formData.get('category')?.toString();
+    const inStock        = formData.get('in_stock') === 'true';
 
     if (!productName || !description || price <= 0) {
       return redirect(`/dashboard/products/edit/${productId}?error=Please fill in all required fields`);
@@ -47,73 +45,57 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
     const imageFiles = formData.getAll('product_images');
     let productImages = existingProduct.object.metadata.product_images;
 
-    // Filter out empty file inputs and check if we have real files
-    const validFiles = imageFiles.filter((file): file is File => 
-      file instanceof File && file.size > 0
-    );
+    const validFiles = imageFiles.filter((f): f is File => f instanceof File && f.size > 0);
 
     if (validFiles.length > 0) {
-      const uploadedImageNames = [];
-      
       for (const file of validFiles) {
         try {
-          // Convert File to Buffer for Node.js environment
-          const arrayBuffer = await file.arrayBuffer();
-          const buffer = Buffer.from(arrayBuffer);
-          
-          const uploadResult = await cosmic.media.insertOne({
-            media: {
-              buffer: buffer,
-              originalname: file.name
-            }
-            // Don't use folder - they need to exist first
+          const buffer = Buffer.from(await file.arrayBuffer());
+          const { media } = await cosmic.media.insertOne({
+            media: { buffer, originalname: file.name }
           });
-          // CRITICAL: Store only the 'name' string for file metafields!
-          uploadedImageNames.push(uploadResult.media.name);
+
+          // Cosmic 'file' metafields require the full media object shape:
+          // { name, url, imgix_url }. Passing just `media.name` causes a 400.
+          productImages = {
+            name:      media.name,
+            url:       media.url,
+            imgix_url: media.imgix_url
+          };
+
+          break; // product_images is a single-file metafield — only first upload counts
         } catch (uploadError) {
           console.error('Error uploading image:', uploadError);
         }
       }
-      
-      if (uploadedImageNames.length > 0) {
-        // CRITICAL: product_images is a File metafield (single file), not Multi Media
-        // So we can only store ONE filename string, not an array
-        productImages = uploadedImageNames[0]; // Just use the first image
-      }
     }
 
-    // Get existing metadata and remove product_images from spread
     const { product_images, ...metadataWithoutImages } = existingProduct.object.metadata;
 
-    // Build update data
     const updateData: any = {
       title: productName,
       metadata: {
         ...metadataWithoutImages,
-        product_name: productName,
-        description: description,
-        price: price,
-        stock_quantity: stockQuantity,
-        in_stock: inStock,
-        condition: formData.get('condition')?.toString() || 'good',
+        product_name:      productName,
+        description,
+        price,
+        stock_quantity:    stockQuantity,
+        in_stock:          inStock,
+        condition:         formData.get('condition')?.toString()          || 'good',
         benchmark_results: formData.get('benchmark_results')?.toString() || 'Not provided',
-        testing_notes: formData.get('testing_notes')?.toString() || '',
-        warranty_info: formData.get('warranty_info')?.toString() || '',
-        socket_type: formData.get('socket_type')?.toString() || '',
-        form_factor: formData.get('form_factor')?.toString() || '',
-        power_requirements: formData.get('power_requirements')?.toString() || '',
-        dimensions: formData.get('dimensions')?.toString() || '',
-        product_images: productImages // Add back the images (new or existing)
+        testing_notes:     formData.get('testing_notes')?.toString()      || '',
+        warranty_info:     formData.get('warranty_info')?.toString()      || '',
+        socket_type:       formData.get('socket_type')?.toString()        || '',
+        form_factor:       formData.get('form_factor')?.toString()        || '',
+        power_requirements:formData.get('power_requirements')?.toString() || '',
+        dimensions:        formData.get('dimensions')?.toString()         || '',
+        product_images:    productImages
       }
     };
 
-    if (categoryId) {
-      updateData.metadata.category = categoryId;
-    }
+    if (categoryId) updateData.metadata.category = categoryId;
 
     await cosmic.objects.updateOne(productId, updateData);
-
-    console.log('Product updated successfully:', productId);
 
     return redirect('/dashboard/products?success=Product updated successfully!');
   } catch (error) {
