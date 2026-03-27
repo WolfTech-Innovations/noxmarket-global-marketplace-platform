@@ -1,116 +1,168 @@
-/**
- * deleteClickz.ts
- * Astro API Route: DELETE /api/clickz/[id]
- *
- * Fetches the object from CosmicJS, verifies the requesting session's
- * sellerId matches metadata.seller_id, then deletes the object.
- *
- * Place this file at:
- *   src/pages/api/clickz/[id].ts
- *
- * CosmicJS v3 REST endpoints used:
- *   GET  /v3/buckets/:bucket/objects/:id          — fetch to verify ownership
- *   DELETE /v3/buckets/:bucket/objects/:id        — delete confirmed object
- */
-
 import type { APIRoute } from 'astro';
 import { getSessionFromCookies } from '@/lib/auth';
 
-const COSMIC_BASE = 'https://api.cosmicjs.com/v3';
+// DELETE /api/clickz/[id]   — delete an object
+// PATCH  /api/clickz/[id]/likes — handled in separate file; this handles object-level ops
 
-// ── helpers ───────────────────────────────────────────────────────────────────
-
-function json(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { 'Content-Type': 'application/json' },
-  });
-}
-
-// ── DELETE /api/clickz/[id] ───────────────────────────────────────────────────
-
-export const DELETE: APIRoute = async ({ params, cookies, request }) => {
-  // 1. Auth
+export const DELETE: APIRoute = async ({ params, cookies }) => {
   const session = getSessionFromCookies(cookies);
-  if (!session) return json({ error: 'Unauthorized' }, 401);
-
-  const sellerId: string = session.sellerId || session.userId;
-  const isModerator: boolean = session.sellerId === 'seller-nkbvjl-xak';
-
-  // 2. Object id from route
-  const objectId = params.id;
-  if (!objectId) return json({ error: 'Missing object id' }, 400);
-
-  // 3. Env
-  const bucketSlug = import.meta.env.COSMIC_BUCKET_SLUG;
-  const writeKey   = import.meta.env.COSMIC_WRITE_KEY;
-  const readKey    = import.meta.env.COSMIC_READ_KEY;
-
-  if (!bucketSlug || !writeKey || !readKey) {
-    return json({ error: 'Server misconfiguration: missing Cosmic env vars' }, 500);
+  if (!session) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      status: 401,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 
-  // 4. Fetch the object so we can verify ownership
-  //    Using ?props=id,metadata.seller_id,metadata.post_type to keep the
-  //    payload tiny (CosmicJS v3 props filtering).
-  const fetchUrl =
-    `${COSMIC_BASE}/buckets/${bucketSlug}/objects/${objectId}` +
-    `?props=id,type,metadata.seller_id,metadata.post_type&read_key=${readKey}&useCache=false`;
-
-  let cosmicObject: any;
-  try {
-    const res = await fetch(fetchUrl, {
-      headers: { Authorization: `Bearer ${readKey}` },
+  const { id } = params;
+  if (!id) {
+    return new Response(JSON.stringify({ error: 'Missing id' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
     });
+  }
 
-    if (res.status === 404) return json({ error: 'Clickz not found' }, 404);
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      return json({ error: err.message || 'Failed to fetch object' }, res.status);
+  const BUCKET    = import.meta.env.COSMIC_BUCKET_SLUG;
+  const KEY       = import.meta.env.COSMIC_WRITE_KEY;
+  const READ_KEY  = import.meta.env.COSMIC_READ_KEY;
+
+  if (!BUCKET || !KEY || !READ_KEY) {
+    return new Response(JSON.stringify({ error: 'Server misconfiguration' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  const sellerId   = session.sellerId || session.userId;
+  const isModerator = session.sellerId === 'seller-nkbvjl-xak';
+
+  // Ownership check: fetch the object first and verify seller_id matches,
+  // unless caller is a moderator.
+  if (!isModerator) {
+    let obj: any;
+    try {
+      const r = await fetch(
+        `https://api.cosmicjs.com/v3/buckets/${BUCKET}/objects/${id}?props=id,metadata.seller_id&status=any`,
+        { headers: { Authorization: `Bearer ${READ_KEY}` } }
+      );
+      const d = await r.json();
+      obj = d.object;
+    } catch {
+      return new Response(JSON.stringify({ error: 'Could not verify ownership' }), {
+        status: 502,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
-    const data = await res.json();
-    cosmicObject = data.object;
-  } catch (e: any) {
-    return json({ error: `Fetch error: ${e.message}` }, 502);
+    if (!obj) {
+      return new Response(JSON.stringify({ error: 'Not found' }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (obj.metadata?.seller_id !== sellerId) {
+      return new Response(JSON.stringify({ error: 'Forbidden' }), {
+        status: 403,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
   }
 
-  // 5. Ownership check — moderator bypasses
-  const ownerSellerId: string | undefined = cosmicObject?.metadata?.seller_id;
-
-  if (!isModerator && ownerSellerId !== sellerId) {
-    return json({ error: 'Forbidden: you did not publish this Clickz' }, 403);
-  }
-
-  // 6. Optionally enforce post_type=video selector (pass ?videoOnly=true)
-  //    Useful if you only want this endpoint to operate on video-type posts.
-  const url = new URL(request.url);
-  const videoOnly = url.searchParams.get('videoOnly') === 'true';
-  if (videoOnly && cosmicObject?.metadata?.post_type !== 'video') {
-    return json({ error: 'This endpoint only deletes video-type Clickz' }, 400);
-  }
-
-  // 7. Delete
+  let cosmicRes: Response;
   try {
-    const delRes = await fetch(
-      `${COSMIC_BASE}/buckets/${bucketSlug}/objects/${objectId}`,
+    cosmicRes = await fetch(
+      `https://api.cosmicjs.com/v3/buckets/${BUCKET}/objects/${id}`,
       {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${writeKey}` },
+        headers: { Authorization: `Bearer ${KEY}` },
       }
     );
-
-    if (!delRes.ok) {
-      const err = await delRes.json().catch(() => ({}));
-      return json({ error: err.message || 'Delete failed' }, delRes.status);
-    }
-
-    return json({ success: true, deleted: objectId });
-  } catch (e: any) {
-    return json({ error: `Delete error: ${e.message}` }, 502);
+  } catch {
+    return new Response(JSON.stringify({ error: 'Failed to reach Cosmic API' }), {
+      status: 502,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
+
+  const json = await cosmicRes.json().catch(() => ({}));
+  if (!cosmicRes.ok) {
+    return new Response(
+      JSON.stringify({ error: json.message || `Cosmic error (${cosmicRes.status})` }),
+      { status: cosmicRes.status, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+
+  return new Response(JSON.stringify({ message: 'Deleted' }), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json' },
+  });
 };
 
-// Block other HTTP verbs on this route cleanly
-export const GET: APIRoute  = () => json({ error: 'Method not allowed' }, 405);
-export const POST: APIRoute = () => json({ error: 'Method not allowed' }, 405);
+// PATCH /api/clickz/[id] — update likes count
+export const PATCH: APIRoute = async ({ params, request }) => {
+  const { id } = params;
+  if (!id) {
+    return new Response(JSON.stringify({ error: 'Missing id' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  const BUCKET = import.meta.env.COSMIC_BUCKET_SLUG;
+  const KEY    = import.meta.env.COSMIC_WRITE_KEY;
+
+  if (!BUCKET || !KEY) {
+    return new Response(JSON.stringify({ error: 'Server misconfiguration' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  let body: any;
+  try {
+    body = await request.json();
+  } catch {
+    return new Response(JSON.stringify({ error: 'Invalid JSON' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  const likes = parseInt(body.likes);
+  if (isNaN(likes) || likes < 0) {
+    return new Response(JSON.stringify({ error: 'likes must be a non-negative integer' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  let cosmicRes: Response;
+  try {
+    cosmicRes = await fetch(
+      `https://api.cosmicjs.com/v3/buckets/${BUCKET}/objects/${id}`,
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${KEY}` },
+        body: JSON.stringify({ metadata: { likes } }),
+      }
+    );
+  } catch {
+    return new Response(JSON.stringify({ error: 'Failed to reach Cosmic API' }), {
+      status: 502,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  const json = await cosmicRes.json().catch(() => ({}));
+  if (!cosmicRes.ok) {
+    return new Response(
+      JSON.stringify({ error: json.message || `Cosmic error (${cosmicRes.status})` }),
+      { status: cosmicRes.status, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+
+  return new Response(JSON.stringify({ likes }), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json' },
+  });
+};
