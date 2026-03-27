@@ -43,7 +43,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
   if (!slug || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
     return new Response(JSON.stringify({ error: 'Invalid slug format' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
   }
-  if (!video?.url || !thumbnail?.url) {
+  if (!video?.name || !thumbnail?.name) {
     return new Response(JSON.stringify({ error: 'video and thumbnail are required' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
   }
 
@@ -56,8 +56,8 @@ export const POST: APIRoute = async ({ request, cookies }) => {
   const resolvedSellerId = isModerator && seller_id ? seller_id : (session.sellerId || session.userId);
 
   const metadata: Record<string, any> = {
-    video: { name: video.name, url: video.url, imgix_url: video.imgix_url },
-    thumbnail: { name: thumbnail.name, url: thumbnail.url, imgix_url: thumbnail.imgix_url },
+    video: video.name,
+    thumbnail: thumbnail.name,
     post_type: post_type === 'video' ? 'video' : 'listing',
     seller_name: seller_name || session.businessName || session.name || 'Seller',
     seller_id: resolvedSellerId,
