@@ -142,4 +142,3 @@ jobs:
             -storepass ${{ secrets.KEYSTORE_PASSWORD }} \
             -keypass ${{ secrets.KEY_PASSWORD }} \
             2>/dev/null | grep "SHA256:"
-            
