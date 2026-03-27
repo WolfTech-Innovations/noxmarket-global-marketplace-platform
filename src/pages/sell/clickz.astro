@@ -1,36 +1,59 @@
 <script define:vars={{ bucketSlug, writeKey, readKey, sellerName, sellerId, isModerator }} is:inline>
-  window.__C__ = {s: bucketSlug, w: writeKey, r: readKey, n: sellerName, i: sellerId, m: isModerator};
+  window.__C__ = {s:bucketSlug, w:writeKey, r:readKey, n:sellerName, i:sellerId, m:isModerator};
 </script>
 
 <script>
-  const {s: BUCKET, w: KEY, n: SNAME, i: SID, m: IS_MOD} = (window as any).__C__;
-  const $ = id => document.getElementById(id);
+  const {s:BUCKET, w:KEY, n:SNAME, i:SID, m:IS_MOD} = (window as any).__C__;
+  console.log('[Clickz] SID:', SID);
 
-  // Elements
+  const $ = id => document.getElementById(id);
   const drop = $('drop'), vfile = $('vfile'), prev = $('prev'), pvid = $('pvid');
   const timer = $('timer'), submit = $('submit'), sbar = $('sbar'), stxt = $('stxt'), fill = $('fill');
   let vblob = null, listing = true;
 
   // Mode toggle
-  $('mode-listing').onclick = () => { listing = true; $('mode-listing').classList.add('on'); $('mode-video').classList.remove('on'); $('pfields').classList.remove('off'); $('ltitle').textContent = 'Part Name'; $('fdesc').placeholder = "Condition, specs, why you're selling…"; checkSubmit(); };
-  $('mode-video').onclick = () => { listing = false; $('mode-video').classList.add('on'); $('mode-listing').classList.remove('on'); $('pfields').classList.add('off'); $('ltitle').textContent = 'Title'; $('fdesc').placeholder = "What’s this video about?"; checkSubmit(); };
+  $('mode-listing').onclick = () => {
+    listing = true;
+    $('mode-listing').classList.add('on');
+    $('mode-video').classList.remove('on');
+    $('pfields').classList.remove('off');
+    $('ltitle').textContent = 'Part Name';
+    $('fdesc').placeholder = "Condition, specs, why you're selling…";
+    check();
+  };
+  $('mode-video').onclick = () => {
+    listing = false;
+    $('mode-video').classList.add('on');
+    $('mode-listing').classList.remove('on');
+    $('pfields').classList.add('off');
+    $('ltitle').textContent = 'Title';
+    $('fdesc').placeholder = "What’s this video about?";
+    check();
+  };
 
-  // File handling
+  // File drag/drop and select
   drop.ondragover = e => { e.preventDefault(); drop.classList.add('drag'); };
   drop.ondragleave = () => drop.classList.remove('drag');
-  drop.ondrop = e => { e.preventDefault(); drop.classList.remove('drag'); const f = e.dataTransfer?.files[0]; if (f && (f.type.startsWith('video/') || f.type === 'image/gif')) loadFile(f); };
-  vfile.onchange = () => { const f = vfile.files?.[0]; if (f) loadFile(f); };
+  drop.ondrop = e => {
+    e.preventDefault(); drop.classList.remove('drag');
+    const f = e.dataTransfer?.files[0];
+    if (f && (f.type.startsWith('video/') || f.type === 'image/gif')) load(f);
+  };
+  vfile.onchange = () => {
+    const f = vfile.files?.[0];
+    if (f) load(f);
+  };
 
-  function loadFile(file) {
+  function load(file) {
     vblob = file;
     if (file.type === 'image/gif') {
       const img = document.createElement('img');
       img.src = URL.createObjectURL(file);
       img.style.cssText = 'width:100%;height:100%;object-fit:cover';
       prev.innerHTML = '';
-      prev.appendChild(img);
+      prev.append(img);
       prev.insertAdjacentHTML('beforeend', '<div class="badge">GIF</div><button class="chg" id="chg">Change</button>');
-      $('chg').onclick = resetFile;
+      $('chg').onclick = reset;
     } else {
       pvid.src = URL.createObjectURL(file);
       pvid.onloadedmetadata = () => {
@@ -41,168 +64,166 @@
     }
     drop.style.display = 'none';
     prev.style.display = 'block';
-    checkSubmit();
+    check();
   }
 
-  function resetFile() {
+  function reset() {
     vblob = null;
     pvid.src = '';
     prev.style.display = 'none';
     drop.style.display = 'block';
     vfile.value = '';
-    checkSubmit();
+    check();
   }
-  $('chg').onclick = resetFile;
+  $('chg').onclick = reset;
 
-  // Submit button check
-  const requiredListing = ['ftitle','fcat','fprice','fslug'];
-  const requiredVideo = ['ftitle'];
-  requiredListing.forEach(id => { const el = $(id); if (el) el.addEventListener('input', checkSubmit); });
+  // Required fields
+  const lreq = ['ftitle','fcat','fprice','fslug'];
+  const vreq = ['ftitle'];
+  lreq.forEach(id => { const el = $(id); if(el) el.addEventListener('input', check); });
 
-  function checkSubmit() {
-    const req = listing ? requiredListing : requiredVideo;
+  function check() {
+    const req = listing ? lreq : vreq;
     submit.disabled = !vblob || !req.every(id => { const el = $(id); return el && el.value.trim(); });
   }
 
-  // Upload function (fixed endpoint)
-  async function uploadFile(file, label) {
+  // Fixed upload (workers.cosmicjs.com)
+  async function up(file, lbl) {
     const fd = new FormData();
     fd.append('media', file);
-    const res = await fetch(`https://workers.cosmicjs.com/v3/buckets/${BUCKET}/media`, {
+    const r = await fetch(`https://workers.cosmicjs.com/v3/buckets/${BUCKET}/media`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${KEY}` },
       body: fd
     });
-    const text = await res.text();
+    const text = await r.text();
     let json = {};
     try { json = JSON.parse(text); } catch {}
-    if (!res.ok) throw new Error(json.message || text || `Failed to upload ${label}`);
-    const media = json.media || json;
-    if (!media?.url) throw new Error(`No media URL for ${label}`);
-    return { name: media.name || '', url: media.url, imgix_url: media.imgix_url || media.url };
+    if (!r.ok) throw new Error(json.message || text || `Failed ${lbl}`);
+    const m = json.media || json;
+    if (!m?.url) throw new Error(`No media returned for ${lbl}`);
+    return {name: m.name || '', url: m.url, imgix_url: m.imgix_url || m.url};
   }
 
-  function generateThumb() {
-    return new Promise(resolve => {
-      const canvas = document.createElement('canvas');
-      canvas.width = pvid.videoWidth || 1280;
-      canvas.height = pvid.videoHeight || 720;
-      canvas.getContext('2d').drawImage(pvid, 0, 0);
-      canvas.toBlob(blob => resolve(blob), 'image/jpeg', 0.85);
+  function thumb() {
+    return new Promise(res => {
+      const c = document.createElement('canvas');
+      c.width = pvid.videoWidth || 1280;
+      c.height = pvid.videoHeight || 720;
+      c.getContext('2d').drawImage(pvid, 0, 0);
+      c.toBlob(b => res(b), 'image/jpeg', 0.85);
     });
   }
 
-  const progress = (percent, text) => { fill.style.width = percent + '%'; stxt.textContent = text; };
-  const status = (type, msg) => {
+  const prog = (p, t) => { fill.style.width = p + '%'; stxt.textContent = t; };
+  const stat = (type, msg) => {
     sbar.className = 'on ' + (type === 'l' ? '' : type === 'ok' ? 'ok' : 'err');
     stxt.textContent = msg;
     if (type !== 'l') fill.style.width = '100%';
   };
-  const getVal = id => ($(id) ? $(id).value.trim() : '');
+  const g = id => { const el = $(id); return el ? el.value.trim() : ''; };
 
-  // Main submit
+  // Submit
   submit.onclick = async () => {
     if (!vblob) return;
     submit.disabled = true;
     sbar.className = 'on';
-    progress(5, 'Starting...');
+    prog(5, 'Starting...');
 
     try {
-      progress(20, 'Uploading video...');
-      const videoData = await uploadFile(vblob, 'video');
+      prog(20, 'Uploading video...');
+      const vu = await up(vblob, 'video');
 
-      progress(50, 'Thumbnail...');
-      const thumbBlob = await generateThumb();
-      const thumbData = await uploadFile(new File([thumbBlob], 'thumb.jpg', {type: 'image/jpeg'}), 'thumbnail');
+      prog(50, 'Thumbnail...');
+      const tu = await up(new File([await thumb()], 't.jpg', {type: 'image/jpeg'}), 'thumb');
 
-      progress(75, 'Posting...');
+      prog(75, 'Posting...');
 
-      const slug = listing ? getVal('fslug') : (getVal('ftitle').toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'') + '-' + Date.now());
-      const postStatus = IS_MOD ? (getVal('mstat') || 'published') : 'published';
+      const slug = listing ? g('fslug') : (g('ftitle').toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') + '-' + Date.now());
+      const status = IS_MOD ? (g('mstat') || 'published') : 'published';
 
       const payload = {
-        title: getVal('ftitle'),
+        title: g('ftitle'),
         type: 'clickz',
-        slug: slug,
-        status: postStatus,
+        slug,
+        status,
         metadata: {
-          video: {name: videoData.name, url: videoData.url, imgix_url: videoData.imgix_url},
-          thumbnail: {name: thumbData.name, url: thumbData.url, imgix_url: thumbData.imgix_url},
+          video: {name: vu.name, url: vu.url, imgix_url: vu.imgix_url},
+          thumbnail: {name: tu.name, url: tu.url, imgix_url: tu.imgix_url},
           post_type: listing ? 'listing' : 'video',
           seller_name: SNAME,
-          seller_id: (IS_MOD && getVal('msid')) || SID,
-          description: getVal('fdesc'),
+          seller_id: (IS_MOD && g('msid')) || SID,
+          description: g('fdesc'),
           likes: 0,
-          ...(listing && { category: getVal('fcat'), price: parseFloat(getVal('fprice')), listing_slug: getVal('fslug') }),
-          ...(IS_MOD && getVal('mnote') && { mod_note: getVal('mnote') }),
-          ...(IS_MOD && { moderated_by: SID })
+          ...(listing && {category: g('fcat'), price: parseFloat(g('fprice')), listing_slug: g('fslug')}),
+          ...(IS_MOD && g('mnote') && {mod_note: g('mnote')}),
+          ...(IS_MOD && {moderated_by: SID})
         }
       };
 
-      const postRes = await fetch(`https://api.cosmicjs.com/v3/buckets/${BUCKET}/objects`, {
+      const r = await fetch(`https://api.cosmicjs.com/v3/buckets/${BUCKET}/objects`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${KEY}` },
+        headers: {'Content-Type': 'application/json', Authorization: `Bearer ${KEY}`},
         body: JSON.stringify(payload)
       });
 
-      if (!postRes.ok) {
-        const err = await postRes.json().catch(() => ({}));
-        throw new Error(err.message || 'Failed to create Clickz');
-      }
+      if (!r.ok) throw new Error((await r.json().catch(() => ({}))).message || 'Post failed');
 
-      progress(100, '');
-      status('ok', 'Posted — redirecting...');
+      prog(100, '');
+      stat('ok', 'Posted — redirecting...');
       setTimeout(() => location.href = '/clickz', 1500);
-
     } catch (e) {
       console.error(e);
-      status('err', e.message || 'Something went wrong - check console');
+      stat('err', e.message || 'Something went wrong');
       submit.disabled = false;
     }
   };
 
-  // My Clickz manager (kept functional)
-  const {r: READKEY} = (window as any).__C__;
+  // My Clickz manager
+  const {r: RKEY} = (window as any).__C__;
   async function loadMyClickz() {
     const mlist = $('mlist'), mload = $('mload'), mcount = $('mcount');
     mload.style.display = 'block';
-    if (!SID) { mload.textContent = 'Account error'; return; }
+    if (!SID) {
+      mload.textContent = 'Account error';
+      return;
+    }
 
-    const query = JSON.stringify({ type: 'clickz', 'metadata.seller_id': SID });
+    const query = JSON.stringify({type: 'clickz', 'metadata.seller_id': SID});
     const url = `https://api.cosmicjs.com/v3/buckets/\( {BUCKET}/objects?query= \){encodeURIComponent(query)}&props=id,title,metadata.thumbnail,metadata.post_type,metadata.price,metadata.category&limit=100&status=any`;
 
     let items = [];
     try {
-      const res = await fetch(url, { headers: { Authorization: `Bearer ${READKEY}` } });
+      const res = await fetch(url, {headers: {Authorization: `Bearer ${RKEY}`}});
       items = (await res.json()).objects || [];
-    } catch(e) { console.error(e); }
+    } catch (e) { console.error(e); }
 
     mload.style.display = 'none';
     mcount.textContent = items.length ? `(${items.length})` : '';
 
     if (!items.length) {
-      mload.textContent = 'No Clickz posted yet.';
+      mload.textContent = 'No Clickz yet';
       mload.style.display = 'block';
       return;
     }
 
     mlist.innerHTML = '';
-    items.forEach(item => {
-      const thumb = item.metadata?.thumbnail?.imgix_url ? item.metadata.thumbnail.imgix_url + '?w=80&h=80&fit=crop&auto=format' : '';
-      const isVideo = item.metadata?.post_type === 'video';
-      const subtitle = isVideo ? 'Video' : [item.metadata?.category, item.metadata?.price != null ? `$${item.metadata.price}` : ''].filter(Boolean).join(' · ');
+    items.forEach(obj => {
+      const thumb = obj.metadata?.thumbnail?.imgix_url ? obj.metadata.thumbnail.imgix_url + '?w=80&h=80&fit=crop&auto=format' : '';
+      const isVid = obj.metadata?.post_type === 'video';
+      const sub = isVid ? 'Video' : [obj.metadata?.category, obj.metadata?.price != null ? `$${obj.metadata.price}` : ''].filter(Boolean).join(' · ');
 
       const card = document.createElement('div');
       card.className = 'mcard';
       card.innerHTML = `
         \( {thumb ? `<img class="mthumb" src=" \){thumb}" loading="lazy">` : '<div class="mthumb"></div>'}
         <div class="minfo">
-          <div class="mtitle">\( {item.title} \){isVideo ? '<span class="vtag">video</span>' : ''}</div>
-          \( {subtitle ? `<div class="mmeta"> \){subtitle}</div>` : ''}
+          <div class="mtitle">\( {obj.title} \){isVid ? '<span class="vtag">video</span>' : ''}</div>
+          \( {sub ? `<div class="mmeta"> \){sub}</div>` : ''}
         </div>
-        <button class="mdel" data-id="${item.id}">Delete</button>
+        <button class="mdel" data-id="${obj.id}">Delete</button>
       `;
-      card.querySelector('.mdel').onclick = () => deleteClickz(item.id, item.title, card);
+      card.querySelector('.mdel').onclick = () => deleteClickz(obj.id, obj.title, card);
       mlist.appendChild(card);
     });
   }
@@ -213,7 +234,7 @@
     btn.disabled = true;
     btn.textContent = 'Deleting...';
     try {
-      const res = await fetch(`/api/clickz/${id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/clickz/${id}`, {method: 'DELETE'});
       if (!res.ok) throw new Error('Delete failed');
       card.style.transition = 'all 0.25s';
       card.style.opacity = '0';
