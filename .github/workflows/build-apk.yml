@@ -3,37 +3,18 @@ name: Build Nox APK
 on:
   push:
     branches: [main]
-  workflow_dispatch: # lets you trigger it manually from the Actions tab
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      # ── 1. Checkout repo ──────────────────────────────
+      # ── 1. Checkout ───────────────────────────────────
       - name: Checkout
         uses: actions/checkout@v4
 
-      # ── 2. Setup Node.js ──────────────────────────────
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      # ── 3. Setup Java (Bubblewrap needs JDK 17) ───────
-      - name: Setup Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-
-      # ── 4. Install Bubblewrap ─────────────────────────
-      - name: Install Bubblewrap
-        run: npm install -g @bubblewrap/cli
-
-      # ── 5. Write twa-manifest.json ────────────────────
-      # Edit values here if you change app details.
-      # packageId, host, manifestUrl are the important ones.
+      # ── 2. Write twa-manifest.json ────────────────────
       - name: Write twa-manifest.json
         run: |
           cat > twa-manifest.json << 'EOF'
@@ -56,8 +37,8 @@ jobs:
             "maskableIconUrl": "https://nox.lebnix.org/icons/icon-512.png",
             "monochromeIconUrl": "https://nox.lebnix.org/icons/icon-512.png",
             "manifestUrl": "https://nox.lebnix.org/manifest.json",
-            "generatorApp": "bubblewrap-cli",
             "webManifestUrl": "https://nox.lebnix.org/manifest.json",
+            "generatorApp": "bubblewrap-cli",
             "isChromeOSOnly": false,
             "isMetaQuest": false,
             "fullScopeUrl": "https://nox.lebnix.org/",
@@ -65,12 +46,10 @@ jobs:
             "appVersionCode": 1,
             "appVersionName": "1.0.0",
             "shortcuts": [],
-            "generatedAppVersionCode": 1,
             "features": {},
             "alphaDependencies": { "enabled": false },
             "enableSiteSettingsShortcut": true,
             "isTrustedWebActivity": true,
-            "serviceAccountJsonFile": "",
             "fallbackType": "customtabs",
             "additionalTrustedOrigins": [],
             "retainedBundles": [],
@@ -82,12 +61,7 @@ jobs:
           }
           EOF
 
-      # ── 6. Restore or create keystore ─────────────────
-      # On first run: leave KEYSTORE_BASE64 secret empty —
-      # Bubblewrap will generate a new keystore.
-      # After first run: base64-encode the keystore file and
-      # save it as the KEYSTORE_BASE64 secret so the same
-      # signing key is reused on every future build.
+      # ── 3. Restore keystore (skip on first run) ───────
       - name: Restore keystore
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
@@ -96,33 +70,45 @@ jobs:
             echo "$KEYSTORE_BASE64" | base64 --decode > android.keystore
             echo "Restored existing keystore."
           else
-            echo "No keystore found — Bubblewrap will generate one."
+            echo "No keystore secret found — Bubblewrap will generate one."
           fi
 
-      # ── 7. Init Android project ───────────────────────
+      # ── 4. Init TWA project via Docker ────────────────
+      # Uses the official Bubblewrap Docker image — no JDK prompts,
+      # no SDK downloads, no platform issues.
       - name: Init TWA project
         env:
           BUBBLEWRAP_KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           BUBBLEWRAP_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
-          bubblewrap init \
+          docker run --rm \
+            -v "${{ github.workspace }}:/work" \
+            -w /work \
+            -e BUBBLEWRAP_KEYSTORE_PASSWORD \
+            -e BUBBLEWRAP_KEY_PASSWORD \
+            ghcr.io/googlechromelabs/bubblewrap:latest \
+            init \
             --manifest https://nox.lebnix.org/manifest.json \
             --directory android-project \
             --skipPwaValidation
 
-      # ── 8. Build APK ──────────────────────────────────
+      # ── 5. Build APK via Docker ───────────────────────
       - name: Build APK
         env:
           BUBBLEWRAP_KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           BUBBLEWRAP_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
-          cd android-project
-          bubblewrap build \
-            --skipPwaValidation \
-            --manifest ../twa-manifest.json
+          docker run --rm \
+            -v "${{ github.workspace }}:/work" \
+            -w /work/android-project \
+            -e BUBBLEWRAP_KEYSTORE_PASSWORD \
+            -e BUBBLEWRAP_KEY_PASSWORD \
+            ghcr.io/googlechromelabs/bubblewrap:latest \
+            build \
+            --skipPwaValidation
 
-      # ── 9. Upload APK as artifact ─────────────────────
-      - name: Upload APK artifact
+      # ── 6. Upload APK artifact ────────────────────────
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: nox-apk
@@ -131,15 +117,25 @@ jobs:
             android-project/app-release-bundle.aab
           retention-days: 30
 
-      # ── 10. Print assetlinks.json fingerprint ─────────
-      # Copy the SHA-256 from the logs and put it in:
-      # nox.lebnix.org/.well-known/assetlinks.json
+      # ── 7. Print SHA-256 fingerprint ──────────────────
+      # Copy this into nox.lebnix.org/.well-known/assetlinks.json
+      # to remove the browser address bar from the TWA.
       - name: Print signing fingerprint
         run: |
           keytool -list -v \
             -keystore android.keystore \
             -alias nox \
-            -storepass ${{ secrets.KEYSTORE_PASSWORD }} \
-            -keypass ${{ secrets.KEY_PASSWORD }} \
-            2>/dev/null | grep "SHA256:"
-            
+            -storepass "${{ secrets.KEYSTORE_PASSWORD }}" \
+            -keypass "${{ secrets.KEY_PASSWORD }}" \
+            2>/dev/null | grep "SHA256:" || echo "Keystore not found — check secrets."
+
+      # ── 8. Save keystore as artifact (first run only) ─
+      # After first run: download android-keystore-BACKUP artifact,
+      # then run: cat android.keystore | base64
+      # and paste the output as the KEYSTORE_BASE64 secret.
+      - name: Upload keystore backup
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-keystore-BACKUP
+          path: android.keystore
+          retention-days: 7
