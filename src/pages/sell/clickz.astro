@@ -141,7 +141,7 @@ function load(f:File){
 }
 async function up(f:File):Promise<{name:string;url:string;imgix_url:string}>{
   const fd=new FormData();fd.append('media',f);
-  const r=await fetch('/api/clickz/upload',{method:'POST',body:fd});
+  const r=await fetch('/api/clickz/upload',{method:'POST',body:fd,credentials:'include'});
   const j=await r.json();if(!r.ok)throw new Error(j.error||'Upload failed');
   return{name:j.name,url:j.url,imgix_url:j.imgix_url};
 }
@@ -160,7 +160,7 @@ el.sub.onclick=async()=>{
     prog(75,'Posting\u2026');
     const slug=lst?g('fslug'):g('ftitle').toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'')+'-'+Date.now();
     if(!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug))throw new Error('Invalid slug');
-    const r=await fetch('/api/clickz/create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+    const r=await fetch('/api/clickz/create',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'include',body:JSON.stringify({
       title:g('ftitle'),slug,status:MOD?(($('mstat') as HTMLSelectElement)?.value??'published'):'published',
       post_type:lst?'listing':'video',category:lst?g('fcat'):undefined,price:lst?parseFloat(g('fprice')):undefined,
       listing_slug:lst?g('fslug'):undefined,description:g('fdesc'),seller_name:SN,seller_id:(MOD?g('msid'):'')||SID,
@@ -177,7 +177,7 @@ async function loadMine(){
   ml.style.display='block';
   if(!SID){ml.textContent='Could not identify account.';return;}
   let items:CI[]=[];
-  try{const r=await fetch('/api/clickz/mine');items=(await r.json()).objects??[];}catch{}
+  try{const r=await fetch('/api/clickz/mine',{credentials:'include'});items=(await r.json()).objects??[];}catch{}
   ml.style.display='none';mc.textContent=items.length?`(${items.length})`:'';
   if(!items.length){ml.textContent='No Clickz posted yet.';ml.style.display='block';return;}
   list.innerHTML='';
@@ -196,7 +196,7 @@ async function del(id:string,title:string,card:HTMLElement){
   if(!confirm(`Delete "${title}"?\nThis cannot be undone.`))return;
   btn.disabled=true;btn.textContent='Deleting…';
   try{
-    const r=await fetch(`/api/clickz/${id}`,{method:'DELETE'});
+    const r=await fetch(`/api/clickz/${id}`,{method:'DELETE',credentials:'include'});
     const d=await r.json();if(!r.ok)throw new Error(d.error||'Delete failed');
     Object.assign(card.style,{opacity:'0',transform:'scale(.96)',transition:'opacity .25s,transform .25s'});
     setTimeout(()=>{card.remove();const mc=$('mc') as HTMLElement;const n=parseInt(mc.textContent?.replace(/\D/g,'')||'0');mc.textContent=n>1?`(${n-1})`:'';}  ,260);
