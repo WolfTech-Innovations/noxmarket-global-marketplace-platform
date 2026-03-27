@@ -69,7 +69,7 @@ body{background:#000;color:#fff;font-family:'DM Sans',sans-serif;overflow:hidden
 ):(
   C.map((item:Clickz,i:number)=>(
     <div class="s" data-index={i} data-id={item.id} data-price={item.metadata?.price||'0'} data-category={item.metadata?.category||''}>
-      <video class="v" src={item.metadata?.video?`https://cdn.cosmicjs.com/${item.metadata.video}`:''} playsinline loop muted preload={i===0?'auto':'none'} poster={item.metadata?.thumbnail?`https://imgix.cosmicjs.com/${item.metadata.thumbnail}?w=40&blur=20&auto=format`:''} />
+      <video class="v" src={item.metadata?.video?.url||''} playsinline loop muted preload={i===0?'auto':'none'} poster={item.metadata?.thumbnail?.imgix_url?`${item.metadata.thumbnail.imgix_url}?w=40&blur=20&auto=format`:''} />
       <div class="o"/><div class="tb"/>
       <div class="pi"><svg width="64" height="64" viewBox="0 0 24 24" fill="rgba(255,255,255,.85)" stroke="none"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg></div>
       <div class="ve"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>Video unavailable</div>
