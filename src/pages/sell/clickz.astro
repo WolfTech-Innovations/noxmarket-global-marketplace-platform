@@ -1,132 +1,230 @@
 <script define:vars={{ bucketSlug, writeKey, readKey, sellerName, sellerId, isModerator }} is:inline>
-  window.__C__={s:bucketSlug,w:writeKey,r:readKey,n:sellerName,i:sellerId,m:isModerator};
+  window.__C__ = {s: bucketSlug, w: writeKey, r: readKey, n: sellerName, i: sellerId, m: isModerator};
 </script>
 
 <script>
-const {s:B,w:K,n:N,i:S,m:M}=(window as any).__C__, $=id=>document.getElementById(id)!;
-const drop=\( ('drop'),vf= \)('vfile')as HTMLInputElement,pr=\( ('prev'),pv= \)('pvid')as HTMLVideoElement;
-const tm=\( ('timer'),sb= \)('submit')as HTMLButtonElement,bar=\( ('sbar'),st= \)('stxt'),fl=$('fill');
-let file=null, isList=true;
+  const {s: BUCKET, w: KEY, n: SNAME, i: SID, m: IS_MOD} = (window as any).__C__;
+  const $ = id => document.getElementById(id);
 
-const ml=\( ('mode-listing')as HTMLButtonElement, mv= \)('mode-video')as HTMLButtonElement;
-const pf=\( ('pfields'), lt= \)('ltitle'), desc=$('fdesc')as HTMLTextAreaElement;
+  // Elements
+  const drop = $('drop'), vfile = $('vfile'), prev = $('prev'), pvid = $('pvid');
+  const timer = $('timer'), submit = $('submit'), sbar = $('sbar'), stxt = $('stxt'), fill = $('fill');
+  let vblob = null, listing = true;
 
-ml.onclick=()=>{isList=true;ml.classList.add('on');mv.classList.remove('on');pf.classList.remove('off');lt.textContent='Part Name';desc.placeholder="Condition, specs...";chk()};
-mv.onclick=()=>{isList=false;mv.classList.add('on');ml.classList.remove('on');pf.classList.add('off');lt.textContent='Title';desc.placeholder="What’s this video about?";chk()};
+  // Mode toggle
+  $('mode-listing').onclick = () => { listing = true; $('mode-listing').classList.add('on'); $('mode-video').classList.remove('on'); $('pfields').classList.remove('off'); $('ltitle').textContent = 'Part Name'; $('fdesc').placeholder = "Condition, specs, why you're selling…"; checkSubmit(); };
+  $('mode-video').onclick = () => { listing = false; $('mode-video').classList.add('on'); $('mode-listing').classList.remove('on'); $('pfields').classList.add('off'); $('ltitle').textContent = 'Title'; $('fdesc').placeholder = "What’s this video about?"; checkSubmit(); };
 
-drop.ondragover=e=>{e.preventDefault();drop.classList.add('drag')};
-drop.ondragleave=()=>drop.classList.remove('drag');
-drop.ondrop=e=>{e.preventDefault();drop.classList.remove('drag');const f=e.dataTransfer?.files[0];if(f&&(f.type.startsWith('video/')||f.type==='image/gif'))load(f)};
-vf.onchange=()=>{const f=vf.files?.[0];if(f)load(f)};
+  // File handling
+  drop.ondragover = e => { e.preventDefault(); drop.classList.add('drag'); };
+  drop.ondragleave = () => drop.classList.remove('drag');
+  drop.ondrop = e => { e.preventDefault(); drop.classList.remove('drag'); const f = e.dataTransfer?.files[0]; if (f && (f.type.startsWith('video/') || f.type === 'image/gif')) loadFile(f); };
+  vfile.onchange = () => { const f = vfile.files?.[0]; if (f) loadFile(f); };
 
-function load(f){file=f;
-  if(f.type==='image/gif'){
-    const i=document.createElement('img');i.src=URL.createObjectURL(f);i.style.cssText='width:100%;height:100%;object-fit:cover';
-    pr.innerHTML='';pr.append(i,document.createRange().createContextualFragment('<div class="badge">GIF</div><button class="chg" id="chg">Change</button>'));
-    ($('chg')as HTMLButtonElement).onclick=reset;
-  }else{
-    pv.src=URL.createObjectURL(f);pv.onloadedmetadata=()=>{const d=pv.duration;tm.textContent=d.toFixed(1)+'s';tm.className=d>8.5?'over':'ok'};
+  function loadFile(file) {
+    vblob = file;
+    if (file.type === 'image/gif') {
+      const img = document.createElement('img');
+      img.src = URL.createObjectURL(file);
+      img.style.cssText = 'width:100%;height:100%;object-fit:cover';
+      prev.innerHTML = '';
+      prev.appendChild(img);
+      prev.insertAdjacentHTML('beforeend', '<div class="badge">GIF</div><button class="chg" id="chg">Change</button>');
+      $('chg').onclick = resetFile;
+    } else {
+      pvid.src = URL.createObjectURL(file);
+      pvid.onloadedmetadata = () => {
+        const d = pvid.duration;
+        timer.textContent = d.toFixed(1) + 's';
+        timer.className = d > 8.5 ? 'over' : 'ok';
+      };
+    }
+    drop.style.display = 'none';
+    prev.style.display = 'block';
+    checkSubmit();
   }
-  drop.style.display='none';pr.style.display='block';chk();
-}
-function reset(){file=null;pv.src='';pr.style.display='none';drop.style.display='block';vf.value='';chk()}
-$('chg').onclick=reset;
 
-const lreq=['ftitle','fcat','fprice','fslug'], vreq=['ftitle'];
-lreq.forEach(id=>$(id).addEventListener('input',chk));
-function chk(){sb.disabled=!file||!(isList?lreq:vreq).every(id=>($(id)as HTMLInputElement).value.trim())}
+  function resetFile() {
+    vblob = null;
+    pvid.src = '';
+    prev.style.display = 'none';
+    drop.style.display = 'block';
+    vfile.value = '';
+    checkSubmit();
+  }
+  $('chg').onclick = resetFile;
 
-async function upload(f,lbl){
-  const fd=new FormData();fd.append('media',f);
-  const r=await fetch(`https://workers.cosmicjs.com/v3/buckets/${B}/media`,{method:'POST',headers:{Authorization:`Bearer ${K}`},body:fd});
-  const t=await r.text(), j=JSON.parse(t)||{};
-  if(!r.ok)throw new Error(j.message||t||`Failed ${lbl}`);
-  const m=j.media||j;
-  if(!m?.url)throw new Error(`No URL for ${lbl}`);
-  return {name:m.name||'',url:m.url,imgix_url:m.imgix_url||m.url};
-}
+  // Submit button check
+  const requiredListing = ['ftitle','fcat','fprice','fslug'];
+  const requiredVideo = ['ftitle'];
+  requiredListing.forEach(id => { const el = $(id); if (el) el.addEventListener('input', checkSubmit); });
 
-function thumb(){return new Promise(r=>{const c=document.createElement('canvas');c.width=pv.videoWidth;c.height=pv.videoHeight;c.getContext('2d')!.drawImage(pv,0,0);c.toBlob(b=>r(b!),'image/jpeg',0.85)})}
+  function checkSubmit() {
+    const req = listing ? requiredListing : requiredVideo;
+    submit.disabled = !vblob || !req.every(id => { const el = $(id); return el && el.value.trim(); });
+  }
 
-const prog=(p,t)=>{fl.style.width=p+'%';st.textContent=t};
-const stat=(t,m)=>{bar.className='on '+(t==='l'?'':t==='ok'?'ok':'err');st.textContent=m;if(t!=='l')fl.style.width='100%'};
-const g=id=>($(id)as any).value.trim();
-
-sb.onclick=async()=>{
-  if(!file)return; sb.disabled=true; bar.className='on'; prog(5,'Starting...');
-  try{
-    prog(20,'Uploading video...');const vu=await upload(file,'video');
-    prog(50,'Thumbnail...');const tu=await upload(new File([await thumb()],'t.jpg',{type:'image/jpeg'}),'thumb');
-    prog(75,'Posting...');
-
-    const slug=isList?g('fslug'):(g('ftitle').toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'')+'-'+Date.now());
-    const status=M?(g('mstat')||'published'):'published';
-
-    const res=await fetch(`https://api.cosmicjs.com/v3/buckets/${B}/objects`,{
-      method:'POST',
-      headers:{'Content-Type':'application/json',Authorization:`Bearer ${K}`},
-      body:JSON.stringify({title:g('ftitle'),type:'clickz',slug,status,metadata:{
-        video:{name:vu.name,url:vu.url,imgix_url:vu.imgix_url},
-        thumbnail:{name:tu.name,url:tu.url,imgix_url:tu.imgix_url},
-        post_type:isList?'listing':'video',
-        ...(isList?{category:g('fcat'),price:parseFloat(g('fprice')),listing_slug:g('fslug')}:{ }),
-        seller_name:N,seller_id:(M&&g('msid'))||S,description:g('fdesc'),likes:0,
-        ...(M&&g('mnote')?{mod_note:g('mnote')}:{ }),
-        ...(M?{moderated_by:S}:{ })
-      }})
+  // Upload function (fixed endpoint)
+  async function uploadFile(file, label) {
+    const fd = new FormData();
+    fd.append('media', file);
+    const res = await fetch(`https://workers.cosmicjs.com/v3/buckets/${BUCKET}/media`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${KEY}` },
+      body: fd
     });
-    if(!res.ok)throw new Error((await res.json()).message||'Post failed');
+    const text = await res.text();
+    let json = {};
+    try { json = JSON.parse(text); } catch {}
+    if (!res.ok) throw new Error(json.message || text || `Failed to upload ${label}`);
+    const media = json.media || json;
+    if (!media?.url) throw new Error(`No media URL for ${label}`);
+    return { name: media.name || '', url: media.url, imgix_url: media.imgix_url || media.url };
+  }
 
-    prog(100,'');stat('ok','Posted — redirecting...');
-    setTimeout(()=>location.href='/clickz',1500);
-  }catch(e:any){console.error(e);stat('err',e.message||'Error');sb.disabled=false}
-};
+  function generateThumb() {
+    return new Promise(resolve => {
+      const canvas = document.createElement('canvas');
+      canvas.width = pvid.videoWidth || 1280;
+      canvas.height = pvid.videoHeight || 720;
+      canvas.getContext('2d').drawImage(pvid, 0, 0);
+      canvas.toBlob(blob => resolve(blob), 'image/jpeg', 0.85);
+    });
+  }
 
-// My Clickz manager (condensed)
-const {r:R}=(window as any).__C__;
-async function loadMy(){
-  const list=\( ('mlist'), load= \)('mload'), count=$('mcount');
-  load.style.display='block';
-  if(!S){load.textContent='Account error';return}
+  const progress = (percent, text) => { fill.style.width = percent + '%'; stxt.textContent = text; };
+  const status = (type, msg) => {
+    sbar.className = 'on ' + (type === 'l' ? '' : type === 'ok' ? 'ok' : 'err');
+    stxt.textContent = msg;
+    if (type !== 'l') fill.style.width = '100%';
+  };
+  const getVal = id => ($(id) ? $(id).value.trim() : '');
 
-  const q=JSON.stringify({type:'clickz','metadata.seller_id':S});
-  const url=`https://api.cosmicjs.com/v3/buckets/\( {B}/objects?query= \){encodeURIComponent(q)}&props=id,title,metadata.thumbnail,metadata.post_type,metadata.price,metadata.category&limit=100&status=any`;
+  // Main submit
+  submit.onclick = async () => {
+    if (!vblob) return;
+    submit.disabled = true;
+    sbar.className = 'on';
+    progress(5, 'Starting...');
 
-  let items=[];
-  try{items=(await (await fetch(url,{headers:{Authorization:`Bearer ${R}`}})).json()).objects||[]}catch{}
+    try {
+      progress(20, 'Uploading video...');
+      const videoData = await uploadFile(vblob, 'video');
 
-  load.style.display='none';count.textContent=items.length?`(${items.length})`:'';
+      progress(50, 'Thumbnail...');
+      const thumbBlob = await generateThumb();
+      const thumbData = await uploadFile(new File([thumbBlob], 'thumb.jpg', {type: 'image/jpeg'}), 'thumbnail');
 
-  if(!items.length){load.textContent='No Clickz yet';load.style.display='block';return}
+      progress(75, 'Posting...');
 
-  list.innerHTML='';
-  items.forEach(o=>{
-    const thumb=o.metadata?.thumbnail?.imgix_url? o.metadata.thumbnail.imgix_url+'?w=80&h=80&fit=crop&auto=format' : '';
-    const isVid=o.metadata?.post_type==='video';
-    const sub=isVid?'Video':[o.metadata?.category,o.metadata?.price!=null?`$${o.metadata.price}`:''].filter(Boolean).join(' · ');
+      const slug = listing ? getVal('fslug') : (getVal('ftitle').toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'') + '-' + Date.now());
+      const postStatus = IS_MOD ? (getVal('mstat') || 'published') : 'published';
 
-    const card=document.createElement('div');card.className='mcard';
-    card.innerHTML=`
-      \( {thumb?`<img class="mthumb" src=" \){thumb}" loading="lazy">`:'<div class="mthumb"></div>'}
-      <div class="minfo"><div class="mtitle">\( {o.title} \){isVid?'<span class="vtag">video</span>':''}</div>\( {sub?`<div class="mmeta"> \){sub}</div>`:''}</div>
-      <button class="mdel" data-id="${o.id}">Delete</button>
-    `;
-    (card.querySelector('.mdel')as HTMLButtonElement).onclick=()=>del(o.id,o.title,card);
-    list.appendChild(card);
-  });
-}
+      const payload = {
+        title: getVal('ftitle'),
+        type: 'clickz',
+        slug: slug,
+        status: postStatus,
+        metadata: {
+          video: {name: videoData.name, url: videoData.url, imgix_url: videoData.imgix_url},
+          thumbnail: {name: thumbData.name, url: thumbData.url, imgix_url: thumbData.imgix_url},
+          post_type: listing ? 'listing' : 'video',
+          seller_name: SNAME,
+          seller_id: (IS_MOD && getVal('msid')) || SID,
+          description: getVal('fdesc'),
+          likes: 0,
+          ...(listing && { category: getVal('fcat'), price: parseFloat(getVal('fprice')), listing_slug: getVal('fslug') }),
+          ...(IS_MOD && getVal('mnote') && { mod_note: getVal('mnote') }),
+          ...(IS_MOD && { moderated_by: SID })
+        }
+      };
 
-async function del(id,title,card){
-  if(!confirm(`Delete "${title}"?`))return;
-  const btn=card.querySelector('.mdel')as HTMLButtonElement;
-  btn.disabled=true;btn.textContent='Deleting...';
-  try{
-    const r=await fetch(`/api/clickz/${id}`,{method:'DELETE'});
-    if(!r.ok)throw new Error((await r.json()).error||'Failed');
-    card.style.transition='all .25s';card.style.opacity='0';card.style.transform='scale(.95)';
-    setTimeout(()=>{card.remove();const c=\( ('mcount');let n=parseInt(c.textContent||'0');c.textContent=n>1?`( \){n-1})`:'';},300);
-  }catch(e){btn.disabled=false;btn.textContent='Delete';alert(e.message||'Delete failed')}
-}
+      const postRes = await fetch(`https://api.cosmicjs.com/v3/buckets/${BUCKET}/objects`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${KEY}` },
+        body: JSON.stringify(payload)
+      });
 
-loadMy();
+      if (!postRes.ok) {
+        const err = await postRes.json().catch(() => ({}));
+        throw new Error(err.message || 'Failed to create Clickz');
+      }
+
+      progress(100, '');
+      status('ok', 'Posted — redirecting...');
+      setTimeout(() => location.href = '/clickz', 1500);
+
+    } catch (e) {
+      console.error(e);
+      status('err', e.message || 'Something went wrong - check console');
+      submit.disabled = false;
+    }
+  };
+
+  // My Clickz manager (kept functional)
+  const {r: READKEY} = (window as any).__C__;
+  async function loadMyClickz() {
+    const mlist = $('mlist'), mload = $('mload'), mcount = $('mcount');
+    mload.style.display = 'block';
+    if (!SID) { mload.textContent = 'Account error'; return; }
+
+    const query = JSON.stringify({ type: 'clickz', 'metadata.seller_id': SID });
+    const url = `https://api.cosmicjs.com/v3/buckets/\( {BUCKET}/objects?query= \){encodeURIComponent(query)}&props=id,title,metadata.thumbnail,metadata.post_type,metadata.price,metadata.category&limit=100&status=any`;
+
+    let items = [];
+    try {
+      const res = await fetch(url, { headers: { Authorization: `Bearer ${READKEY}` } });
+      items = (await res.json()).objects || [];
+    } catch(e) { console.error(e); }
+
+    mload.style.display = 'none';
+    mcount.textContent = items.length ? `(${items.length})` : '';
+
+    if (!items.length) {
+      mload.textContent = 'No Clickz posted yet.';
+      mload.style.display = 'block';
+      return;
+    }
+
+    mlist.innerHTML = '';
+    items.forEach(item => {
+      const thumb = item.metadata?.thumbnail?.imgix_url ? item.metadata.thumbnail.imgix_url + '?w=80&h=80&fit=crop&auto=format' : '';
+      const isVideo = item.metadata?.post_type === 'video';
+      const subtitle = isVideo ? 'Video' : [item.metadata?.category, item.metadata?.price != null ? `$${item.metadata.price}` : ''].filter(Boolean).join(' · ');
+
+      const card = document.createElement('div');
+      card.className = 'mcard';
+      card.innerHTML = `
+        \( {thumb ? `<img class="mthumb" src=" \){thumb}" loading="lazy">` : '<div class="mthumb"></div>'}
+        <div class="minfo">
+          <div class="mtitle">\( {item.title} \){isVideo ? '<span class="vtag">video</span>' : ''}</div>
+          \( {subtitle ? `<div class="mmeta"> \){subtitle}</div>` : ''}
+        </div>
+        <button class="mdel" data-id="${item.id}">Delete</button>
+      `;
+      card.querySelector('.mdel').onclick = () => deleteClickz(item.id, item.title, card);
+      mlist.appendChild(card);
+    });
+  }
+
+  async function deleteClickz(id, title, card) {
+    if (!confirm(`Delete "${title}"?`)) return;
+    const btn = card.querySelector('.mdel');
+    btn.disabled = true;
+    btn.textContent = 'Deleting...';
+    try {
+      const res = await fetch(`/api/clickz/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Delete failed');
+      card.style.transition = 'all 0.25s';
+      card.style.opacity = '0';
+      card.style.transform = 'scale(0.95)';
+      setTimeout(() => card.remove(), 300);
+    } catch (e) {
+      btn.disabled = false;
+      btn.textContent = 'Delete';
+      alert('Delete failed');
+    }
+  }
+
+  loadMyClickz();
 </script>
