@@ -154,6 +154,7 @@ const readKey: string    = import.meta.env.COSMIC_READ_KEY;
 </script>
 <script>
   const {s:BUCKET,w:KEY,n:SNAME,i:SID,m:IS_MOD} = (window as any).__C__;
+  console.log('[Clickz] SID:', SID, '| SNAME:', SNAME);
   const $= (id:string)=>document.getElementById(id)!;
   const drop=$('drop'),vfile=$('vfile') as HTMLInputElement,prev=$('prev'),pvid=$('pvid') as HTMLVideoElement;
   const timer=$('timer'),submit=$('submit') as HTMLButtonElement,sbar=$('sbar'),stxt=$('stxt'),fill=$('fill');
@@ -198,7 +199,9 @@ const readKey: string    = import.meta.env.COSMIC_READ_KEY;
     let json:any={};
     try{ json=JSON.parse(text); }catch{ if(!r.ok) throw new Error(text||`Failed ${lbl}`); }
     if(!r.ok) throw new Error(json.message||text||`Failed ${lbl}`);
-    const m=json.media;return {name:m.name||'',url:m.url||'',imgix_url:m.imgix_url||''};
+    const m=json.media;
+    if(!m) throw new Error(`Upload succeeded but no media returned. Raw: ${JSON.stringify(json).slice(0,200)}`);
+    return {name:m.name||'',url:m.url||'',imgix_url:m.imgix_url||''};
   }
   function thumb():Promise<Blob>{return new Promise(res=>{const c=document.createElement('canvas');c.width=pvid.videoWidth;c.height=pvid.videoHeight;c.getContext('2d')!.drawImage(pvid,0,0);c.toBlob(b=>res(b!),'image/jpeg',0.85)})}
   const prog=(p:number,t:string)=>{fill.style.width=p+'%';stxt.textContent=t};
@@ -245,6 +248,12 @@ const readKey: string    = import.meta.env.COSMIC_READ_KEY;
     const mload  = $('mload') as HTMLElement;
     const mcount = $('mcount') as HTMLElement;
     mload.style.display = 'block';
+
+    if (!SID) {
+      mload.textContent   = 'Could not identify your account. Try refreshing.';
+      mload.style.display = 'block';
+      return;
+    }
 
     // CosmicJS v3: query objects filtered by metadata.seller_id = current user
     const query = JSON.stringify({ type: 'clickz', 'metadata.seller_id': SID });
