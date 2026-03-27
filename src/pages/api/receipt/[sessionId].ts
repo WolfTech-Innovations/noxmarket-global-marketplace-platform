@@ -124,13 +124,11 @@ export const GET: APIRoute = async ({ params }) => {
 
   const pdfBytes = await doc.save();
 
-  return new Response(pdfBytes, {
-    status: 200,
-    headers: {
-      'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename="nox-receipt-${orderId.slice(-8)}.pdf"`,
-      'Cache-Control': 'private, no-store',
-    },
-  });
-};
-      
+return new Response(new Blob([pdfBytes]), {
+  status: 200,
+  headers: {
+    'Content-Type': 'application/pdf',
+    'Content-Disposition': `attachment; filename="nox-receipt-${orderId.slice(-8)}.pdf"`,
+    'Cache-Control': 'private, no-store',
+  },
+});
