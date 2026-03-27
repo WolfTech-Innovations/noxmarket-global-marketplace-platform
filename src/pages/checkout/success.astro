@@ -11,6 +11,9 @@ const sessionId = Astro.url.searchParams.get('session_id');
 if (!session) {
   return Astro.redirect('/login');
 }
+if (!sessionId) {
+  return Astro.redirect('/products');
+}
 ---
 
 <Layout title="Order Successful - Nox">
@@ -19,6 +22,7 @@ if (!session) {
   <main class="py-16 min-h-screen bg-gradient-to-br from-green-50 to-emerald-50">
     <div class="container-custom max-w-3xl">
       <div class="card-elevated p-12 text-center">
+
         <!-- Success Animation -->
         <div class="mb-8 relative inline-block">
           <div class="w-32 h-32 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center mx-auto elevation-3">
@@ -32,81 +36,87 @@ if (!session) {
         </div>
 
         <!-- Success Message -->
-        <h1 class="text-5xl font-bold text-gray-900 mb-4">
-          Order Successful! 🎉
-        </h1>
-        <p class="text-xl text-gray-700 mb-2">
-          Thank you for your purchase, {session.name}!
-        </p>
+        <h1 class="text-5xl font-bold text-gray-900 mb-4">Order Confirmed! 🎉</h1>
+        <p class="text-xl text-gray-700 mb-2">Thanks for your purchase, {session.name}!</p>
         <p class="text-gray-600 mb-8">
-          Your order has been confirmed and the seller has been notified.
+          The seller has been notified and will ship your component soon.
         </p>
 
-        <!-- Order Details Card -->
-        <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-8 mb-8 text-left">
-          <div class="flex items-center gap-3 mb-6">
-            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <!-- Receipt Download Card -->
+        <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-6 mb-8 flex items-center gap-5 text-left">
+          <div class="w-14 h-14 bg-blue-600 rounded-xl flex items-center justify-center flex-shrink-0">
+            <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
-            <h2 class="text-2xl font-semibold text-gray-900">What's Next?</h2>
           </div>
-          
+          <div class="flex-1">
+            <p class="font-semibold text-gray-900 mb-0.5">Your receipt is ready</p>
+            <p class="text-sm text-gray-600" id="receipt-status">Downloading automatically…</p>
+          </div>
+          <a
+            id="receipt-btn"
+            href={`/api/receipt/${sessionId}`}
+            download
+            class="btn btn-primary flex items-center gap-2 flex-shrink-0"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            Download Receipt
+          </a>
+        </div>
+
+        <!-- What's Next -->
+        <div class="bg-gray-50 rounded-2xl p-8 mb-8 text-left">
+          <h2 class="text-xl font-semibold text-gray-900 mb-5 flex items-center gap-2">
+            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+            What happens next
+          </h2>
           <div class="space-y-4">
             <div class="flex items-start gap-3">
-              <div class="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold flex-shrink-0">
-                1
-              </div>
+              <div class="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold flex-shrink-0 text-sm">1</div>
               <div>
-                <p class="font-semibold text-gray-900">Order Confirmation Email</p>
-                <p class="text-sm text-gray-600">Check your inbox at <span class="font-medium">{session.email}</span> for order details and receipt.</p>
+                <p class="font-semibold text-gray-900">Seller ships your component</p>
+                <p class="text-sm text-gray-600">They've been notified in their dashboard and will package and ship your order.</p>
               </div>
             </div>
-
             <div class="flex items-start gap-3">
-              <div class="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold flex-shrink-0">
-                2
-              </div>
+              <div class="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold flex-shrink-0 text-sm">2</div>
               <div>
-                <p class="font-semibold text-gray-900">Seller Prepares Shipment</p>
-                <p class="text-sm text-gray-600">The seller will carefully package and ship your component. You'll receive tracking info soon.</p>
+                <p class="font-semibold text-gray-900">Track your delivery</p>
+                <p class="text-sm text-gray-600">Once shipped, you can follow up with the seller through your dashboard.</p>
               </div>
             </div>
-
             <div class="flex items-start gap-3">
-              <div class="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold flex-shrink-0">
-                3
-              </div>
+              <div class="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold flex-shrink-0 text-sm">3</div>
               <div>
-                <p class="font-semibold text-gray-900">Delivery & Review</p>
-                <p class="text-sm text-gray-600">Once you receive your component, leave a review to help other buyers!</p>
+                <p class="font-semibold text-gray-900">Leave a review</p>
+                <p class="text-sm text-gray-600">Once your part arrives, help other builders by sharing your experience.</p>
               </div>
             </div>
           </div>
         </div>
 
-        {sessionId && (
-          <div class="mb-8 p-4 bg-gray-50 rounded-xl">
-            <p class="text-xs text-gray-500 mb-1">Order Reference</p>
-            <p class="font-mono text-sm text-gray-700">{sessionId}</p>
-          </div>
-        )}
+        <!-- Order Reference -->
+        <div class="mb-8 p-4 bg-gray-50 rounded-xl">
+          <p class="text-xs text-gray-500 mb-1">Order Reference</p>
+          <p class="font-mono text-sm text-gray-700">{sessionId}</p>
+        </div>
 
-        <!-- Action Buttons -->
+        <!-- Actions -->
         <div class="flex flex-col sm:flex-row gap-4 justify-center">
-          <a href="/products" class="btn btn-primary text-lg px-8">
-            Continue Shopping
-          </a>
-          <a href="/dashboard" class="btn btn-secondary text-lg px-8">
-            View Orders
-          </a>
+          <a href="/products" class="btn btn-primary text-lg px-8">Continue Shopping</a>
+          <a href="/dashboard" class="btn btn-secondary text-lg px-8">View Orders</a>
         </div>
 
-        <!-- Support -->
         <div class="mt-8 pt-8 border-t border-gray-200">
           <p class="text-sm text-gray-600">
-            Need help? <a href="/support" class="text-blue-600 font-medium hover:underline">Contact our support team</a>
+            Need help? <a href="/support" class="text-blue-600 font-medium hover:underline">Contact support</a>
           </p>
         </div>
+
       </div>
     </div>
   </main>
@@ -114,19 +124,38 @@ if (!session) {
   <Footer />
 </Layout>
 
+<script define:vars={{ sessionId }}>
+  // Auto-download receipt
+  const receiptUrl = `/api/receipt/${sessionId}`;
+  const statusEl   = document.getElementById('receipt-status');
+
+  const triggerDownload = () => {
+    const a = document.createElement('a');
+    a.href     = receiptUrl;
+    a.download = '';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+
+  // Slight delay so the page renders first
+  setTimeout(() => {
+    triggerDownload();
+    if (statusEl) statusEl.textContent = 'Downloaded — use the button to save again.';
+  }, 800);
+
+  // Notify the seller via API
+  fetch('/api/seller/notify-ship', {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify({ sessionId }),
+  }).catch(err => console.warn('Seller notify failed:', err));
+</script>
+
 <style>
   @keyframes scaleIn {
-    from {
-      transform: scale(0.8);
-      opacity: 0;
-    }
-    to {
-      transform: scale(1);
-      opacity: 1;
-    }
+    from { transform: scale(0.8); opacity: 0; }
+    to   { transform: scale(1);   opacity: 1; }
   }
-  
-  h1 {
-    animation: scaleIn 0.5s ease-out;
-  }
+  h1 { animation: scaleIn 0.5s ease-out; }
 </style>
