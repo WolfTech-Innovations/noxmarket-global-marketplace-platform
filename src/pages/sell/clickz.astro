@@ -109,15 +109,7 @@ const readKey: string    = import.meta.env.COSMIC_READ_KEY;
 
   <div id="pfields">
     <div class="row">
-      <div class="f">
-        <label>Category</label>
-        <select id="fcat">
-          <option value="">Select…</option>
-          <option>Graphics Cards</option><option>Processors</option><option>Motherboards</option>
-          <option>Memory (RAM)</option><option>Storage</option><option>Power Supplies</option>
-          <option>Cooling</option><option>Cases</option><option>Other</option>
-        </select>
-      </div>
+      <div class="f"><label>Category</label><select id="fcat"><option value="">Select…</option><option>Graphics Cards</option><option>Processors</option><option>Motherboards</option><option>Memory (RAM)</option><option>Storage</option><option>Power Supplies</option><option>Cooling</option><option>Cases</option><option>Other</option></select></div>
       <div class="f"><label>Price (USD)</label><input type="number" id="fprice" placeholder="299" min="1" /></div>
     </div>
     <div class="f"><label>Listing Slug</label><input id="fslug" placeholder="asus-rtx-4080-super" /></div>
@@ -149,28 +141,23 @@ const readKey: string    = import.meta.env.COSMIC_READ_KEY;
 </Layout>
 
 <script define:vars={{ bucketSlug, writeKey, readKey, sellerName, sellerId, isModerator }} is:inline>
-  window.__C__ = {s: bucketSlug, w: writeKey, r: readKey, n: sellerName, i: sellerId, m: isModerator};
+  window.__C__ = {s:bucketSlug,w:writeKey,r:readKey,n:sellerName,i:sellerId,m:isModerator};
 </script>
 
 <script is:inline>
-  const {s:BUCKET, w:KEY, n:SNAME, i:SID, m:IS_MOD} = window.__C__;
-  console.log('[Clickz] SID:', SID, '| SNAME:', SNAME);
-
-  const $ = (id) => document.getElementById(id);
-  const drop = $('drop'), vfile = $('vfile'), prev = $('prev'), pvid = $('pvid');
-  const timer = $('timer'), submit = $('submit'), sbar = $('sbar'), stxt = $('stxt'), fill = $('fill');
+  const {s:BUCKET,w:KEY,n:SNAME,i:SID,m:IS_MOD} = window.__C__;
+  const $ = id => document.getElementById(id);
+  const drop=\( ('drop'), vfile= \)('vfile'), prev=\( ('prev'), pvid= \)('pvid');
+  const timer=\( ('timer'), submit= \)('submit'), sbar=\( ('sbar'), stxt= \)('stxt'), fill=$('fill');
   let vblob = null, listing = true;
 
-  const ml = $('mode-listing'), mv = $('mode-video');
-  const pf = $('pfields'), lt = $('ltitle'), fd = $('fdesc');
+  $('mode-listing').onclick = () => { listing=true; $('mode-listing').classList.add('on'); $('mode-video').classList.remove('on'); $('pfields').classList.remove('off'); $('ltitle').textContent='Part Name'; $('fdesc').placeholder="Condition, specs, why you're selling…"; chk(); };
+  $('mode-video').onclick = () => { listing=false; $('mode-video').classList.add('on'); $('mode-listing').classList.remove('on'); $('pfields').classList.add('off'); $('ltitle').textContent='Title'; $('fdesc').placeholder="What’s this video about?"; chk(); };
 
-  ml.onclick = () => { listing = true; ml.classList.add('on'); mv.classList.remove('on'); pf.classList.remove('off'); lt.textContent = 'Part Name'; fd.placeholder = "Condition, specs, why you're selling…"; chk(); };
-  mv.onclick = () => { listing = false; mv.classList.add('on'); ml.classList.remove('on'); pf.classList.add('off'); lt.textContent = 'Title'; fd.placeholder = "What’s this video about?"; chk(); };
-
-  drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('drag'); });
-  drop.addEventListener('dragleave', () => drop.classList.remove('drag'));
-  drop.addEventListener('drop', e => { e.preventDefault(); drop.classList.remove('drag'); const f = e.dataTransfer?.files[0]; if (f && (f.type.startsWith('video/') || f.type === 'image/gif')) load(f); });
-  vfile.addEventListener('change', () => { const f = vfile.files?.[0]; if (f) load(f); });
+  drop.addEventListener('dragover', e=>{e.preventDefault();drop.classList.add('drag')});
+  drop.addEventListener('dragleave', ()=>drop.classList.remove('drag'));
+  drop.addEventListener('drop', e=>{e.preventDefault();drop.classList.remove('drag'); const f=e.dataTransfer?.files[0]; if(f&&(f.type.startsWith('video/')||f.type==='image/gif')) load(f); });
+  vfile.addEventListener('change', ()=>{ const f=vfile.files?.[0]; if(f) load(f); });
 
   function load(file) {
     vblob = file;
@@ -184,43 +171,27 @@ const readKey: string    = import.meta.env.COSMIC_READ_KEY;
       $('chg').onclick = reset;
     } else {
       pvid.src = URL.createObjectURL(file);
-      pvid.addEventListener('loadedmetadata', () => {
-        const d = pvid.duration;
-        timer.textContent = d.toFixed(1) + 's';
-        timer.className = d > 8.5 ? 'over' : 'ok';
-      }, {once: true});
+      pvid.addEventListener('loadedmetadata', ()=>{ const d=pvid.duration; timer.textContent=d.toFixed(1)+'s'; timer.className=d>8.5?'over':'ok'; }, {once:true});
     }
-    drop.style.display = 'none';
-    prev.style.display = 'block';
-    chk();
+    drop.style.display='none'; prev.style.display='block'; chk();
   }
 
-  function reset() {
-    vblob = null;
-    pvid.src = '';
-    prev.style.display = 'none';
-    drop.style.display = 'block';
-    vfile.value = '';
-    chk();
-  }
+  function reset() { vblob=null; pvid.src=''; prev.style.display='none'; drop.style.display='block'; vfile.value=''; chk(); }
   $('chg').onclick = reset;
 
-  const lreq = ['ftitle','fcat','fprice','fslug'], vreq = ['ftitle'];
-  lreq.forEach(id => { const el = $(id); if (el) el.addEventListener('input', chk); });
+  const lreq=['ftitle','fcat','fprice','fslug'], vreq=['ftitle'];
+  lreq.forEach(id => { const el=$(id); if(el) el.addEventListener('input', chk); });
 
   function chk() {
     const req = listing ? lreq : vreq;
-    submit.disabled = !vblob || !req.every(id => { const el = $(id); return el && el.value.trim(); });
+    submit.disabled = !vblob || !req.every(id => { const el=$(id); return el && el.value.trim(); });
   }
 
-  // FIXED: Correct Cosmic v3 media upload endpoint
+  // FIXED UPLOAD - this was the original error
   async function up(file, lbl) {
-    const fd = new FormData();
-    fd.append('media', file);
+    const fd = new FormData(); fd.append('media', file);
     const r = await fetch(`https://workers.cosmicjs.com/v3/buckets/${BUCKET}/media`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${KEY}` },
-      body: fd
+      method:'POST', headers:{Authorization:`Bearer ${KEY}`}, body:fd
     });
     const text = await r.text();
     let json = {};
@@ -228,7 +199,7 @@ const readKey: string    = import.meta.env.COSMIC_READ_KEY;
     if (!r.ok) throw new Error(json.message || text || `Failed ${lbl}`);
     const m = json.media || json;
     if (!m?.url) throw new Error(`Upload succeeded but no media returned for ${lbl}`);
-    return { name: m.name || '', url: m.url, imgix_url: m.imgix_url || m.url };
+    return {name:m.name||'', url:m.url, imgix_url:m.imgix_url||m.url};
   }
 
   function thumb() {
@@ -241,102 +212,76 @@ const readKey: string    = import.meta.env.COSMIC_READ_KEY;
     });
   }
 
-  const prog = (p, t) => { if (fill) fill.style.width = p + '%'; stxt.textContent = t; };
-  const stat = (t, m) => {
-    if (sbar) sbar.className = 'on ' + (t === 'l' ? '' : t === 'ok' ? 'ok' : 'err');
-    stxt.textContent = m;
-    if (t !== 'l' && fill) fill.style.width = '100%';
-  };
-  const g = (id) => { const el = $(id); return el ? el.value.trim() : ''; };
+  const prog = (p,t) => { if(fill) fill.style.width = p+'%'; stxt.textContent = t; };
+  const stat = (t,m) => { if(sbar) sbar.className = 'on '+(t==='l'?'':t==='ok'?'ok':'err'); stxt.textContent=m; if(t!=='l' && fill) fill.style.width='100%'; };
+  const g = id => { const el=$(id); return el ? el.value.trim() : ''; };
 
   submit.onclick = async () => {
-    if (!vblob) return;
+    if(!vblob) return;
     submit.disabled = true;
-    if (sbar) sbar.className = 'on';
-    prog(5, 'Starting…');
+    if(sbar) sbar.className = 'on';
+    prog(5,'Starting…');
 
     try {
-      prog(20, 'Uploading video…');
-      const vu = await up(vblob, 'video');
-
-      prog(50, 'Thumbnail…');
-      const tu = await up(new File([await thumb()], 't.jpg', {type: 'image/jpeg'}), 'thumb');
-
-      prog(75, 'Posting…');
+      prog(20,'Uploading video…'); const vu = await up(vblob,'video');
+      prog(50,'Thumbnail…'); const tu = await up(new File([await thumb()],'t.jpg',{type:'image/jpeg'}),'thumb');
+      prog(75,'Posting…');
 
       const slug = listing ? g('fslug') : (g('ftitle').toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'') + '-' + Date.now());
-      const ms = IS_MOD ? (g('mstat') || 'published') : 'published';
+      const ms = IS_MOD ? (g('mstat')||'published') : 'published';
 
       const r = await fetch(`https://api.cosmicjs.com/v3/buckets/${BUCKET}/objects`, {
-        method: 'POST',
-        headers: {'Content-Type':'application/json', Authorization: `Bearer ${KEY}`},
-        body: JSON.stringify({
-          title: g('ftitle'),
-          type: 'clickz',
-          slug,
-          status: ms,
-          metadata: {
-            video: {name: vu.name, url: vu.url, imgix_url: vu.imgix_url},
-            thumbnail: {name: tu.name, url: tu.url, imgix_url: tu.imgix_url},
-            post_type: listing ? 'listing' : 'video',
-            ...(listing ? {category: g('fcat'), price: parseFloat(g('fprice')), listing_slug: g('fslug')} : {}),
-            seller_name: SNAME,
-            seller_id: (IS_MOD && g('msid')) || SID,
-            description: g('fdesc'),
-            likes: 0,
-            ...(IS_MOD && g('mnote') ? {mod_note: g('mnote')} : {}),
-            ...(IS_MOD ? {moderated_by: SID} : {})
-          }
-        })
+        method:'POST',
+        headers:{'Content-Type':'application/json', Authorization:`Bearer ${KEY}`},
+        body: JSON.stringify({title:g('ftitle'),type:'clickz',slug,status:ms,metadata:{
+          video:{name:vu.name,url:vu.url,imgix_url:vu.imgix_url},
+          thumbnail:{name:tu.name,url:tu.url,imgix_url:tu.imgix_url},
+          post_type: listing?'listing':'video',
+          ...(listing?{category:g('fcat'),price:parseFloat(g('fprice')),listing_slug:g('fslug')}:{ }),
+          seller_name:SNAME, seller_id:(IS_MOD&&g('msid'))||SID, description:g('fdesc'), likes:0,
+          ...(IS_MOD&&g('mnote')?{mod_note:g('mnote')}:{ }),
+          ...(IS_MOD?{moderated_by:SID}:{ })
+        }})
       });
 
-      if (!r.ok) throw new Error((await r.json().catch(() => ({}))).message || 'Failed');
+      if(!r.ok) throw new Error((await r.json().catch(()=>{})).message || 'Failed');
 
-      prog(100, '');
-      stat('ok', 'Posted — redirecting…');
-      setTimeout(() => { window.location.href = '/clickz'; }, 1500);
-    } catch (e) {
+      prog(100,''); stat('ok','Posted — redirecting…');
+      setTimeout(()=>{window.location.href='/clickz'},1500);
+    } catch(e) {
       console.error(e);
       stat('err', e.message || 'Something went wrong');
       submit.disabled = false;
     }
   };
 
-  // My Clickz manager
-  const {r: RKEY} = window.__C__;
+  // My Clickz
+  const {r:RKEY} = window.__C__;
 
   async function loadMyClickz() {
-    const mlist = $('mlist'), mload = $('mload'), mcount = $('mcount');
-    if (mload) mload.style.display = 'block';
+    const mlist=\( ('mlist'), mload= \)('mload'), mcount=$('mcount');
+    if(mload) mload.style.display='block';
 
-    if (!SID) {
-      if (mload) mload.textContent = 'Could not identify your account.';
-      return;
-    }
+    if(!SID) { if(mload) mload.textContent='Account error'; return; }
 
-    const query = JSON.stringify({ type: 'clickz', 'metadata.seller_id': SID });
-    const props = 'id,title,metadata.thumbnail,metadata.post_type,metadata.price,metadata.category';
-    const url = `https://api.cosmicjs.com/v3/buckets/\( {BUCKET}/objects?query= \){encodeURIComponent(query)}&props=${encodeURIComponent(props)}&limit=100&status=any`;
+    const query = JSON.stringify({type:'clickz','metadata.seller_id':SID});
+    const url = `https://api.cosmicjs.com/v3/buckets/\( {BUCKET}/objects?query= \){encodeURIComponent(query)}&props=id,title,metadata.thumbnail,metadata.post_type,metadata.price,metadata.category&limit=100&status=any`;
 
     let items = [];
     try {
-      const res = await fetch(url, { headers: { Authorization: `Bearer ${RKEY}` } });
-      const data = await res.json();
-      items = data.objects || [];
-    } catch (e) { console.error(e); }
+      const res = await fetch(url, {headers:{Authorization:`Bearer ${RKEY}`}});
+      items = (await res.json()).objects || [];
+    } catch(e){console.error(e);}
 
-    if (mload) mload.style.display = 'none';
-    if (mcount) mcount.textContent = items.length ? `(${items.length})` : '';
+    if(mload) mload.style.display='none';
+    if(mcount) mcount.textContent = items.length ? `(${items.length})` : '';
 
-    if (!items.length) {
-      if (mload) {
-        mload.textContent = 'No Clickz posted yet.';
-        mload.style.display = 'block';
-      }
+    if(!items.length) {
+      if(mload){ mload.textContent='No Clickz yet'; mload.style.display='block'; }
       return;
     }
 
-    if (mlist) mlist.innerHTML = '';
+    if(mlist) mlist.innerHTML = '';
     items.forEach(obj => {
       const thumb = obj.metadata?.thumbnail?.imgix_url ? obj.metadata.thumbnail.imgix_url + '?w=80&h=80&fit=crop&auto=format' : '';
       const isVid = obj.metadata?.post_type === 'video';
@@ -354,27 +299,22 @@ const readKey: string    = import.meta.env.COSMIC_READ_KEY;
       `;
 
       const btn = card.querySelector('.mdel');
-      if (btn) btn.onclick = () => deleteClickz(obj.id, obj.title, card, btn);
-      if (mlist) mlist.appendChild(card);
+      if(btn) btn.onclick = () => deleteClickz(obj.id, obj.title, card, btn);
+      if(mlist) mlist.appendChild(card);
     });
   }
 
   async function deleteClickz(id, title, card, btn) {
-    if (!confirm(`Delete "${title}"?\nThis cannot be undone.`)) return;
-    btn.disabled = true;
-    btn.textContent = 'Deleting…';
+    if(!confirm(`Delete "${title}"?\nThis cannot be undone.`)) return;
+    btn.disabled = true; btn.textContent = 'Deleting…';
     try {
-      const res = await fetch(`/api/clickz/${id}`, { method: 'DELETE' });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Delete failed');
-      card.style.opacity = '0';
-      card.style.transform = 'scale(0.96)';
-      card.style.transition = 'opacity 0.25s,transform 0.25s';
+      const res = await fetch(`/api/clickz/${id}`, {method:'DELETE'});
+      if(!res.ok) throw new Error('Delete failed');
+      card.style.opacity = '0'; card.style.transform = 'scale(0.96)'; card.style.transition = 'all 0.25s';
       setTimeout(() => card.remove(), 300);
-    } catch (e) {
-      btn.disabled = false;
-      btn.textContent = 'Delete';
-      alert(e.message || 'Delete failed');
+    } catch(e) {
+      btn.disabled = false; btn.textContent = 'Delete';
+      alert('Delete failed');
     }
   }
 
