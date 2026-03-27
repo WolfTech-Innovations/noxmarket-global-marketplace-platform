@@ -97,7 +97,7 @@ export const GET: APIRoute = async ({ params }) => {
 
     page.drawText(displayName, { x: 48,          y, size: 10, font: fontNormal, color: BLACK });
     page.drawText(String(qty), { x: width - 160, y, size: 10, font: fontNormal, color: BLACK });
-    page.drawText(`$${price}`, { x: width - 100, y, size: 10, font: fontNormal, color: BLACK });
+    page.drawText(`\[ {price}`, { x: width - 100, y, size: 10, font: fontNormal, color: BLACK });
     y -= 22;
 
     page.drawLine({ start: { x: 48, y: y + 8 }, end: { x: width - 48, y: y + 8 }, thickness: 0.5, color: LIGHT });
@@ -108,7 +108,7 @@ export const GET: APIRoute = async ({ params }) => {
   // Total
   page.drawRectangle({ x: width - 200, y: y - 8, width: 160, height: 32, color: BLUE });
   page.drawText('TOTAL', { x: width - 192, y: y + 4, size: 9,  font: fontBold,   color: WHITE });
-  page.drawText(`${currency} $${total}`, { x: width - 120, y: y + 4, size: 11, font: fontBold, color: WHITE });
+  page.drawText(`${currency} \]{total}`, { x: width - 120, y: y + 4, size: 11, font: fontBold, color: WHITE });
 
   y -= 60;
 
@@ -124,11 +124,15 @@ export const GET: APIRoute = async ({ params }) => {
 
   const pdfBytes = await doc.save();
 
-return new Response(new Blob([pdfBytes]), {
-  status: 200,
-  headers: {
-    'Content-Type': 'application/pdf',
-    'Content-Disposition': `attachment; filename="nox-receipt-${orderId.slice(-8)}.pdf"`,
-    'Cache-Control': 'private, no-store',
-  },
-});
+  // Fix for TypeScript 5.9+ Blob compatibility
+  const pdfUint8Array = new Uint8Array(pdfBytes);
+
+  return new Response(pdfUint8Array, {
+    status: 200,
+    headers: {
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="nox-receipt-${orderId.slice(-8)}.pdf"`,
+      'Cache-Control': 'private, no-store',
+    },
+  });
+};
