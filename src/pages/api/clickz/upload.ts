@@ -1,11 +1,12 @@
 import type { APIRoute } from 'astro';
+import { getSessionFromCookies } from '@/lib/auth';
 
 // POST /api/clickz/upload
 // Accepts multipart/form-data with a 'media' field.
 // Proxies the upload to workers.cosmicjs.com so the write key never touches the client.
 export const POST: APIRoute = async ({ request, cookies }) => {
-  // Basic auth check — must have a valid session to upload
-  const session = cookies.get('session')?.value;
+  // Auth check using the correct cookie names
+  const session = getSessionFromCookies(cookies);
   if (!session) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), {
       status: 401,
@@ -50,7 +51,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     });
   }
 
-  // Forward to Cosmic upload endpoint — correct base URL is workers.cosmicjs.com
+  // Forward to Cosmic upload endpoint
   const upstream = new FormData();
   upstream.append('media', file);
 
