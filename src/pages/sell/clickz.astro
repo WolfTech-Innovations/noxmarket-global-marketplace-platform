@@ -9,7 +9,8 @@ const sellerName: string = session.businessName || session.name || 'User';
 const sellerId: string = session.sellerId || session.userId;
 const isModerator: boolean = session.sellerId === 'seller-nkbvjl-xak';
 const bucketSlug: string = import.meta.env.COSMIC_BUCKET_SLUG;
-const writeKey: string = import.meta.env.COSMIC_WRITE_KEY;
+const writeKey: string   = import.meta.env.COSMIC_WRITE_KEY;
+const readKey: string    = import.meta.env.COSMIC_READ_KEY;
 ---
 <Layout title="Post a Clickz — Nox">
 <style>
@@ -57,6 +58,19 @@ const writeKey: string = import.meta.env.COSMIC_WRITE_KEY;
   .mh{display:flex;align-items:center;gap:6px;margin-bottom:10px;font-family:'Syne',sans-serif;font-weight:800;font-size:0.7rem;color:#fbbf24;letter-spacing:0.06em;text-transform:uppercase}
   #mod label{color:rgba(251,191,36,0.45)}
   #mod input,#mod select,#mod textarea{border-color:rgba(251,191,36,0.12)}
+  /* ── Manage panel ── */
+  #manage{margin-top:28px;border-top:1px solid rgba(255,255,255,0.06);padding-top:20px}
+  #manage h2{font-family:'Syne',sans-serif;font-size:0.9rem;font-weight:800;margin-bottom:14px;color:rgba(255,255,255,0.55);letter-spacing:0.04em;text-transform:uppercase}
+  .mcard{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:10px 12px;margin-bottom:8px}
+  .mthumb{width:38px;height:38px;border-radius:6px;object-fit:cover;background:#111;flex-shrink:0}
+  .minfo{flex:1;min-width:0}
+  .mtitle{font-size:0.82rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .mmeta{font-size:0.68rem;color:rgba(255,255,255,0.3);margin-top:2px}
+  .mdel{background:rgba(248,113,113,0.08);border:1px solid rgba(248,113,113,0.18);color:#f87171;border-radius:7px;padding:5px 11px;font-size:0.72rem;cursor:pointer;white-space:nowrap;transition:background 0.15s}
+  .mdel:hover{background:rgba(248,113,113,0.18)}
+  .mdel:disabled{opacity:0.4;cursor:not-allowed}
+  #mload{font-size:0.75rem;color:rgba(255,255,255,0.25);text-align:center;padding:12px 0}
+  .vtag{display:inline-block;font-size:0.6rem;background:rgba(99,102,241,0.15);color:#818cf8;border-radius:4px;padding:1px 5px;margin-left:5px;vertical-align:middle}
 </style>
 
 <nav>
@@ -125,11 +139,18 @@ const writeKey: string = import.meta.env.COSMIC_WRITE_KEY;
       <div class="f"><label>Note</label><textarea id="mnote" placeholder="Internal note…" style="min-height:48px"></textarea></div>
     </div>
   )}
+
+  <!-- ── My Clickz manager ── -->
+  <div id="manage">
+    <h2>My Clickz <span id="mcount" style="font-size:0.7rem;color:rgba(255,255,255,0.25);font-family:'DM Sans',sans-serif;text-transform:none;font-weight:400"></span></h2>
+    <div id="mload">Loading your Clickz…</div>
+    <div id="mlist"></div>
+  </div>
 </div>
 </Layout>
 
-<script define:vars={{ bucketSlug, writeKey, sellerName, sellerId, isModerator }} is:inline>
-  window.__C__={s:bucketSlug,w:writeKey,n:sellerName,i:sellerId,m:isModerator};
+<script define:vars={{ bucketSlug, writeKey, readKey, sellerName, sellerId, isModerator }} is:inline>
+  window.__C__={s:bucketSlug,w:writeKey,r:readKey,n:sellerName,i:sellerId,m:isModerator};
 </script>
 <script>
   const {s:BUCKET,w:KEY,n:SNAME,i:SID,m:IS_MOD} = (window as any).__C__;
@@ -168,7 +189,7 @@ const writeKey: string = import.meta.env.COSMIC_WRITE_KEY;
   lreq.forEach(id=>$(id)?.addEventListener('input',chk));
   function chk(){const req=listing?lreq:vreq;submit.disabled=!vblob||!req.every(id=>($(id) as HTMLInputElement).value.trim())}
 
-  async function up(file:File,lbl:string):Promise<string>{
+  async function up(file:File,lbl:string):Promise<{name:string,url:string,imgix_url:string}>{
     const fd=new FormData(); fd.append('media',file);
     const r=await fetch(`https://api.cosmicjs.com/v3/buckets/${BUCKET}/media`,{
       method:'POST', headers:{Authorization:`Bearer ${KEY}`}, body:fd
@@ -177,7 +198,7 @@ const writeKey: string = import.meta.env.COSMIC_WRITE_KEY;
     let json:any={};
     try{ json=JSON.parse(text); }catch{ if(!r.ok) throw new Error(text||`Failed ${lbl}`); }
     if(!r.ok) throw new Error(json.message||text||`Failed ${lbl}`);
-    return json.media?.name||'';
+    const m=json.media;return {name:m.name||'',url:m.url||'',imgix_url:m.imgix_url||''};
   }
   function thumb():Promise<Blob>{return new Promise(res=>{const c=document.createElement('canvas');c.width=pvid.videoWidth;c.height=pvid.videoHeight;c.getContext('2d')!.drawImage(pvid,0,0);c.toBlob(b=>res(b!),'image/jpeg',0.85)})}
   const prog=(p:number,t:string)=>{fill.style.width=p+'%';stxt.textContent=t};
@@ -195,8 +216,8 @@ const writeKey: string = import.meta.env.COSMIC_WRITE_KEY;
       const r=await fetch(`https://api.cosmicjs.com/v3/buckets/${BUCKET}/objects`,{
         method:'POST', headers:{'Content-Type':'application/json',Authorization:`Bearer ${KEY}`},
         body:JSON.stringify({title:g('ftitle'),type:'clickz',slug,status:ms,metadata:{
-          video:vu,
-          thumbnail:tu,
+          video:{name:vu.name,url:vu.url,imgix_url:vu.imgix_url},
+          thumbnail:{name:tu.name,url:tu.url,imgix_url:tu.imgix_url},
           post_type:listing?'listing':'video',
           ...(listing?{category:g('fcat'),price:parseFloat(g('fprice')),listing_slug:g('fslug')}:{}),
           seller_name:SNAME,seller_id:(IS_MOD?g('msid'):'')||SID,description:g('fdesc'),likes:0,
@@ -209,4 +230,99 @@ const writeKey: string = import.meta.env.COSMIC_WRITE_KEY;
       setTimeout(()=>{window.location.href='/clickz'},2000);
     }catch(e:any){stat('err',e.message||'Something went wrong');submit.disabled=false}
   };
+
+  // ── My Clickz manager ──────────────────────────────────────────────────────
+  const {r:RKEY} = (window as any).__C__;
+
+  interface ClickzItem {
+    id: string;
+    title: string;
+    metadata: { thumbnail?:{imgix_url?:string}; post_type?:string; price?:number; category?:string };
+  }
+
+  async function loadMyClickz() {
+    const mlist  = $('mlist') as HTMLElement;
+    const mload  = $('mload') as HTMLElement;
+    const mcount = $('mcount') as HTMLElement;
+    mload.style.display = 'block';
+
+    // CosmicJS v3: query objects filtered by metadata.seller_id = current user
+    const query = JSON.stringify({ type: 'clickz', 'metadata.seller_id': SID });
+    const props = 'id,title,metadata.thumbnail,metadata.post_type,metadata.price,metadata.category';
+    const url   = `https://api.cosmicjs.com/v3/buckets/${BUCKET}/objects`
+      + `?query=${encodeURIComponent(query)}`
+      + `&props=${encodeURIComponent(props)}`
+      + `&limit=100&status=any&useCache=false`;
+
+    let items: ClickzItem[] = [];
+    try {
+      const res  = await fetch(url, { headers: { Authorization: `Bearer ${RKEY}` } });
+      const data = await res.json();
+      items = data.objects ?? [];
+    } catch { /* leave list empty on network failure */ }
+
+    mload.style.display = 'none';
+    mcount.textContent  = items.length ? `(${items.length})` : '';
+
+    if (!items.length) {
+      mload.textContent    = 'No Clickz posted yet.';
+      mload.style.display  = 'block';
+      return;
+    }
+
+    mlist.innerHTML = '';
+    items.forEach(obj => {
+      const thumb  = obj.metadata?.thumbnail?.imgix_url
+        ? obj.metadata.thumbnail.imgix_url + '?w=80&h=80&fit=crop&auto=format'
+        : '';
+      const isVid  = obj.metadata?.post_type === 'video';
+      const sub    = isVid
+        ? 'Video'
+        : [obj.metadata?.category, obj.metadata?.price != null ? `$${obj.metadata.price}` : '']
+            .filter(Boolean).join(' · ');
+
+      const card = document.createElement('div');
+      card.className = 'mcard';
+      card.innerHTML = `
+        ${thumb
+          ? `<img class="mthumb" src="${thumb}" alt="" loading="lazy" />`
+          : '<div class="mthumb"></div>'}
+        <div class="minfo">
+          <div class="mtitle">${obj.title}${isVid ? '<span class="vtag">video</span>' : ''}</div>
+          ${sub ? `<div class="mmeta">${sub}</div>` : ''}
+        </div>
+        <button class="mdel" data-id="${obj.id}">Delete</button>
+      `;
+
+      const btn = card.querySelector('.mdel') as HTMLButtonElement;
+      btn.onclick = () => deleteClickz(obj.id, obj.title, card, btn);
+      mlist.appendChild(card);
+    });
+  }
+
+  async function deleteClickz(id: string, title: string, card: HTMLElement, btn: HTMLButtonElement) {
+    if (!confirm(`Delete "${title}"?\nThis cannot be undone.`)) return;
+    btn.disabled    = true;
+    btn.textContent = 'Deleting…';
+    try {
+      const res  = await fetch(`/api/clickz/${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Delete failed');
+      card.style.opacity    = '0';
+      card.style.transform  = 'scale(0.96)';
+      card.style.transition = 'opacity 0.25s,transform 0.25s';
+      setTimeout(() => {
+        card.remove();
+        const mc  = $('mcount') as HTMLElement;
+        const cur = parseInt(mc.textContent?.replace(/\D/g, '') || '0');
+        mc.textContent = cur > 1 ? `(${cur - 1})` : '';
+      }, 260);
+    } catch (e: any) {
+      btn.disabled    = false;
+      btn.textContent = 'Delete';
+      alert(e.message);
+    }
+  }
+
+  loadMyClickz();
 </script>
