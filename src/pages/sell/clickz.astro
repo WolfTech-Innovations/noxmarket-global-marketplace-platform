@@ -141,52 +141,26 @@ const readKey: string    = import.meta.env.COSMIC_READ_KEY;
 </Layout>
 
 <script define:vars={{ bucketSlug, writeKey, readKey, sellerName, sellerId, isModerator }} is:inline>
-  window.__C__ = {s: bucketSlug, w: writeKey, r: readKey, n: sellerName, i: sellerId, m: isModerator};
+  window.__C__ = {s:bucketSlug, w:writeKey, r:readKey, n:sellerName, i:sellerId, m:isModerator};
 </script>
 
 <script is:inline>
   const {s:BUCKET, w:KEY, n:SNAME, i:SID, m:IS_MOD} = window.__C__;
   console.log('[Clickz] SID:', SID);
 
-  const $ = (id) => document.getElementById(id);
+  const $ = id => document.getElementById(id);
 
   const drop = $('drop'), vfile = $('vfile'), prev = $('prev'), pvid = $('pvid');
-  const timer = $('timer'), submitBtn = $('submit'), sbar = $('sbar'), stxt = $('stxt'), fill = $('fill');
+  const timer = $('timer'), submit = $('submit'), sbar = $('sbar'), stxt = $('stxt'), fill = $('fill');
   let vblob = null, listing = true;
 
-  // Mode toggle
-  $('mode-listing').onclick = () => {
-    listing = true;
-    $('mode-listing').classList.add('on');
-    $('mode-video').classList.remove('on');
-    $('pfields').classList.remove('off');
-    $('ltitle').textContent = 'Part Name';
-    $('fdesc').placeholder = "Condition, specs, why you're selling…";
-    chk();
-  };
-  $('mode-video').onclick = () => {
-    listing = false;
-    $('mode-video').classList.add('on');
-    $('mode-listing').classList.remove('on');
-    $('pfields').classList.add('off');
-    $('ltitle').textContent = 'Title';
-    $('fdesc').placeholder = "What’s this video about?";
-    chk();
-  };
+  $('mode-listing').onclick = () => { listing = true; $('mode-listing').classList.add('on'); $('mode-video').classList.remove('on'); $('pfields').classList.remove('off'); $('ltitle').textContent = 'Part Name'; $('fdesc').placeholder = "Condition, specs, why you're selling…"; chk(); };
+  $('mode-video').onclick = () => { listing = false; $('mode-video').classList.add('on'); $('mode-listing').classList.remove('on'); $('pfields').classList.add('off'); $('ltitle').textContent = 'Title'; $('fdesc').placeholder = "What’s this video about?"; chk(); };
 
-  // File handling
-  drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('drag'); });
+  drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('drag'); });
   drop.addEventListener('dragleave', () => drop.classList.remove('drag'));
-  drop.addEventListener('drop', (e) => {
-    e.preventDefault();
-    drop.classList.remove('drag');
-    const f = e.dataTransfer?.files[0];
-    if (f && (f.type.startsWith('video/') || f.type === 'image/gif')) load(f);
-  });
-  vfile.addEventListener('change', () => {
-    const f = vfile.files?.[0];
-    if (f) load(f);
-  });
+  drop.addEventListener('drop', e => { e.preventDefault(); drop.classList.remove('drag'); const f = e.dataTransfer?.files[0]; if (f && (f.type.startsWith('video/') || f.type === 'image/gif')) load(f); });
+  vfile.addEventListener('change', () => { const f = vfile.files?.[0]; if (f) load(f); });
 
   function load(file) {
     vblob = file;
@@ -204,7 +178,7 @@ const readKey: string    = import.meta.env.COSMIC_READ_KEY;
         const d = pvid.duration;
         timer.textContent = d.toFixed(1) + 's';
         timer.className = d > 8.5 ? 'over' : 'ok';
-      }, { once: true });
+      }, {once: true});
     }
     drop.style.display = 'none';
     prev.style.display = 'block';
@@ -221,22 +195,15 @@ const readKey: string    = import.meta.env.COSMIC_READ_KEY;
   }
   $('chg').onclick = reset;
 
-  const lreq = ['ftitle', 'fcat', 'fprice', 'fslug'];
-  const vreq = ['ftitle'];
-  lreq.forEach(id => {
-    const el = $(id);
-    if (el) el.addEventListener('input', chk);
-  });
+  const lreq = ['ftitle','fcat','fprice','fslug'], vreq = ['ftitle'];
+  lreq.forEach(id => { const el = $(id); if (el) el.addEventListener('input', chk); });
 
   function chk() {
     const req = listing ? lreq : vreq;
-    submitBtn.disabled = !vblob || !req.every(id => {
-      const el = $(id);
-      return el && el.value.trim();
-    });
+    submit.disabled = !vblob || !req.every(id => { const el = $(id); return el && el.value.trim(); });
   }
 
-  // FIXED upload - correct endpoint
+  // FIXED: Correct Cosmic v3 upload endpoint
   async function up(file, lbl) {
     const fd = new FormData();
     fd.append('media', file);
@@ -251,16 +218,16 @@ const readKey: string    = import.meta.env.COSMIC_READ_KEY;
     if (!r.ok) throw new Error(json.message || text || `Failed ${lbl}`);
     const m = json.media || json;
     if (!m?.url) throw new Error(`Upload succeeded but no media returned for ${lbl}`);
-    return { name: m.name || '', url: m.url, imgix_url: m.imgix_url || m.url };
+    return {name: m.name || '', url: m.url, imgix_url: m.imgix_url || m.url};
   }
 
   function thumb() {
-    return new Promise((res) => {
+    return new Promise(res => {
       const c = document.createElement('canvas');
       c.width = pvid.videoWidth || 1280;
       c.height = pvid.videoHeight || 720;
       c.getContext('2d').drawImage(pvid, 0, 0);
-      c.toBlob((b) => res(b), 'image/jpeg', 0.85);
+      c.toBlob(b => res(b), 'image/jpeg', 0.85);
     });
   }
 
@@ -270,11 +237,11 @@ const readKey: string    = import.meta.env.COSMIC_READ_KEY;
     stxt.textContent = msg;
     if (type !== 'l' && fill) fill.style.width = '100%';
   };
-  const g = (id) => { const el = $(id); return el ? el.value.trim() : ''; };
+  const g = id => { const el = $(id); return el ? el.value.trim() : ''; };
 
-  submitBtn.onclick = async () => {
+  submit.onclick = async () => {
     if (!vblob) return;
-    submitBtn.disabled = true;
+    submit.disabled = true;
     if (sbar) sbar.className = 'on';
     prog(5, 'Starting…');
 
@@ -283,37 +250,28 @@ const readKey: string    = import.meta.env.COSMIC_READ_KEY;
       const vu = await up(vblob, 'video');
 
       prog(50, 'Thumbnail…');
-      const tu = await up(new File([await thumb()], 't.jpg', { type: 'image/jpeg' }), 'thumb');
+      const tu = await up(new File([await thumb()], 't.jpg', {type: 'image/jpeg'}), 'thumb');
 
       prog(75, 'Posting…');
 
-      const slug = listing ? g('fslug') : (g('ftitle').toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') + '-' + Date.now());
-      const status = IS_MOD ? (g('mstat') || 'published') : 'published';
+      const slug = listing ? g('fslug') : (g('ftitle').toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'') + '-' + Date.now());
+      const ms = IS_MOD ? (g('mstat') || 'published') : 'published';
 
       const r = await fetch(`https://api.cosmicjs.com/v3/buckets/${BUCKET}/objects`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${KEY}` },
-        body: JSON.stringify({
-          title: g('ftitle'),
-          type: 'clickz',
-          slug,
-          status,
-          metadata: {
-            video: { name: vu.name, url: vu.url, imgix_url: vu.imgix_url },
-            thumbnail: { name: tu.name, url: tu.url, imgix_url: tu.imgix_url },
-            post_type: listing ? 'listing' : 'video',
-            seller_name: SNAME,
-            seller_id: (IS_MOD && g('msid')) || SID,
-            description: g('fdesc'),
-            likes: 0,
-            ...(listing && { category: g('fcat'), price: parseFloat(g('fprice')), listing_slug: g('fslug') }),
-            ...(IS_MOD && g('mnote') && { mod_note: g('mnote') }),
-            ...(IS_MOD && { moderated_by: SID })
-          }
-        })
+        headers: {'Content-Type':'application/json', Authorization: `Bearer ${KEY}`},
+        body: JSON.stringify({title:g('ftitle'),type:'clickz',slug,status:ms,metadata:{
+          video:{name:vu.name,url:vu.url,imgix_url:vu.imgix_url},
+          thumbnail:{name:tu.name,url:tu.url,imgix_url:tu.imgix_url},
+          post_type: listing?'listing':'video',
+          ...(listing?{category:g('fcat'),price:parseFloat(g('fprice')),listing_slug:g('fslug')}:{ }),
+          seller_name:SNAME, seller_id:(IS_MOD&&g('msid'))||SID, description:g('fdesc'), likes:0,
+          ...(IS_MOD&&g('mnote')?{mod_note:g('mnote')}:{ }),
+          ...(IS_MOD?{moderated_by:SID}:{ })
+        }})
       });
 
-      if (!r.ok) throw new Error((await r.json().catch(() => ({}))).message || 'Post failed');
+      if (!r.ok) throw new Error((await r.json().catch(() => ({}))).message || 'Failed');
 
       prog(100, '');
       stat('ok', 'Posted — redirecting…');
@@ -321,12 +279,12 @@ const readKey: string    = import.meta.env.COSMIC_READ_KEY;
     } catch (e) {
       console.error(e);
       stat('err', e.message || 'Something went wrong');
-      submitBtn.disabled = false;
+      submit.disabled = false;
     }
   };
 
-  // My Clickz manager
-  const { r: RKEY } = window.__C__;
+  // My Clickz manager (clean version)
+  const {r:RKEY} = window.__C__;
 
   async function loadMyClickz() {
     const mlist = $('mlist'), mload = $('mload'), mcount = $('mcount');
@@ -336,12 +294,12 @@ const readKey: string    = import.meta.env.COSMIC_READ_KEY;
       return;
     }
 
-    const query = JSON.stringify({ type: 'clickz', 'metadata.seller_id': SID });
+    const query = JSON.stringify({type:'clickz','metadata.seller_id':SID});
     const url = `https://api.cosmicjs.com/v3/buckets/\( {BUCKET}/objects?query= \){encodeURIComponent(query)}&props=id,title,metadata.thumbnail,metadata.post_type,metadata.price,metadata.category&limit=100&status=any`;
 
     let items = [];
     try {
-      const res = await fetch(url, { headers: { Authorization: `Bearer ${RKEY}` } });
+      const res = await fetch(url, {headers: {Authorization: `Bearer ${RKEY}`}});
       items = (await res.json()).objects || [];
     } catch (e) { console.error(e); }
 
@@ -357,7 +315,7 @@ const readKey: string    = import.meta.env.COSMIC_READ_KEY;
     }
 
     if (mlist) mlist.innerHTML = '';
-    items.forEach((obj) => {
+    items.forEach(obj => {
       const thumb = obj.metadata?.thumbnail?.imgix_url ? obj.metadata.thumbnail.imgix_url + '?w=80&h=80&fit=crop&auto=format' : '';
       const isVid = obj.metadata?.post_type === 'video';
       const sub = isVid ? 'Video' : [obj.metadata?.category, obj.metadata?.price != null ? `$${obj.metadata.price}` : ''].filter(Boolean).join(' · ');
@@ -384,7 +342,7 @@ const readKey: string    = import.meta.env.COSMIC_READ_KEY;
     btn.disabled = true;
     btn.textContent = 'Deleting…';
     try {
-      const res = await fetch(`/api/clickz/${id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/clickz/${id}`, {method: 'DELETE'});
       if (!res.ok) throw new Error('Delete failed');
       card.style.opacity = '0';
       card.style.transform = 'scale(0.96)';
