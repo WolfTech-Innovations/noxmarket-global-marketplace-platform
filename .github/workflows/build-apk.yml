@@ -1,0 +1,145 @@
+name: Build Nox APK
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: # lets you trigger it manually from the Actions tab
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # ── 1. Checkout repo ──────────────────────────────
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ── 2. Setup Node.js ──────────────────────────────
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # ── 3. Setup Java (Bubblewrap needs JDK 17) ───────
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      # ── 4. Install Bubblewrap ─────────────────────────
+      - name: Install Bubblewrap
+        run: npm install -g @bubblewrap/cli
+
+      # ── 5. Write twa-manifest.json ────────────────────
+      # Edit values here if you change app details.
+      # packageId, host, manifestUrl are the important ones.
+      - name: Write twa-manifest.json
+        run: |
+          cat > twa-manifest.json << 'EOF'
+          {
+            "packageId": "org.lebnix.nox",
+            "host": "nox.lebnix.org",
+            "name": "Nox",
+            "launcherName": "Nox",
+            "display": "standalone",
+            "orientation": "default",
+            "themeColor": "#000000",
+            "navigationColor": "#000000",
+            "navigationColorDark": "#000000",
+            "navigationDividerColor": "#000000",
+            "navigationDividerColorDark": "#000000",
+            "backgroundColor": "#000000",
+            "enableNotifications": false,
+            "startUrl": "/",
+            "iconUrl": "https://nox.lebnix.org/icons/icon-512.png",
+            "maskableIconUrl": "https://nox.lebnix.org/icons/icon-512.png",
+            "monochromeIconUrl": "https://nox.lebnix.org/icons/icon-512.png",
+            "manifestUrl": "https://nox.lebnix.org/manifest.json",
+            "generatorApp": "bubblewrap-cli",
+            "webManifestUrl": "https://nox.lebnix.org/manifest.json",
+            "isChromeOSOnly": false,
+            "isMetaQuest": false,
+            "fullScopeUrl": "https://nox.lebnix.org/",
+            "minSdkVersion": 21,
+            "appVersionCode": 1,
+            "appVersionName": "1.0.0",
+            "shortcuts": [],
+            "generatedAppVersionCode": 1,
+            "features": {},
+            "alphaDependencies": { "enabled": false },
+            "enableSiteSettingsShortcut": true,
+            "isTrustedWebActivity": true,
+            "serviceAccountJsonFile": "",
+            "fallbackType": "customtabs",
+            "additionalTrustedOrigins": [],
+            "retainedBundles": [],
+            "signingKey": {
+              "path": "android.keystore",
+              "alias": "nox"
+            },
+            "signingKeyCreatedByBubblewrap": true
+          }
+          EOF
+
+      # ── 6. Restore or create keystore ─────────────────
+      # On first run: leave KEYSTORE_BASE64 secret empty —
+      # Bubblewrap will generate a new keystore.
+      # After first run: base64-encode the keystore file and
+      # save it as the KEYSTORE_BASE64 secret so the same
+      # signing key is reused on every future build.
+      - name: Restore keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 --decode > android.keystore
+            echo "Restored existing keystore."
+          else
+            echo "No keystore found — Bubblewrap will generate one."
+          fi
+
+      # ── 7. Init Android project ───────────────────────
+      - name: Init TWA project
+        env:
+          BUBBLEWRAP_KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          BUBBLEWRAP_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          bubblewrap init \
+            --manifest https://nox.lebnix.org/manifest.json \
+            --directory android-project \
+            --skipPwaValidation
+
+      # ── 8. Build APK ──────────────────────────────────
+      - name: Build APK
+        env:
+          BUBBLEWRAP_KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          BUBBLEWRAP_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          cd android-project
+          bubblewrap build \
+            --skipPwaValidation \
+            --manifest ../twa-manifest.json
+
+      # ── 9. Upload APK as artifact ─────────────────────
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nox-apk
+          path: |
+            android-project/app-release-signed.apk
+            android-project/app-release-bundle.aab
+          retention-days: 30
+
+      # ── 10. Print assetlinks.json fingerprint ─────────
+      # Copy the SHA-256 from the logs and put it in:
+      # nox.lebnix.org/.well-known/assetlinks.json
+      - name: Print signing fingerprint
+        run: |
+          keytool -list -v \
+            -keystore android.keystore \
+            -alias nox \
+            -storepass ${{ secrets.KEYSTORE_PASSWORD }} \
+            -keypass ${{ secrets.KEY_PASSWORD }} \
+            2>/dev/null | grep "SHA256:"
+            
