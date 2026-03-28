@@ -99,3 +99,36 @@ body{background:#000;color:#fff;font-family:'DM Sans',sans-serif;overflow:hidden
 <script>
   import { NoxTracker } from '@/lib/nox-tracker.js';
 </script>
+
+<script is:inline>
+const F=document.getElementById('F'),MB=document.getElementById('MB'),MI=document.getElementById('MI'),SH=document.getElementById('SH');
+const MS=`<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/>`;
+const US=`<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>`;
+let muted=false,cv=null,cs=null,ti=null,paused=false,te=0;
+const N=()=>window.__nox;
+const bar=s=>s.querySelector('.tb');
+const startT=s=>{bar(s).classList.remove('p');ti=setInterval(()=>{te+=100;const b=bar(s);b.style.transition='width 0.1s linear';b.style.width=Math.min(te/80,100)+'%';if(te>=8000){clearInterval(ti);N()?.rerank();s.nextElementSibling?.scrollIntoView({behavior:'smooth'})}},100)};
+const stopT=s=>{if(ti){clearInterval(ti);ti=null}bar(s).classList.add('p')};
+const tog=s=>{const v=s.querySelector('video');if(!v)return;if(paused){v.play().catch(()=>{});s.classList.remove('paused');paused=false;startT(s)}else{v.pause();s.classList.add('paused');paused=true;stopT(s)}};
+const heart=(s,x,y)=>{const h=document.createElement('div');h.className='hb';h.textContent='❤️';const r=s.getBoundingClientRect();h.style.cssText=`left:${x-r.left-28}px;top:${y-r.top-28}px`;s.appendChild(h);h.addEventListener('animationend',()=>h.remove())};
+const pa=s=>{[s.nextElementSibling,s.nextElementSibling?.nextElementSibling].forEach((n,i)=>{if(!n)return;const v=n.querySelector('video');if(v&&v.preload!=='auto')v.preload=i===0?'auto':'metadata'})};
+function play(s){const v=s.querySelector('video'),b=bar(s),id=s.dataset.id;N()?.onEnter?.(id);paused=false;te=0;cs=s;if(cv&&cv!==v){cv.pause();cv.currentTime=0;cv.closest('.s')?.classList.remove('paused')}if(ti)clearInterval(ti);b.style.transition='none';b.style.width='0%';b.classList.remove('p');if(v){v.muted=muted;v.currentTime=0;cv=v;v.onerror=()=>{s.classList.add('vf');if(ti)clearInterval(ti)};v.play().catch(()=>{});startT(s);pa(s)}}
+async function patchLikes(id,n){try{await fetch(`/api/clickz/${id}/likes`,{method:'PATCH',headers:{'Content-Type':'application/json'},credentials:'include',body:JSON.stringify({likes:n})})}catch{}}
+function hLike(e){e.stopPropagation();const btn=e.currentTarget.closest('.like-btn');if(!btn)return;const id=btn.dataset.id,ic=btn.querySelector('.sbi'),ct=btn.querySelector('.lc'),lk=btn.classList.toggle('liked');const n=parseInt(ct.textContent||'0')+(lk?1:-1);ct.textContent=String(n);if(lk)N()?.onLike(id);patchLikes(id,n);ic.animate([{transform:'scale(1)'},{transform:'scale(1.35)'},{transform:'scale(1)'}],{duration:250,easing:'ease-out'})}
+function hSave(e){e.stopPropagation();const b=e.currentTarget;N()?.onSave(b.dataset.id);b.classList.add('saved')}
+function hBuy(e){e.stopPropagation();N()?.onBuy(e.currentTarget.dataset.id)}
+function hShare(e){e.stopPropagation();const b=e.currentTarget,id=b.dataset.id,sl=b.dataset.slug;N()?.onShare(id);const u=`${location.origin}/products/${sl}`;navigator.share?navigator.share({title:'Check this out on Nox',url:u}):navigator.clipboard.writeText(u).then(()=>alert('Link copied!'))}
+const tt=new WeakMap();
+function hTap(e){const s=e.currentTarget;if(e.target.closest('a,button'))return;if(tt.has(s)){clearTimeout(tt.get(s));tt.delete(s);const lb=s.querySelector('.like-btn');if(lb&&!lb.classList.contains('liked')){lb.classList.add('liked');const c=lb.querySelector('.lc');c.textContent=String(parseInt(c.textContent||'0')+1);N()?.onLike(s.dataset.id);lb.querySelector('.sbi').animate([{transform:'scale(1)'},{transform:'scale(1.35)'},{transform:'scale(1)'}],{duration:250,easing:'ease-out'})}heart(s,e.clientX,e.clientY)}else{const t=setTimeout(()=>{tt.delete(s);tog(s)},220);tt.set(s,t)}}
+const obs=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)play(e.target)}),{threshold:.7});
+const reg=new WeakSet();
+function regSlide(s){if(reg.has(s))return;reg.add(s);obs.observe(s);s.addEventListener('click',hTap);s.querySelector('.like-btn')?.addEventListener('click',hLike);s.querySelector('.save-btn')?.addEventListener('click',hSave);s.querySelectorAll('.buy-btn').forEach(b=>b.addEventListener('click',hBuy));s.querySelector('.share-btn')?.addEventListener('click',hShare)}
+document.querySelectorAll('.s').forEach(regSlide);
+new MutationObserver(ms=>ms.forEach(m=>m.addedNodes.forEach(n=>{if(!(n instanceof HTMLElement))return;if(n.classList.contains('s'))regSlide(n);n.querySelectorAll('.s').forEach(regSlide)}))).observe(F,{childList:true,subtree:true});
+MB.addEventListener('click',()=>{muted=!muted;if(cv)cv.muted=muted;MI.innerHTML=muted?MS:US});
+if(SH){const h=()=>SH.classList.add('h');setTimeout(h,3000);F.addEventListener('scroll',h,{once:true});}
+let ty=0,tm=0;
+F.addEventListener('touchstart',e=>{if(e.touches[0]){ty=e.touches[0].clientY;tm=Date.now()}},{passive:true});
+F.addEventListener('touchend',e=>{if(!e.changedTouches[0])return;const dy=ty-e.changedTouches[0].clientY,dt=Date.now()-tm;if(Math.abs(dy)/dt>.5&&Math.abs(dy)>40){const ss=Array.from(F.querySelectorAll('.s')),cur=ss.find(s=>{const r=s.getBoundingClientRect();return r.top>=-10&&r.top<=10});if(cur){const tg=dy>0?cur.nextElementSibling:cur.previousElementSibling;tg?.scrollIntoView({behavior:'smooth'})}}},{passive:true});
+document.addEventListener('keydown',e=>{if(!cs)return;if(e.key==='ArrowDown'||e.key==='ArrowRight'){e.preventDefault();cs.nextElementSibling?.scrollIntoView({behavior:'smooth'})}else if(e.key==='ArrowUp'||e.key==='ArrowLeft'){e.preventDefault();cs.previousElementSibling?.scrollIntoView({behavior:'smooth'})}else if(e.key===' '){e.preventDefault();tog(cs)}});
+</script>
