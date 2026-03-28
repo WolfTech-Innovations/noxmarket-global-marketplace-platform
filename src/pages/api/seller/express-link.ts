@@ -14,13 +14,24 @@ export const GET: APIRoute = async ({ cookies }) => {
   if (!acctId) return new Response(JSON.stringify({ error: 'No Stripe account linked' }), { status: 400 });
 
   try {
-    const link = await stripe.accountLinks.create({
-      account: acctId,
-      refresh_url: 'https://nox.lebnix.org/seller/dashboard',
-      return_url: 'https://nox.lebnix.org/seller/dashboard',
-      type: 'account_onboarding',
-    });
-    return new Response(JSON.stringify({ url: link.url }), { status: 200 });
+    const account = await stripe.accounts.retrieve(acctId);
+    const fullyOnboarded = account.charges_enabled && account.payouts_enabled;
+
+    let url: string;
+    if (fullyOnboarded) {
+      const link = await stripe.accounts.createLoginLink(acctId);
+      url = link.url;
+    } else {
+      const link = await stripe.accountLinks.create({
+        account: acctId,
+        refresh_url: 'https://nox.lebnix.org/seller/dashboard',
+        return_url: 'https://nox.lebnix.org/seller/dashboard',
+        type: 'account_onboarding',
+      });
+      url = link.url;
+    }
+
+    return new Response(JSON.stringify({ url, fullyOnboarded }), { status: 200 });
   } catch (e: any) {
     console.error('Stripe error:', e.type, e.message, e.code);
     return new Response(JSON.stringify({ error: e.message, code: e.code }), { status: 500 });
