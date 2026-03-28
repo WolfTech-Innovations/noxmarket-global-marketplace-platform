@@ -5,7 +5,6 @@ import Footer from '@/components/Footer.astro';
 import ProductCard from '@/components/ProductCard.astro';
 import { getProducts } from '@/lib/cosmic';
 import type { Product } from '@/types';
-<script id="Cookiebot" src="https://consent.cookiebot.com/uc.js" data-cbid="aec6e51e-3549-4745-ae71-d7240d97a863"  type="text/javascript"></script>
 const products = await getProducts();
 const featuredProducts = products.slice(0, 8);
 ---
