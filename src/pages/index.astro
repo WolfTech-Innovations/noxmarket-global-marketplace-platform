@@ -11,7 +11,7 @@ const featuredProducts = products.slice(0, 8);
 
 <Layout title="Nox - PC Part Marketplace">
   <Header />
-  <script id="Cookiebot" src="https://consent.cookiebot.com/uc.js" data-cbid="aec6e51e-3549-4745-ae71-d7240d97a863"  type="text/javascript"></script>
+  <script id="Cookiebot" src="https://consent.cookiebot.com/uc.js" data-cbid="aec6e51e-3549-4745-ae71-d7240d97a863" type="text/javascript"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap');
 
@@ -22,28 +22,16 @@ const featuredProducts = products.slice(0, 8);
       --border: rgba(0,0,0,0.1);
     }
 
-    body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: 'DM Sans', sans-serif;
-      margin: 0;
-      padding: 0;
-    }
-
+    body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; margin: 0; padding: 0; }
     main { max-width: 1200px; margin: 0 auto; padding: 24px; }
     h1, h2 { color: var(--text); margin-bottom: 16px; }
     p { color: var(--muted); line-height: 1.6; margin-bottom: 24px; }
-
     a { text-decoration: none; }
+
     .btn-primary, .btn-ghost {
-      display: inline-block;
-      padding: 12px 24px;
-      border-radius: 6px;
-      font-weight: 700;
-      margin-right: 12px;
-      margin-bottom: 12px;
-      text-align: center;
-      transition: opacity 0.15s, transform 0.1s;
+      display: inline-block; padding: 12px 24px; border-radius: 6px;
+      font-weight: 700; margin-right: 12px; margin-bottom: 12px;
+      text-align: center; transition: opacity 0.15s, transform 0.1s;
     }
     .btn-primary { background: #000; color: #fff; }
     .btn-primary:hover { opacity: 0.88; transform: scale(0.97); }
@@ -53,13 +41,28 @@ const featuredProducts = products.slice(0, 8);
     .hero { padding: 80px 0; text-align: center; }
     .hero-btns { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin-top: 24px; }
 
+    .fee-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: #f0fdf4; border: 1px solid #bbf7d0;
+      color: #15803d; font-size: 0.85rem; font-weight: 600;
+      padding: 6px 14px; border-radius: 999px; margin-bottom: 24px;
+    }
+    .fee-badge-dot { width: 7px; height: 7px; background: #22c55e; border-radius: 50%; }
+
+    .fee-strip {
+      display: flex; flex-wrap: wrap; justify-content: center; gap: 24px;
+      margin: 32px 0 0; padding: 20px; background: #fafafa;
+      border: 1px solid var(--border); border-radius: 10px;
+      font-size: 0.9rem; color: var(--muted);
+    }
+    .fee-strip span { display: flex; align-items: center; gap: 6px; }
+    .fee-strip strong { color: var(--text); }
+
     .products-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-top: 32px; }
     .cats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; margin-top: 32px; }
     .cat-card { padding: 24px; border: 1px solid var(--border); border-radius: 10px; text-align: center; transition: transform 0.15s; }
     .cat-card:hover { transform: translateY(-2px); }
-    .cat-emoji { font-size: 2rem; margin-bottom: 8px; }
     .cat-name { font-weight: 700; }
-
     .section { padding: 80px 0; }
   </style>
 
@@ -67,12 +70,16 @@ const featuredProducts = products.slice(0, 8);
 
     <!-- Hero -->
     <section class="hero">
+      <div class="fee-badge">
+        <span class="fee-badge-dot"></span>
+        Only 6% seller fee — lower than eBay
+      </div>
       <h1>PC Part Marketplace</h1>
       <p>Buy and sell verified PC components with confidence.</p>
       <div class="hero-btns">
         <a href="/products" class="btn-primary">Browse Components</a>
         <a href="/become-seller" class="btn-ghost">Start Selling</a>
-        <a href="/clickz" class="btn-primary">⚡ Clickz Feed</a>
+        <a href="/clickz" class="btn-primary">Clickz Feed</a>
         <a href="/sell/clickz" class="btn-ghost">Post a Clickz</a>
       </div>
     </section>
@@ -97,18 +104,17 @@ const featuredProducts = products.slice(0, 8);
       <h2>Component Categories</h2>
       <div class="cats-grid">
         {[
-          { name: 'Graphics Cards', icon: '🎮' },
-          { name: 'Processors', icon: '⚡' },
-          { name: 'Motherboards', icon: '🔧' },
-          { name: 'Memory (RAM)', icon: '💾' },
-          { name: 'Storage', icon: '💿' },
-          { name: 'Power Supplies', icon: '🔋' },
-          { name: 'Cooling', icon: '❄️' },
-          { name: 'Cases', icon: '📦' },
-        ].map(cat => (
-          <a href={`/products?category=${cat.name.toLowerCase()}`} class="cat-card">
-            <div class="cat-emoji">{cat.icon}</div>
-            <div class="cat-name">{cat.name}</div>
+          'Graphics Cards',
+          'Processors',
+          'Motherboards',
+          'Memory (RAM)',
+          'Storage',
+          'Power Supplies',
+          'Cooling',
+          'Cases',
+        ].map(name => (
+          <a href={`/products?category=${name.toLowerCase()}`} class="cat-card">
+            <div class="cat-name">{name}</div>
           </a>
         ))}
       </div>
@@ -120,6 +126,11 @@ const featuredProducts = products.slice(0, 8);
       <p>Join our community of PC builders buying and selling verified components.</p>
       <a href="/products" class="btn-primary">Browse Components</a>
       <a href="/signup" class="btn-ghost">Create Account</a>
+      <div class="fee-strip">
+        <span><strong>6% seller fee</strong> — keep 94% of every sale</span>
+        <span><strong>Fast payouts</strong> via Stripe</span>
+        <span><strong>No listing fees</strong> — only pay when you sell</span>
+      </div>
     </section>
 
   </main>
