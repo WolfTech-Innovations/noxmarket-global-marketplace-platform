@@ -1,203 +1,290 @@
 ---
-// src/pages/dashboard/seller.astro
 import Layout from '@/layouts/Layout.astro';
 import Header from '@/components/Header.astro';
 import Footer from '@/components/Footer.astro';
 import { getSessionFromCookies } from '@/lib/auth';
+import { getSellerOrders, getSeller } from '@/lib/cosmic';
+import { getStripeAccountId } from '@/lib/seller';
+import type { Order } from '@/types';
 
 const session = getSessionFromCookies(Astro.cookies);
-if (!session?.sellerId) return Astro.redirect('/login');
 
-const sid        = session.sellerId;
-const sellerName = session.businessName || session.name || 'Seller';
-const hasStripe  = !!session.stripeAccountId;
+if (!session || !session.isSeller || !session.sellerId) {
+  return Astro.redirect('/login');
+}
 
-const BUCKET = import.meta.env.COSMIC_BUCKET_SLUG;
-const RKEY   = import.meta.env.COSMIC_READ_KEY;
+const orders = await getSellerOrders(session.sellerId);
+const sellerProfile = await getSeller(session.sellerId);
+const stripeAccountId = await getStripeAccountId(session.sellerId);
 
-// Fetch pending ship notifications server-side
-const query = encodeURIComponent(JSON.stringify({ type: 'ship-notifications', 'metadata.seller_id': sid }));
-const props = encodeURIComponent('id,title,metadata.buyer_name,metadata.buyer_email,metadata.items,metadata.total,metadata.shipped,metadata.stripe_session,metadata.created_at');
-const notifRes  = await fetch(
-  `https://api.cosmicjs.com/v3/buckets/${BUCKET}/objects?query=${query}&props=${props}&limit=50&status=published&useCache=false`,
-  { headers: { Authorization: `Bearer ${RKEY}` } }
+const totalOrders = orders.length;
+const pendingOrders = orders.filter((o: Order) => o.metadata.order_status === 'pending').length;
+const totalRevenue = orders.reduce((sum: number, order: Order) => 
+  order.metadata.payment_status === 'paid' ? sum + (order.metadata.order_total || 0) : sum, 0
 );
-const notifData = await notifRes.json();
-const orders    = notifData.objects ?? [];
+
+const hasStripeAccount = !!stripeAccountId;
+const isSetupComplete = hasStripeAccount && sellerProfile?.metadata?.store_description;
+
+const statusStyles = {
+  delivered: 'bg-green-100 text-green-800',
+  shipped: 'bg-blue-100 text-blue-800',
+  processing: 'bg-yellow-100 text-yellow-800',
+  pending: 'bg-orange-100 text-orange-800',
+  default: 'bg-gray-100 text-gray-800'
+};
 ---
 
-<Layout title="Seller Dashboard — Nox">
+<Layout title="Seller Dashboard - NoxMarket">
   <Header />
 
-  <main class="min-h-screen bg-gray-50 py-10">
-    <div class="container-custom max-w-5xl">
-
-      <!-- Page header -->
-      <div class="mb-8 flex items-center justify-between flex-wrap gap-4">
+  <main class="py-16 bg-gray-50 min-h-screen">
+    <div class="container-custom">
+      <!-- Header -->
+      <div class="mb-12 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 class="text-3xl font-bold text-gray-900">Seller Dashboard</h1>
-          <p class="text-gray-500 mt-1 text-sm">{sellerName}</p>
+          <h1 class="text-5xl font-medium tracking-tight text-gray-900 mb-2">
+            Welcome back, {session.businessName || session.name}! 👋
+          </h1>
+          <p class="text-xl text-gray-600">Here's what's happening with your store today</p>
         </div>
-        <a href="/sell/clickz" class="btn btn-primary text-sm">+ Post a Clickz</a>
+        <div class="flex gap-3">
+          <a href="/dashboard/products" class="btn btn-primary">Add Product</a>
+          <a href="/dashboard/settings" class="btn btn-secondary">Settings</a>
+        </div>
       </div>
 
-      <!-- Balance card -->
-      <div class="card-elevated p-6 mb-8 bg-gradient-to-br from-indigo-600 to-blue-600 text-white rounded-2xl">
+      <!-- Setup Alert -->
+      {!isSetupComplete && (
+        <div class="mb-12 card-elevated p-6 bg-gradient-to-r from-amber-50 to-orange-50 border-l-4 border-amber-500">
+          <div class="flex items-start gap-4">
+            <svg class="w-6 h-6 text-amber-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <div class="flex-1">
+              <h3 class="font-semibold text-amber-900 mb-2">Complete Your Store Setup</h3>
+              <p class="text-amber-800 mb-4">
+                {!hasStripeAccount ? 'Connect your Stripe account to start receiving payments.' : 'Add a store description to help customers find you.'}
+              </p>
+              <a href="/dashboard/settings" class="btn btn-primary">Complete Setup →</a>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <!-- Stats Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <div class="card-elevated p-6 state-layer">
+          <div class="flex items-center justify-between mb-4">
+            <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center elevation-2">
+              <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+              </svg>
+            </div>
+            <span class="chip bg-blue-600 text-white text-xs">All Time</span>
+          </div>
+          <p class="text-gray-600 text-sm font-medium mb-1">Total Orders</p>
+          <p class="text-4xl font-medium text-gray-900">{totalOrders}</p>
+        </div>
+
+        <div class="card-elevated p-6 state-layer">
+          <div class="flex items-center justify-between mb-4">
+            <div class="w-12 h-12 bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl flex items-center justify-center elevation-2">
+              <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            {pendingOrders > 0 && <span class="chip bg-orange-600 text-white text-xs animate-pulse">Action</span>}
+          </div>
+          <p class="text-gray-600 text-sm font-medium mb-1">Pending Orders</p>
+          <p class="text-4xl font-medium text-gray-900">{pendingOrders}</p>
+        </div>
+
+        <div class="card-elevated p-6 state-layer">
+          <div class="flex items-center justify-between mb-4">
+            <div class="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center elevation-2">
+              <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <span class="chip text-xs">USD</span>
+          </div>
+          <p class="text-gray-600 text-sm font-medium mb-1">Total Revenue</p>
+          <p class="text-4xl font-medium text-gray-900">${totalRevenue.toFixed(2)}</p>
+        </div>
+      </div>
+
+      <!-- Balance Card -->
+      <div class="card-elevated p-6 mb-12 bg-gradient-to-br from-indigo-600 to-blue-600 text-white rounded-2xl">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
           <div>
-            <p class="text-indigo-200 text-xs uppercase tracking-widest mb-1">Available Balance</p>
+            <p class="text-indigo-200 text-xs uppercase tracking-widest mb-1">Stripe Balance</p>
             <p class="text-4xl font-bold" id="bal-avail">—</p>
             <p class="text-indigo-200 text-sm mt-1">Pending: <span id="bal-pending">—</span></p>
           </div>
-          <div class="flex flex-col gap-3 sm:items-end">
-            {hasStripe ? (
-              <>
-                <div class="flex items-center gap-3">
-                  <input
-                    id="withdraw-amt"
-                    type="number"
-                    min="1"
-                    step="0.01"
-                    placeholder="Amount (USD)"
-                    class="w-36 bg-white/15 border border-white/25 rounded-lg px-3 py-2 text-white placeholder-white/50 text-sm outline-none focus:border-white/60"
-                  />
-                  <button id="withdraw-btn" class="bg-white text-indigo-700 font-bold text-sm px-5 py-2 rounded-lg hover:bg-indigo-50 transition disabled:opacity-40">
-                    Withdraw
-                  </button>
-                </div>
-                <button id="express-btn" class="text-indigo-200 hover:text-white text-xs underline underline-offset-2 text-right">
-                  Open Stripe Dashboard →
+          {hasStripeAccount ? (
+            <div class="flex flex-col gap-3 sm:items-end">
+              <div class="flex items-center gap-3">
+                <input
+                  id="withdraw-amt"
+                  type="number"
+                  min="1"
+                  step="0.01"
+                  placeholder="Amount (USD)"
+                  class="w-36 bg-white/15 border border-white/25 rounded-lg px-3 py-2 text-white placeholder-white/50 text-sm outline-none focus:border-white/60"
+                />
+                <button id="withdraw-btn" class="bg-white text-indigo-700 font-bold text-sm px-5 py-2 rounded-lg hover:bg-indigo-50 transition disabled:opacity-40">
+                  Withdraw
                 </button>
-                <p id="withdraw-msg" class="text-xs text-indigo-200 hidden"></p>
-              </>
-            ) : (
-              <a href="/become-seller#stripe" class="bg-white text-indigo-700 font-bold text-sm px-5 py-2 rounded-lg hover:bg-indigo-50 transition">
-                Connect Stripe →
-              </a>
-            )}
-          </div>
+              </div>
+              <button id="express-btn" class="text-indigo-200 hover:text-white text-xs underline underline-offset-2 text-right">
+                Open Stripe Dashboard →
+              </button>
+              <p id="withdraw-msg" class="text-xs text-indigo-200 hidden"></p>
+            </div>
+          ) : (
+            <a href="/dashboard/settings" class="bg-white text-indigo-700 font-bold text-sm px-5 py-2 rounded-lg hover:bg-indigo-50 transition">
+              Connect Stripe →
+            </a>
+          )}
         </div>
       </div>
 
-      <!-- Orders -->
-      <div class="card-elevated rounded-2xl overflow-hidden">
-        <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-          <h2 class="font-semibold text-gray-900 text-lg">Orders to Ship</h2>
-          <span class="text-xs text-gray-400 bg-gray-100 rounded-full px-3 py-1" id="order-count">
-            {orders.length} order{orders.length !== 1 ? 's' : ''}
-          </span>
+      <!-- Quick Actions -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
+        {[
+          { href: '/dashboard/products', icon: 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4', label: 'Products', color: 'blue' },
+          { href: '/dashboard/orders', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2', label: 'Orders', color: 'purple' },
+          { href: '/dashboard/analytics', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z', label: 'Analytics', color: 'green' },
+          { href: '/dashboard/settings', icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z', label: 'Settings', color: 'gray' }
+        ].map(action => (
+          <a href={action.href} class="card state-layer p-4 group">
+            <div class={`w-10 h-10 bg-${action.color}-50 rounded-xl flex items-center justify-center mb-3 group-hover:bg-${action.color}-100 motion-emphasized`}>
+              <svg class={`w-5 h-5 text-${action.color}-600`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={action.icon} />
+              </svg>
+            </div>
+            <p class="font-medium text-gray-900">{action.label}</p>
+          </a>
+        ))}
+      </div>
+
+      <!-- Recent Orders -->
+      <div class="card-elevated p-8">
+        <div class="flex items-center justify-between mb-6">
+          <div>
+            <h2 class="text-3xl font-medium text-gray-900">Recent Orders</h2>
+            <p class="text-gray-600 mt-1">Your latest customer orders with shipping details</p>
+          </div>
+          <a href="/dashboard/orders" class="text-blue-600 font-medium hover:underline flex items-center gap-1">View All →</a>
         </div>
 
         {orders.length === 0 ? (
-          <div class="py-20 text-center text-gray-400">
-            <svg class="w-12 h-12 mx-auto mb-3 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
-            </svg>
-            <p class="text-sm">No pending orders — you're all caught up!</p>
+          <div class="text-center py-20 bg-gray-50 rounded-3xl">
+            <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg class="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+              </svg>
+            </div>
+            <h3 class="text-2xl font-medium text-gray-900 mb-2">No Orders Yet</h3>
+            <p class="text-gray-600 mb-6">Orders will appear here when customers purchase your products</p>
+            <a href="/dashboard/products" class="btn btn-primary">Add Your First Product</a>
           </div>
         ) : (
-          <div id="order-list">
-            {orders.map((o: any) => (
-              <div
-                class={`order-row px-6 py-5 border-b border-gray-50 last:border-0 flex flex-col sm:flex-row sm:items-center gap-4 transition-opacity ${o.metadata?.shipped ? 'opacity-40' : ''}`}
-                data-id={o.id}
-                data-shipped={String(!!o.metadata?.shipped)}
-              >
-                <!-- Status dot -->
-                <div class="flex-shrink-0">
-                  <div class={`w-3 h-3 rounded-full ${o.metadata?.shipped ? 'bg-green-400' : 'bg-amber-400 animate-pulse'}`}></div>
-                </div>
+          <div class="space-y-4">
+            {orders.slice(0, 5).map((order: Order) => (
+              <div class="card p-6 hover:shadow-lg transition-shadow">
+                <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
+                  <div class="flex-1">
+                    <div class="flex items-start justify-between mb-4">
+                      <div>
+                        <div class="flex items-center gap-3 mb-2">
+                          <h3 class="font-mono text-lg font-semibold text-gray-900">#{order.metadata.order_number}</h3>
+                          <span class={`chip text-xs ${statusStyles[order.metadata.order_status as keyof typeof statusStyles] || statusStyles.default}`}>
+                            {order.metadata.order_status}
+                          </span>
+                        </div>
+                        <p class="text-sm text-gray-500">
+                          {new Date(order.metadata.order_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                      </div>
+                      <div class="text-right">
+                        <p class="text-2xl font-bold text-gray-900">${order.metadata.order_total.toFixed(2)}</p>
+                        <p class="text-sm text-gray-500">{order.metadata.currency.toUpperCase()}</p>
+                      </div>
+                    </div>
 
-                <!-- Order info -->
-                <div class="flex-1 min-w-0">
-                  <p class="font-semibold text-gray-900 text-sm">{o.metadata?.buyer_name ?? 'Buyer'}</p>
-                  <p class="text-xs text-gray-500 mt-0.5 truncate">{o.metadata?.items ?? '—'}</p>
-                  <p class="text-xs text-gray-400 mt-0.5">
-                    {new Date(o.metadata?.created_at ?? '').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                  </p>
-                </div>
+                    <div class="mb-4 p-4 bg-gray-50 rounded-xl">
+                      <p class="text-xs font-medium text-gray-500 mb-2">CUSTOMER</p>
+                      <p class="font-medium text-gray-900">{order.metadata.buyer_name}</p>
+                      <p class="text-sm text-gray-600">{order.metadata.buyer_email}</p>
+                    </div>
 
-                <!-- Total -->
-                <div class="text-right flex-shrink-0">
-                  <p class="font-bold text-gray-900 text-sm">{o.metadata?.total ?? '—'}</p>
-                </div>
+                    {order.metadata.line_items && order.metadata.line_items.length > 0 && (
+                      <div class="mb-4">
+                        <p class="text-xs font-medium text-gray-500 mb-2">PRODUCTS</p>
+                        <div class="space-y-2">
+                          {order.metadata.line_items.map((item: any) => (
+                            <div class="flex items-center justify-between text-sm">
+                              <span class="font-medium text-gray-900">{item.product_name}</span>
+                              <span class="text-gray-600">Qty: {item.quantity}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
 
-                <!-- Actions -->
-                <div class="flex gap-2 flex-shrink-0">
-                  <!-- Buyer details toggle -->
-                  <button
-                    class="details-btn text-xs border border-gray-200 rounded-lg px-3 py-2 hover:bg-gray-50 transition text-gray-600"
-                    data-email={o.metadata?.buyer_email ?? ''}
-                    data-name={o.metadata?.buyer_name ?? ''}
-                    data-items={o.metadata?.items ?? ''}
-                    data-session={o.metadata?.stripe_session ?? ''}
-                  >
-                    Details
-                  </button>
-
-                  <!-- Ship toggle -->
-                  {!o.metadata?.shipped ? (
-                    <button
-                      class="ship-btn text-xs bg-green-600 hover:bg-green-700 text-white rounded-lg px-3 py-2 transition font-semibold disabled:opacity-40"
-                      data-id={o.id}
-                    >
-                      Mark Shipped
-                    </button>
-                  ) : (
-                    <span class="text-xs text-green-600 font-semibold flex items-center gap-1">
-                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+                  <div class="lg:w-1/3 border-l-0 lg:border-l lg:pl-6">
+                    <div class="flex items-center gap-2 mb-4">
+                      <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                       </svg>
-                      Shipped
-                    </span>
-                  )}
+                      <h4 class="font-semibold text-gray-900">Shipping Address</h4>
+                    </div>
+
+                    {order.metadata.shipping_address ? (
+                      <div class="bg-blue-50 rounded-xl p-4 space-y-2">
+                        <p class="font-medium text-gray-900">{order.metadata.shipping_name || order.metadata.buyer_name}</p>
+                        <div class="text-sm text-gray-700 space-y-1">
+                          <p>{order.metadata.shipping_address.line1}</p>
+                          {order.metadata.shipping_address.line2 && <p>{order.metadata.shipping_address.line2}</p>}
+                          <p>{order.metadata.shipping_address.city}, {order.metadata.shipping_address.state} {order.metadata.shipping_address.postal_code}</p>
+                          <p class="font-medium">{order.metadata.shipping_address.country}</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div class="bg-gray-50 rounded-xl p-4">
+                        <p class="text-sm text-gray-500 italic">No shipping address provided</p>
+                      </div>
+                    )}
+
+                    <div class="mt-4 pt-4 border-t">
+                      <div class="flex items-center justify-between text-sm">
+                        <span class="text-gray-600">Payment Status:</span>
+                        <span class={`chip text-xs ${order.metadata.payment_status === 'paid' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                          {order.metadata.payment_status}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="mt-6 pt-6 border-t flex justify-end">
+                  <a href={`/dashboard/orders/${order.id}`} class="btn btn-primary">View Full Details →</a>
                 </div>
               </div>
             ))}
           </div>
         )}
       </div>
-
     </div>
   </main>
-
-  <!-- Buyer details modal -->
-  <div id="modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
-      <div class="flex items-center justify-between mb-5">
-        <h3 class="font-bold text-gray-900 text-lg">Buyer Details</h3>
-        <button id="modal-close" class="text-gray-400 hover:text-gray-600">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-          </svg>
-        </button>
-      </div>
-      <dl class="space-y-3 text-sm">
-        <div class="flex justify-between gap-4">
-          <dt class="text-gray-500">Name</dt>
-          <dd class="font-medium text-gray-900 text-right" id="m-name">—</dd>
-        </div>
-        <div class="flex justify-between gap-4">
-          <dt class="text-gray-500">Email</dt>
-          <dd class="font-medium text-gray-900 text-right" id="m-email">—</dd>
-        </div>
-        <div class="flex justify-between gap-4 border-t pt-3">
-          <dt class="text-gray-500">Items</dt>
-          <dd class="font-medium text-gray-900 text-right" id="m-items">—</dd>
-        </div>
-        <div class="flex justify-between gap-4">
-          <dt class="text-gray-500">Order Ref</dt>
-          <dd class="font-mono text-xs text-gray-600 text-right break-all" id="m-session">—</dd>
-        </div>
-      </dl>
-    </div>
-  </div>
 
   <Footer />
 </Layout>
 
 <script>
-  // ── Balance ────────────────────────────────────────────────────────────────
   const fmt = (n: number) => `$${n.toFixed(2)}`;
 
   fetch('/api/seller/balance')
@@ -210,14 +297,16 @@ const orders    = notifData.objects ?? [];
     })
     .catch(() => {});
 
-  // ── Withdraw ───────────────────────────────────────────────────────────────
   const wBtn = document.getElementById('withdraw-btn') as HTMLButtonElement | null;
   const wAmt = document.getElementById('withdraw-amt') as HTMLInputElement  | null;
   const wMsg = document.getElementById('withdraw-msg') as HTMLElement       | null;
 
   wBtn?.addEventListener('click', async () => {
     const amount = parseFloat(wAmt?.value ?? '');
-    if (!amount || amount <= 0) { if (wMsg) { wMsg.textContent = 'Enter a valid amount.'; wMsg.classList.remove('hidden'); } return; }
+    if (!amount || amount <= 0) {
+      if (wMsg) { wMsg.textContent = 'Enter a valid amount.'; wMsg.classList.remove('hidden'); }
+      return;
+    }
     wBtn.disabled = true;
     if (wMsg) { wMsg.textContent = 'Processing…'; wMsg.classList.remove('hidden'); }
     try {
@@ -233,7 +322,6 @@ const orders    = notifData.objects ?? [];
     }
   });
 
-  // ── Express Dashboard link ─────────────────────────────────────────────────
   document.getElementById('express-btn')?.addEventListener('click', async () => {
     const btn = document.getElementById('express-btn') as HTMLButtonElement;
     btn.textContent = 'Opening…';
@@ -242,61 +330,10 @@ const orders    = notifData.objects ?? [];
       const res  = await fetch('/api/seller/express-link');
       const data = await res.json();
       if (data.url) window.location.href = data.url;
-      else throw new Error('No URL returned');
+      else throw new Error();
     } catch {
       btn.textContent = 'Failed — try again';
       btn.removeAttribute('disabled');
     }
   });
-
-  // ── Mark shipped ───────────────────────────────────────────────────────────
-  document.querySelectorAll<HTMLButtonElement>('.ship-btn').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      const id = btn.dataset.id!;
-      btn.disabled = true;
-      btn.textContent = 'Saving…';
-      try {
-        const res = await fetch(`/api/clickz/${id}/ship`, { method: 'PATCH' });
-        if (!res.ok) throw new Error();
-        // Update row UI
-        const row = btn.closest('.order-row') as HTMLElement;
-        row.classList.add('opacity-40');
-        row.dataset.shipped = 'true';
-        const dot = row.querySelector('div.rounded-full') as HTMLElement;
-        if (dot) { dot.classList.remove('bg-amber-400','animate-pulse'); dot.classList.add('bg-green-400'); }
-        btn.replaceWith((() => {
-          const s = document.createElement('span');
-          s.className = 'text-xs text-green-600 font-semibold flex items-center gap-1';
-          s.innerHTML = `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>Shipped`;
-          return s;
-        })());
-      } catch {
-        btn.disabled = false;
-        btn.textContent = 'Mark Shipped';
-        alert('Failed to update — try again.');
-      }
-    });
-  });
-
-  // ── Buyer details modal ────────────────────────────────────────────────────
-  const modal   = document.getElementById('modal')!;
-  const mClose  = document.getElementById('modal-close')!;
-  const mName   = document.getElementById('m-name')!;
-  const mEmail  = document.getElementById('m-email')!;
-  const mItems  = document.getElementById('m-items')!;
-  const mSess   = document.getElementById('m-session')!;
-
-  document.querySelectorAll<HTMLButtonElement>('.details-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      mName.textContent  = btn.dataset.name    || '—';
-      mEmail.textContent = btn.dataset.email   || '—';
-      mItems.textContent = btn.dataset.items   || '—';
-      mSess.textContent  = btn.dataset.session || '—';
-      modal.classList.remove('hidden');
-      modal.classList.add('flex');
-    });
-  });
-
-  mClose.addEventListener('click', () => { modal.classList.add('hidden'); modal.classList.remove('flex'); });
-  modal.addEventListener('click', e => { if (e.target === modal) { modal.classList.add('hidden'); modal.classList.remove('flex'); } });
 </script>
