@@ -8,44 +8,52 @@ import { getStripeAccountId } from '@/lib/seller';
 import type { Order } from '@/types';
 
 const session = getSessionFromCookies(Astro.cookies);
+if (!session?.isSeller || !session?.sellerId) return Astro.redirect('/login');
 
-if (!session || !session.isSeller || !session.sellerId) {
-  return Astro.redirect('/login');
-}
-
-const orders = await getSellerOrders(session.sellerId);
-const sellerProfile = await getSeller(session.sellerId);
-const stripeAccountId = await getStripeAccountId(session.sellerId);
+const [orders, sellerProfile, stripeAccountId] = await Promise.all([
+  getSellerOrders(session.sellerId),
+  getSeller(session.sellerId),
+  getStripeAccountId(session.sellerId),
+]);
 
 const totalOrders = orders.length;
 const pendingOrders = orders.filter((o: Order) => o.metadata.order_status === 'pending').length;
-const totalRevenue = orders.reduce((sum: number, order: Order) => 
-  order.metadata.payment_status === 'paid' ? sum + (order.metadata.order_total || 0) : sum, 0
-);
+const totalRevenue = orders.reduce((sum: number, o: Order) =>
+  o.metadata.payment_status === 'paid' ? sum + (o.metadata.order_total || 0) : sum, 0);
 
-const hasStripeAccount = !!stripeAccountId;
-const isSetupComplete = hasStripeAccount && sellerProfile?.metadata?.store_description;
+const hasStripe = !!stripeAccountId;
+const isSetupComplete = hasStripe && sellerProfile?.metadata?.store_description;
 
-const statusStyles = {
+const statusStyles: Record<string, string> = {
   delivered: 'bg-green-100 text-green-800',
   shipped: 'bg-blue-100 text-blue-800',
   processing: 'bg-yellow-100 text-yellow-800',
   pending: 'bg-orange-100 text-orange-800',
-  default: 'bg-gray-100 text-gray-800'
 };
+
+const stats = [
+  { label: 'Total Orders', value: totalOrders, color: 'blue', badge: 'All Time', icon: 'M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z' },
+  { label: 'Pending Orders', value: pendingOrders, color: 'amber', badge: pendingOrders > 0 ? 'Action' : null, pulse: true, icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' },
+  { label: 'Total Revenue', value: `$${totalRevenue.toFixed(2)}`, color: 'green', badge: 'USD', icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
+];
+
+const actions = [
+  { href: '/dashboard/products', label: 'Products', color: 'blue', icon: 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4' },
+  { href: '/dashboard/orders', label: 'Orders', color: 'purple', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2' },
+  { href: '/dashboard/analytics', label: 'Analytics', color: 'green', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' },
+  { href: '/dashboard/settings', label: 'Settings', color: 'gray', icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z' },
+];
 ---
 
 <Layout title="Seller Dashboard - NoxMarket">
   <Header />
-
   <main class="py-16 bg-gray-50 min-h-screen">
     <div class="container-custom">
+
       <!-- Header -->
       <div class="mb-12 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 class="text-5xl font-medium tracking-tight text-gray-900 mb-2">
-            Welcome back, {session.businessName || session.name}! 👋
-          </h1>
+          <h1 class="text-5xl font-medium tracking-tight text-gray-900 mb-2">Welcome back, {session.businessName || session.name}! 👋</h1>
           <p class="text-xl text-gray-600">Here's what's happening with your store today</p>
         </div>
         <div class="flex gap-3">
@@ -56,62 +64,40 @@ const statusStyles = {
 
       <!-- Setup Alert -->
       {!isSetupComplete && (
-        <div class="mb-12 card-elevated p-6 bg-gradient-to-r from-amber-50 to-orange-50 border-l-4 border-amber-500">
-          <div class="flex items-start gap-4">
-            <svg class="w-6 h-6 text-amber-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
-            <div class="flex-1">
-              <h3 class="font-semibold text-amber-900 mb-2">Complete Your Store Setup</h3>
-              <p class="text-amber-800 mb-4">
-                {!hasStripeAccount ? 'Connect your Stripe account to start receiving payments.' : 'Add a store description to help customers find you.'}
-              </p>
-              <a href="/dashboard/settings" class="btn btn-primary">Complete Setup →</a>
-            </div>
+        <div class="mb-12 card-elevated p-6 bg-gradient-to-r from-amber-50 to-orange-50 border-l-4 border-amber-500 flex items-start gap-4">
+          <svg class="w-6 h-6 text-amber-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+          <div>
+            <h3 class="font-semibold text-amber-900 mb-2">Complete Your Store Setup</h3>
+            <p class="text-amber-800 mb-4">{!hasStripe ? 'Connect your Stripe account to start receiving payments.' : 'Add a store description to help customers find you.'}</p>
+            <a href="/dashboard/settings" class="btn btn-primary">Complete Setup →</a>
           </div>
         </div>
       )}
 
-      <!-- Stats Grid -->
+      <!-- Stripe Incomplete Alert -->
+      <div id="stripe-onboarding-alert" class="hidden mb-12 card-elevated p-6 bg-gradient-to-r from-red-50 to-rose-50 border-l-4 border-red-500 flex items-start gap-4">
+        <svg class="w-6 h-6 text-red-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+        <div>
+          <h3 class="font-semibold text-red-900 mb-2">Stripe Setup Incomplete</h3>
+          <p class="text-red-800 mb-4">Your Stripe account isn't fully set up. You won't be able to receive payouts until you complete onboarding.</p>
+          <button id="stripe-onboarding-alert-btn" class="btn btn-primary">Complete Stripe Setup →</button>
+        </div>
+      </div>
+
+      <!-- Stats -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-        <div class="card-elevated p-6 state-layer">
-          <div class="flex items-center justify-between mb-4">
-            <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center elevation-2">
-              <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-              </svg>
+        {stats.map(s => (
+          <div class="card-elevated p-6 state-layer">
+            <div class="flex items-center justify-between mb-4">
+              <div class={`w-12 h-12 bg-gradient-to-br from-${s.color}-500 to-${s.color}-600 rounded-2xl flex items-center justify-center elevation-2`}>
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={s.icon} /></svg>
+              </div>
+              {s.badge && <span class={`chip bg-${s.color}-600 text-white text-xs${s.pulse && s.value > 0 ? ' animate-pulse' : ''}`}>{s.badge}</span>}
             </div>
-            <span class="chip bg-blue-600 text-white text-xs">All Time</span>
+            <p class="text-gray-600 text-sm font-medium mb-1">{s.label}</p>
+            <p class="text-4xl font-medium text-gray-900">{s.value}</p>
           </div>
-          <p class="text-gray-600 text-sm font-medium mb-1">Total Orders</p>
-          <p class="text-4xl font-medium text-gray-900">{totalOrders}</p>
-        </div>
-
-        <div class="card-elevated p-6 state-layer">
-          <div class="flex items-center justify-between mb-4">
-            <div class="w-12 h-12 bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl flex items-center justify-center elevation-2">
-              <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            {pendingOrders > 0 && <span class="chip bg-orange-600 text-white text-xs animate-pulse">Action</span>}
-          </div>
-          <p class="text-gray-600 text-sm font-medium mb-1">Pending Orders</p>
-          <p class="text-4xl font-medium text-gray-900">{pendingOrders}</p>
-        </div>
-
-        <div class="card-elevated p-6 state-layer">
-          <div class="flex items-center justify-between mb-4">
-            <div class="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center elevation-2">
-              <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <span class="chip text-xs">USD</span>
-          </div>
-          <p class="text-gray-600 text-sm font-medium mb-1">Total Revenue</p>
-          <p class="text-4xl font-medium text-gray-900">${totalRevenue.toFixed(2)}</p>
-        </div>
+        ))}
       </div>
 
       <!-- Balance Card -->
@@ -122,49 +108,29 @@ const statusStyles = {
             <p class="text-4xl font-bold" id="bal-avail">—</p>
             <p class="text-indigo-200 text-sm mt-1">Pending: <span id="bal-pending">—</span></p>
           </div>
-          {hasStripeAccount ? (
+          {hasStripe ? (
             <div class="flex flex-col gap-3 sm:items-end">
               <div class="flex items-center gap-3">
-                <input
-                  id="withdraw-amt"
-                  type="number"
-                  min="1"
-                  step="0.01"
-                  placeholder="Amount (USD)"
-                  class="w-36 bg-white/15 border border-white/25 rounded-lg px-3 py-2 text-white placeholder-white/50 text-sm outline-none focus:border-white/60"
-                />
-                <button id="withdraw-btn" class="bg-white text-indigo-700 font-bold text-sm px-5 py-2 rounded-lg hover:bg-indigo-50 transition disabled:opacity-40">
-                  Withdraw
-                </button>
+                <input id="withdraw-amt" type="number" min="1" step="0.01" placeholder="Amount (USD)" class="w-36 bg-white/15 border border-white/25 rounded-lg px-3 py-2 text-white placeholder-white/50 text-sm outline-none focus:border-white/60" />
+                <button id="withdraw-btn" class="bg-white text-indigo-700 font-bold text-sm px-5 py-2 rounded-lg hover:bg-indigo-50 transition disabled:opacity-40">Withdraw</button>
               </div>
-              <button id="express-btn" class="text-indigo-200 hover:text-white text-xs underline underline-offset-2 text-right">
-                Open Stripe Dashboard →
-              </button>
+              <button id="express-btn" class="text-indigo-200 hover:text-white text-xs underline underline-offset-2 text-right">Open Stripe Dashboard →</button>
               <p id="withdraw-msg" class="text-xs text-indigo-200 hidden"></p>
             </div>
           ) : (
-            <a href="/dashboard/settings" class="bg-white text-indigo-700 font-bold text-sm px-5 py-2 rounded-lg hover:bg-indigo-50 transition">
-              Connect Stripe →
-            </a>
+            <a href="/dashboard/settings" class="bg-white text-indigo-700 font-bold text-sm px-5 py-2 rounded-lg hover:bg-indigo-50 transition">Connect Stripe →</a>
           )}
         </div>
       </div>
 
       <!-- Quick Actions -->
       <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
-        {[
-          { href: '/dashboard/products', icon: 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4', label: 'Products', color: 'blue' },
-          { href: '/dashboard/orders', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2', label: 'Orders', color: 'purple' },
-          { href: '/dashboard/analytics', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z', label: 'Analytics', color: 'green' },
-          { href: '/dashboard/settings', icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z', label: 'Settings', color: 'gray' }
-        ].map(action => (
-          <a href={action.href} class="card state-layer p-4 group">
-            <div class={`w-10 h-10 bg-${action.color}-50 rounded-xl flex items-center justify-center mb-3 group-hover:bg-${action.color}-100 motion-emphasized`}>
-              <svg class={`w-5 h-5 text-${action.color}-600`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={action.icon} />
-              </svg>
+        {actions.map(a => (
+          <a href={a.href} class="card state-layer p-4 group">
+            <div class={`w-10 h-10 bg-${a.color}-50 rounded-xl flex items-center justify-center mb-3 group-hover:bg-${a.color}-100 motion-emphasized`}>
+              <svg class={`w-5 h-5 text-${a.color}-600`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={a.icon} /></svg>
             </div>
-            <p class="font-medium text-gray-900">{action.label}</p>
+            <p class="font-medium text-gray-900">{a.label}</p>
           </a>
         ))}
       </div>
@@ -176,15 +142,13 @@ const statusStyles = {
             <h2 class="text-3xl font-medium text-gray-900">Recent Orders</h2>
             <p class="text-gray-600 mt-1">Your latest customer orders with shipping details</p>
           </div>
-          <a href="/dashboard/orders" class="text-blue-600 font-medium hover:underline flex items-center gap-1">View All →</a>
+          <a href="/dashboard/orders" class="text-blue-600 font-medium hover:underline">View All →</a>
         </div>
 
         {orders.length === 0 ? (
           <div class="text-center py-20 bg-gray-50 rounded-3xl">
             <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg class="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-              </svg>
+              <svg class="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" /></svg>
             </div>
             <h3 class="text-2xl font-medium text-gray-900 mb-2">No Orders Yet</h3>
             <p class="text-gray-600 mb-6">Orders will appear here when customers purchase your products</p>
@@ -200,27 +164,21 @@ const statusStyles = {
                       <div>
                         <div class="flex items-center gap-3 mb-2">
                           <h3 class="font-mono text-lg font-semibold text-gray-900">#{order.metadata.order_number}</h3>
-                          <span class={`chip text-xs ${statusStyles[order.metadata.order_status as keyof typeof statusStyles] || statusStyles.default}`}>
-                            {order.metadata.order_status}
-                          </span>
+                          <span class={`chip text-xs ${statusStyles[order.metadata.order_status] ?? 'bg-gray-100 text-gray-800'}`}>{order.metadata.order_status}</span>
                         </div>
-                        <p class="text-sm text-gray-500">
-                          {new Date(order.metadata.order_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                        </p>
+                        <p class="text-sm text-gray-500">{new Date(order.metadata.order_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
                       </div>
                       <div class="text-right">
                         <p class="text-2xl font-bold text-gray-900">${order.metadata.order_total.toFixed(2)}</p>
                         <p class="text-sm text-gray-500">{order.metadata.currency.toUpperCase()}</p>
                       </div>
                     </div>
-
                     <div class="mb-4 p-4 bg-gray-50 rounded-xl">
                       <p class="text-xs font-medium text-gray-500 mb-2">CUSTOMER</p>
                       <p class="font-medium text-gray-900">{order.metadata.buyer_name}</p>
                       <p class="text-sm text-gray-600">{order.metadata.buyer_email}</p>
                     </div>
-
-                    {order.metadata.line_items && order.metadata.line_items.length > 0 && (
+                    {order.metadata.line_items?.length > 0 && (
                       <div class="mb-4">
                         <p class="text-xs font-medium text-gray-500 mb-2">PRODUCTS</p>
                         <div class="space-y-2">
@@ -234,42 +192,28 @@ const statusStyles = {
                       </div>
                     )}
                   </div>
-
-                  <div class="lg:w-1/3 border-l-0 lg:border-l lg:pl-6">
+                  <div class="lg:w-1/3 lg:border-l lg:pl-6">
                     <div class="flex items-center gap-2 mb-4">
-                      <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                      </svg>
+                      <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
                       <h4 class="font-semibold text-gray-900">Shipping Address</h4>
                     </div>
-
                     {order.metadata.shipping_address ? (
-                      <div class="bg-blue-50 rounded-xl p-4 space-y-2">
+                      <div class="bg-blue-50 rounded-xl p-4 space-y-1 text-sm text-gray-700">
                         <p class="font-medium text-gray-900">{order.metadata.shipping_name || order.metadata.buyer_name}</p>
-                        <div class="text-sm text-gray-700 space-y-1">
-                          <p>{order.metadata.shipping_address.line1}</p>
-                          {order.metadata.shipping_address.line2 && <p>{order.metadata.shipping_address.line2}</p>}
-                          <p>{order.metadata.shipping_address.city}, {order.metadata.shipping_address.state} {order.metadata.shipping_address.postal_code}</p>
-                          <p class="font-medium">{order.metadata.shipping_address.country}</p>
-                        </div>
+                        <p>{order.metadata.shipping_address.line1}</p>
+                        {order.metadata.shipping_address.line2 && <p>{order.metadata.shipping_address.line2}</p>}
+                        <p>{order.metadata.shipping_address.city}, {order.metadata.shipping_address.state} {order.metadata.shipping_address.postal_code}</p>
+                        <p class="font-medium">{order.metadata.shipping_address.country}</p>
                       </div>
                     ) : (
-                      <div class="bg-gray-50 rounded-xl p-4">
-                        <p class="text-sm text-gray-500 italic">No shipping address provided</p>
-                      </div>
+                      <div class="bg-gray-50 rounded-xl p-4"><p class="text-sm text-gray-500 italic">No shipping address provided</p></div>
                     )}
-
-                    <div class="mt-4 pt-4 border-t">
-                      <div class="flex items-center justify-between text-sm">
-                        <span class="text-gray-600">Payment Status:</span>
-                        <span class={`chip text-xs ${order.metadata.payment_status === 'paid' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                          {order.metadata.payment_status}
-                        </span>
-                      </div>
+                    <div class="mt-4 pt-4 border-t flex items-center justify-between text-sm">
+                      <span class="text-gray-600">Payment Status:</span>
+                      <span class={`chip text-xs ${order.metadata.payment_status === 'paid' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{order.metadata.payment_status}</span>
                     </div>
                   </div>
                 </div>
-
                 <div class="mt-6 pt-6 border-t flex justify-end">
                   <a href={`/dashboard/orders/${order.id}`} class="btn btn-primary">View Full Details →</a>
                 </div>
@@ -280,37 +224,49 @@ const statusStyles = {
       </div>
     </div>
   </main>
-
   <Footer />
 </Layout>
 
 <script>
   const fmt = (n: number) => `$${n.toFixed(2)}`;
+  let expressUrlCache: string | null = null;
+
+  fetch('/api/seller/express-link')
+    .then(r => r.json())
+    .then(({ url, fullyOnboarded }) => {
+      expressUrlCache = url ?? null;
+      if (!fullyOnboarded) {
+        document.getElementById('stripe-onboarding-alert')?.classList.remove('hidden');
+        const btn = document.getElementById('express-btn');
+        if (btn) btn.textContent = 'Complete Stripe Setup →';
+      }
+      document.getElementById('stripe-onboarding-alert-btn')?.addEventListener('click', () => {
+        if (expressUrlCache) window.location.href = expressUrlCache;
+      });
+    })
+    .catch(() => {});
 
   fetch('/api/seller/balance')
     .then(r => r.json())
-    .then(d => {
-      const avail = document.getElementById('bal-avail');
-      const pend  = document.getElementById('bal-pending');
-      if (avail) avail.textContent = d.available != null ? fmt(d.available) : '—';
-      if (pend)  pend.textContent  = d.pending   != null ? fmt(d.pending)   : '—';
+    .then(({ available, pending }) => {
+      const a = document.getElementById('bal-avail');
+      const p = document.getElementById('bal-pending');
+      if (a) a.textContent = available != null ? fmt(available) : '—';
+      if (p) p.textContent = pending != null ? fmt(pending) : '—';
     })
     .catch(() => {});
 
   const wBtn = document.getElementById('withdraw-btn') as HTMLButtonElement | null;
-  const wAmt = document.getElementById('withdraw-amt') as HTMLInputElement  | null;
-  const wMsg = document.getElementById('withdraw-msg') as HTMLElement       | null;
+  const wAmt = document.getElementById('withdraw-amt') as HTMLInputElement | null;
+  const wMsg = document.getElementById('withdraw-msg') as HTMLElement | null;
 
   wBtn?.addEventListener('click', async () => {
     const amount = parseFloat(wAmt?.value ?? '');
-    if (!amount || amount <= 0) {
-      if (wMsg) { wMsg.textContent = 'Enter a valid amount.'; wMsg.classList.remove('hidden'); }
-      return;
-    }
-    wBtn.disabled = true;
+    if (!amount || amount <= 0) { if (wMsg) { wMsg.textContent = 'Enter a valid amount.'; wMsg.classList.remove('hidden'); } return; }
+    wBtn!.disabled = true;
     if (wMsg) { wMsg.textContent = 'Processing…'; wMsg.classList.remove('hidden'); }
     try {
-      const res  = await fetch('/api/seller/withdraw', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ amount }) });
+      const res = await fetch('/api/seller/withdraw', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ amount }) });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed');
       if (wMsg) wMsg.textContent = `Payout initiated (${data.status}). Funds arrive in 1–4 business days.`;
@@ -318,22 +274,22 @@ const statusStyles = {
     } catch (e: any) {
       if (wMsg) wMsg.textContent = e.message;
     } finally {
-      wBtn.disabled = false;
+      wBtn!.disabled = false;
     }
   });
 
   document.getElementById('express-btn')?.addEventListener('click', async () => {
+    if (expressUrlCache) { window.location.href = expressUrlCache; return; }
     const btn = document.getElementById('express-btn') as HTMLButtonElement;
     btn.textContent = 'Opening…';
-    btn.setAttribute('disabled', 'true');
+    btn.disabled = true;
     try {
-      const res  = await fetch('/api/seller/express-link');
-      const data = await res.json();
-      if (data.url) window.location.href = data.url;
+      const { url } = await fetch('/api/seller/express-link').then(r => r.json());
+      if (url) window.location.href = url;
       else throw new Error();
     } catch {
       btn.textContent = 'Failed — try again';
-      btn.removeAttribute('disabled');
+      btn.disabled = false;
     }
   });
 </script>
