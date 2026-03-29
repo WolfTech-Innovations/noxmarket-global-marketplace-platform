@@ -15,7 +15,7 @@ export const GET: APIRoute = async ({ request }) => {
     const obj = r?.objects?.[0] || null;
     return new Response(JSON.stringify(obj),{headers:{'Content-Type':'application/json'}});
   } catch(e) {
-    console.error('[profile GET]', String(e));
+    console.error('[profile POST]', JSON.stringify(e, Object.getOwnPropertyNames(e)));
     return new Response('null',{headers:{'Content-Type':'application/json'}});
   }
 };
