@@ -43,3 +43,7 @@ export const DELETE: APIRoute = async ({ request }) => {
     return new Response(JSON.stringify(r),{headers:{'Content-Type':'application/json'}});
   } catch(e) { return new Response(JSON.stringify({error:String(e)}),{status:500}); }
 };
+} catch(e) { 
+  console.error('[profile POST]', JSON.stringify(e));
+  return new Response(JSON.stringify({error: String(e), detail: e?.message, stack: e?.stack}),{status:500}); 
+}
