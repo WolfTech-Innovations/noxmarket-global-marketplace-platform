@@ -55,14 +55,3 @@ export const DELETE: APIRoute = async ({ request }) => {
     return new Response(JSON.stringify({error: String(e), detail: e?.message}),{status:500});
   }
 };
-  } catch(e) { return new Response(JSON.stringify({error:String(e)}),{status:500}); }
-};
-
-export const DELETE: APIRoute = async ({ request }) => {
-  try {
-    const { id } = await request.json();
-    if (!id) return new Response('bad',{status:400});
-    const r = await cosmic().objects.deleteOne(id);
-    return new Response(JSON.stringify(r),{headers:{'Content-Type':'application/json'}});
-  } catch(e) { return new Response(JSON.stringify({error:String(e)}),{status:500}); }
-};
