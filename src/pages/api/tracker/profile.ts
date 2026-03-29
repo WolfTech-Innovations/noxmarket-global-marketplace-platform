@@ -27,8 +27,9 @@ export const POST: APIRoute = async ({ request }) => {
     const r = await cosmic().objects.insertOne({ title:`Nox User ${uid}`, slug:uid, type:'nox-user-profiles', status:'published', metadata:profile });
     return new Response(JSON.stringify(r),{headers:{'Content-Type':'application/json'}});
   } catch(e) {
-    console.error('[profile POST]', String(e), e?.message);
-    return new Response(JSON.stringify({error: String(e), detail: e?.message}),{status:500});
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error('[profile POST]', msg);
+    return new Response(JSON.stringify({error: msg}),{status:500});
   }
 };
 
@@ -39,8 +40,9 @@ export const PATCH: APIRoute = async ({ request }) => {
     const r = await cosmic().objects.updateOne(id,{ metadata:profile });
     return new Response(JSON.stringify(r),{headers:{'Content-Type':'application/json'}});
   } catch(e) {
-    console.error('[profile PATCH]', String(e), e?.message);
-    return new Response(JSON.stringify({error: String(e), detail: e?.message}),{status:500});
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error('[profile PATCH]', msg);
+    return new Response(JSON.stringify({error: msg}),{status:500});
   }
 };
 
@@ -51,7 +53,8 @@ export const DELETE: APIRoute = async ({ request }) => {
     const r = await cosmic().objects.deleteOne(id);
     return new Response(JSON.stringify(r),{headers:{'Content-Type':'application/json'}});
   } catch(e) {
-    console.error('[profile DELETE]', String(e), e?.message);
-    return new Response(JSON.stringify({error: String(e), detail: e?.message}),{status:500});
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error('[profile DELETE]', msg);
+    return new Response(JSON.stringify({error: msg}),{status:500});
   }
 };
