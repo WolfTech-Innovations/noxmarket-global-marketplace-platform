@@ -23,8 +23,10 @@ export const POST: APIRoute = async ({ request }) => {
     if (!uid) return new Response('bad',{status:400});
     const r = await cosmic().objects.insertOne({ title:`Nox User ${uid}`, slug:uid, type:'nox-user-profiles', status:'published', metadata:profile });
     return new Response(JSON.stringify(r),{headers:{'Content-Type':'application/json'}});
-  } catch(e) { return new Response(JSON.stringify({error:String(e)}),{status:500}); }
-};
+  } catch(e) { 
+  console.error('[profile POST]', JSON.stringify(e));
+  return new Response(JSON.stringify({error: String(e), detail: e?.message, stack: e?.stack}),{status:500}); 
+}
 
 export const PATCH: APIRoute = async ({ request }) => {
   try {
@@ -43,7 +45,3 @@ export const DELETE: APIRoute = async ({ request }) => {
     return new Response(JSON.stringify(r),{headers:{'Content-Type':'application/json'}});
   } catch(e) { return new Response(JSON.stringify({error:String(e)}),{status:500}); }
 };
-} catch(e) { 
-  console.error('[profile POST]', JSON.stringify(e));
-  return new Response(JSON.stringify({error: String(e), detail: e?.message, stack: e?.stack}),{status:500}); 
-}
