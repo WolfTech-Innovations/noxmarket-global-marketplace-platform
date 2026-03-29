@@ -15,7 +15,7 @@ export const GET: APIRoute = async ({ request }) => {
     const obj = r?.objects?.[0] || null;
     return new Response(JSON.stringify(obj),{headers:{'Content-Type':'application/json'}});
   } catch(e) {
-    console.error('[profile POST]', JSON.stringify(e, Object.getOwnPropertyNames(e)));
+    console.error('[profile GET]', JSON.stringify(e, Object.getOwnPropertyNames(e)));
     return new Response('null',{headers:{'Content-Type':'application/json'}});
   }
 };
@@ -28,7 +28,7 @@ export const POST: APIRoute = async ({ request }) => {
     return new Response(JSON.stringify(r),{headers:{'Content-Type':'application/json'}});
   } catch(e) {
     const msg = e instanceof Error ? e.message : String(e);
-    console.error('[profile POST]', msg);
+    console.error('[profile POST]', JSON.stringify(e, Object.getOwnPropertyNames(e)));
     return new Response(JSON.stringify({error: msg}),{status:500});
   }
 };
