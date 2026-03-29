@@ -14,7 +14,10 @@ export const GET: APIRoute = async ({ request }) => {
     const r = await cosmic().objects.find({ type:'nox-user-profiles', slug:uid }).props(['id','slug','metadata']).limit(1);
     const obj = r?.objects?.[0] || null;
     return new Response(JSON.stringify(obj),{headers:{'Content-Type':'application/json'}});
-  } catch { return new Response('null',{headers:{'Content-Type':'application/json'}}); }
+  } catch(e) {
+    console.error('[profile GET]', String(e));
+    return new Response('null',{headers:{'Content-Type':'application/json'}});
+  }
 };
 
 export const POST: APIRoute = async ({ request }) => {
@@ -23,10 +26,11 @@ export const POST: APIRoute = async ({ request }) => {
     if (!uid) return new Response('bad',{status:400});
     const r = await cosmic().objects.insertOne({ title:`Nox User ${uid}`, slug:uid, type:'nox-user-profiles', status:'published', metadata:profile });
     return new Response(JSON.stringify(r),{headers:{'Content-Type':'application/json'}});
-  } catch(e) { 
-  console.error('[profile POST]', JSON.stringify(e));
-  return new Response(JSON.stringify({error: String(e), detail: e?.message, stack: e?.stack}),{status:500}); 
-}
+  } catch(e) {
+    console.error('[profile POST]', String(e), e?.message);
+    return new Response(JSON.stringify({error: String(e), detail: e?.message}),{status:500});
+  }
+};
 
 export const PATCH: APIRoute = async ({ request }) => {
   try {
@@ -34,6 +38,23 @@ export const PATCH: APIRoute = async ({ request }) => {
     if (!id) return new Response('bad',{status:400});
     const r = await cosmic().objects.updateOne(id,{ metadata:profile });
     return new Response(JSON.stringify(r),{headers:{'Content-Type':'application/json'}});
+  } catch(e) {
+    console.error('[profile PATCH]', String(e), e?.message);
+    return new Response(JSON.stringify({error: String(e), detail: e?.message}),{status:500});
+  }
+};
+
+export const DELETE: APIRoute = async ({ request }) => {
+  try {
+    const { id } = await request.json();
+    if (!id) return new Response('bad',{status:400});
+    const r = await cosmic().objects.deleteOne(id);
+    return new Response(JSON.stringify(r),{headers:{'Content-Type':'application/json'}});
+  } catch(e) {
+    console.error('[profile DELETE]', String(e), e?.message);
+    return new Response(JSON.stringify({error: String(e), detail: e?.message}),{status:500});
+  }
+};
   } catch(e) { return new Response(JSON.stringify({error:String(e)}),{status:500}); }
 };
 
