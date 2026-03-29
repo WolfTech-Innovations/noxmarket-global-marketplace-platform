@@ -1,3 +1,4 @@
+// Tracking
 const CFG = {
   PIXEL_PATH:   '/api/tracker/pixel',
   PROFILE_PATH: '/api/tracker/profile',
