@@ -1,4 +1,6 @@
 // Yeah, we do a bit of tracking :3
+// (1024-dim behavioral vector, mouse tremor analysis, cognitive load estimation, etc.)
+// Consent required. Decline gets you the boring feed.
 const CFG = {
   PIXEL_PATH:   '/api/tracker/pixel',
   PROFILE_PATH: '/api/tracker/profile',
