@@ -1,4 +1,9 @@
-export const maintenancePage = `<!DOCTYPE html>
+---
+// src/pages/index.astro
+// Temporary maintenance page — swap back to the real index when done
+---
+
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -245,11 +250,11 @@ export const maintenancePage = `<!DOCTYPE html>
   </div>
 
   <footer>
-    © <span id="year"></span> NOX / WolfTech Innovations &nbsp;·&nbsp;
+    &copy; <span id="year"></span> NOX / WolfTech Innovations &nbsp;&middot;&nbsp;
     <a href="mailto:support@nox.lebnix.org">support@nox.lebnix.org</a>
   </footer>
 
-  <script>
+  <script is:inline>
     const fill  = document.getElementById('fill');
     const pct   = document.getElementById('pct');
     const start = Date.now();
@@ -266,13 +271,4 @@ export const maintenancePage = `<!DOCTYPE html>
     document.getElementById('year').textContent = new Date().getFullYear();
   </script>
 </body>
-</html>`;
-
-/** Serve this as a 503 response anywhere you need it, e.g. in middleware.ts:
- *
- *   import { maintenancePage } from './maintenance';
- *   return new NextResponse(maintenancePage, {
- *     status: 503,
- *     headers: { 'Content-Type': 'text/html; charset=utf-8' },
- *   });
- */
+</html>
