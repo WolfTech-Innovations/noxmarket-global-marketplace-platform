@@ -2,7 +2,7 @@
 import type { APIRoute } from 'astro';
 import Stripe from 'stripe';
 
-const stripe = new Stripe(import.meta.env.STRIPE_SECRET_KEY);
+const stripe = new Stripe(import.meta.env.STRIPE_SECRET_KEY, { apiVersion: '2025-02-24.acacia' });
 
 export const POST: APIRoute = async ({ request }) => {
   let body: { sessionId: string };
@@ -13,11 +13,8 @@ export const POST: APIRoute = async ({ request }) => {
   }
 
   const { sessionId } = body;
-  if (!sessionId) {
-    return new Response(JSON.stringify({ error: 'Missing sessionId' }), { status: 400 });
-  }
+  if (!sessionId) return new Response(JSON.stringify({ error: 'Missing sessionId' }), { status: 400 });
 
-  // Pull order details from Stripe
   let session: Stripe.Checkout.Session;
   try {
     session = await stripe.checkout.sessions.retrieve(sessionId, {
@@ -33,7 +30,19 @@ export const POST: APIRoute = async ({ request }) => {
   const total      = ((session.amount_total ?? 0) / 100).toFixed(2);
   const currency   = (session.currency ?? 'usd').toUpperCase();
 
-  // Pull seller_id from the first product's metadata (set this when creating Stripe products)
+  const shippingAddr = session.shipping_details?.address;
+  const shippingName = session.shipping_details?.name ?? buyerName;
+
+  const shippingFormatted = shippingAddr
+    ? [
+        shippingName,
+        shippingAddr.line1,
+        shippingAddr.line2,
+        `${shippingAddr.city}, ${shippingAddr.state} ${shippingAddr.postal_code}`,
+        shippingAddr.country
+      ].filter(Boolean).join('\n')
+    : 'No address provided';
+
   const firstProduct = items[0]?.price?.product;
   const sellerId: string =
     typeof firstProduct === 'object' && firstProduct !== null
@@ -49,11 +58,9 @@ export const POST: APIRoute = async ({ request }) => {
     })
     .join(', ');
 
-  // Write a ship-notification object to Cosmic
   const BUCKET = import.meta.env.COSMIC_BUCKET_SLUG;
   const KEY    = import.meta.env.COSMIC_WRITE_KEY;
-
-  const slug = `ship-${sessionId.slice(-12)}-${Date.now()}`;
+  const slug   = `ship-${sessionId.slice(-12)}-${Date.now()}`;
 
   const res = await fetch(`https://api.cosmicjs.com/v3/buckets/${BUCKET}/objects`, {
     method: 'POST',
@@ -64,14 +71,15 @@ export const POST: APIRoute = async ({ request }) => {
       slug,
       status: 'published',
       metadata: {
-        seller_id:    sellerId,
-        buyer_name:   buyerName,
-        buyer_email:  buyerEmail,
-        items:        itemSummary,
-        total:        `${currency} $${total}`,
-        stripe_session: sessionId,
-        shipped:      false,
-        created_at:   new Date().toISOString(),
+        seller_id:        sellerId,
+        buyer_name:       buyerName,
+        buyer_email:      buyerEmail,
+        shipping_address: shippingFormatted,
+        items:            itemSummary,
+        total:            `${currency} $${total}`,
+        stripe_session:   sessionId,
+        shipped:          false,
+        created_at:       new Date().toISOString(),
       },
     }),
   });
