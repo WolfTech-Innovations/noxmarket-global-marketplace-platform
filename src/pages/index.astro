@@ -1,138 +1,278 @@
----
-import Layout from '@/layouts/Layout.astro';
-import Header from '@/components/Header.astro';
-import Footer from '@/components/Footer.astro';
-import ProductCard from '@/components/ProductCard.astro';
-import { getProducts } from '@/lib/cosmic';
-import type { Product } from '@/types';
-const products = await getProducts();
-const featuredProducts = products.slice(0, 8);
----
-
-<Layout title="Nox - PC Part Marketplace">
-  <Header />
+export const maintenancePage = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Nox — Maintenance</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@700;800&display=swap');
 
     :root {
-      --bg: #fff;
-      --text: #000;
-      --muted: rgba(0,0,0,0.6);
-      --border: rgba(0,0,0,0.1);
+      --bg: #0a0a0f;
+      --surface: #111118;
+      --border: #1e1e2e;
+      --accent: #7b6dff;
+      --accent-dim: rgba(123,109,255,0.12);
+      --accent-glow: rgba(123,109,255,0.35);
+      --text: #e8e8f0;
+      --muted: #6b6b80;
+      --danger: #ff4d6d;
     }
 
-    body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; margin: 0; padding: 0; }
-    main { max-width: 1200px; margin: 0 auto; padding: 24px; }
-    h1, h2 { color: var(--text); margin-bottom: 16px; }
-    p { color: var(--muted); line-height: 1.6; margin-bottom: 24px; }
-    a { text-decoration: none; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-    .btn-primary, .btn-ghost {
-      display: inline-block; padding: 12px 24px; border-radius: 6px;
-      font-weight: 700; margin-right: 12px; margin-bottom: 12px;
-      text-align: center; transition: opacity 0.15s, transform 0.1s;
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Syne', sans-serif;
+      overflow: hidden;
     }
-    .btn-primary { background: #000; color: #fff; }
-    .btn-primary:hover { opacity: 0.88; transform: scale(0.97); }
-    .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text); }
-    .btn-ghost:hover { opacity: 0.88; transform: scale(0.97); }
 
-    .hero { padding: 80px 0; text-align: center; }
-    .hero-btns { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin-top: 24px; }
-
-    .fee-badge {
-      display: inline-flex; align-items: center; gap: 8px;
-      background: #f0fdf4; border: 1px solid #bbf7d0;
-      color: #15803d; font-size: 0.85rem; font-weight: 600;
-      padding: 6px 14px; border-radius: 999px; margin-bottom: 24px;
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(123,109,255,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(123,109,255,0.04) 1px, transparent 1px);
+      background-size: 48px 48px;
+      animation: gridShift 20s linear infinite;
+      z-index: 0;
     }
-    .fee-badge-dot { width: 7px; height: 7px; background: #22c55e; border-radius: 50%; }
 
-    .fee-strip {
-      display: flex; flex-wrap: wrap; justify-content: center; gap: 24px;
-      margin: 32px 0 0; padding: 20px; background: #fafafa;
-      border: 1px solid var(--border); border-radius: 10px;
-      font-size: 0.9rem; color: var(--muted);
+    @keyframes gridShift {
+      0%   { background-position: 0 0; }
+      100% { background-position: 48px 48px; }
     }
-    .fee-strip span { display: flex; align-items: center; gap: 6px; }
-    .fee-strip strong { color: var(--text); }
 
-    .products-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-top: 32px; }
-    .cats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; margin-top: 32px; }
-    .cat-card { padding: 24px; border: 1px solid var(--border); border-radius: 10px; text-align: center; transition: transform 0.15s; }
-    .cat-card:hover { transform: translateY(-2px); }
-    .cat-name { font-weight: 700; }
-    .section { padding: 80px 0; }
+    body::after {
+      content: '';
+      position: fixed;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 600px; height: 600px;
+      background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
+      animation: pulse 6s ease-in-out infinite;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 0.6; transform: translate(-50%,-50%) scale(1); }
+      50%       { opacity: 1;   transform: translate(-50%,-50%) scale(1.15); }
+    }
+
+    .container {
+      position: relative; z-index: 1;
+      height: 100vh;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 2rem; padding: 2rem; text-align: center;
+    }
+
+    .logo {
+      display: flex; align-items: center; gap: 0.6rem;
+      font-family: 'Space Mono', monospace;
+      font-size: 1.1rem; font-weight: 700;
+      letter-spacing: 0.15em; color: var(--accent); text-transform: uppercase;
+    }
+
+    .logo-icon {
+      width: 36px; height: 36px;
+      border: 2px solid var(--accent); border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1rem; box-shadow: 0 0 16px var(--accent-glow);
+    }
+
+    .badge {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      background: var(--accent-dim); border: 1px solid var(--accent);
+      border-radius: 999px; padding: 0.35rem 1rem;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.7rem; letter-spacing: 0.12em;
+      color: var(--accent); text-transform: uppercase;
+    }
+
+    .badge-dot {
+      width: 7px; height: 7px; background: var(--danger);
+      border-radius: 50%; box-shadow: 0 0 8px var(--danger);
+      animation: blink 1.4s ease-in-out infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; } 50% { opacity: 0.2; }
+    }
+
+    h1 {
+      font-size: clamp(2.4rem, 7vw, 5rem);
+      font-weight: 800; line-height: 1.05; letter-spacing: -0.02em;
+      background: linear-gradient(135deg, #fff 30%, var(--accent) 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    p {
+      max-width: 440px; font-size: 1rem;
+      color: var(--muted); line-height: 1.7;
+    }
+
+    p strong { color: var(--text); font-weight: 700; }
+
+    .progress-wrap {
+      width: min(400px, 90vw);
+      display: flex; flex-direction: column; gap: 0.5rem;
+    }
+
+    .progress-labels {
+      display: flex; justify-content: space-between;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.65rem; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 0.1em;
+    }
+
+    .progress-bar {
+      height: 4px; background: var(--border);
+      border-radius: 999px; overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), #b48cff);
+      border-radius: 999px;
+      animation: progress 4s ease-in-out infinite alternate;
+    }
+
+    @keyframes progress {
+      0%   { width: 30%; }
+      100% { width: 85%; }
+    }
+
+    .stats {
+      display: flex; gap: 1.5rem;
+      flex-wrap: wrap; justify-content: center;
+    }
+
+    .stat {
+      display: flex; flex-direction: column;
+      align-items: center; gap: 0.25rem;
+      padding: 0.75rem 1.25rem;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; min-width: 100px;
+    }
+
+    .stat-value {
+      font-family: 'Space Mono', monospace;
+      font-size: 1.3rem; font-weight: 700; color: var(--accent);
+    }
+
+    .stat-label {
+      font-size: 0.65rem; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 0.1em;
+    }
+
+    footer {
+      position: fixed; bottom: 1.5rem; left: 50%;
+      transform: translateX(-50%);
+      font-family: 'Space Mono', monospace;
+      font-size: 0.65rem; color: var(--muted);
+      letter-spacing: 0.1em; white-space: nowrap; z-index: 1;
+    }
+
+    footer a { color: var(--accent); text-decoration: none; }
+
+    .container > * {
+      opacity: 0; transform: translateY(20px);
+      animation: fadeUp 0.6s ease forwards;
+    }
+    .container > *:nth-child(1) { animation-delay: 0.1s; }
+    .container > *:nth-child(2) { animation-delay: 0.25s; }
+    .container > *:nth-child(3) { animation-delay: 0.4s; }
+    .container > *:nth-child(4) { animation-delay: 0.55s; }
+    .container > *:nth-child(5) { animation-delay: 0.65s; }
+    .container > *:nth-child(6) { animation-delay: 0.75s; }
+
+    @keyframes fadeUp {
+      to { opacity: 1; transform: translateY(0); }
+    }
   </style>
+</head>
+<body>
+  <div class="container">
+    <div class="logo">
+      <div class="logo-icon">N</div>
+      NOX
+    </div>
 
-  <main>
+    <div class="badge">
+      <span class="badge-dot"></span>
+      System maintenance in progress
+    </div>
 
-    <!-- Hero -->
-    <section class="hero">
-      <div class="fee-badge">
-        <span class="fee-badge-dot"></span>
-        Only 6% seller fee — lower than eBay
+    <h1>We're<br/>upgrading<br/>the rig.</h1>
+
+    <p>
+      Nox is down for scheduled maintenance.<br/>
+      <strong>The marketplace will be back shortly</strong> —
+      we're tuning things up to keep your deals fast and reliable.
+    </p>
+
+    <div class="progress-wrap">
+      <div class="progress-labels">
+        <span>Progress</span>
+        <span id="pct">—</span>
       </div>
-      <h1>PC Part Marketplace</h1>
-      <p>Buy and sell verified PC components with confidence.</p>
-      <div class="hero-btns">
-        <a href="/products" class="btn-primary">Browse Components</a>
-        <a href="/become-seller" class="btn-ghost">Start Selling</a>
-        <a href="/clickz" class="btn-primary">Clickz Feed</a>
-        <a href="/sell/clickz" class="btn-ghost">Post a Clickz</a>
+      <div class="progress-bar">
+        <div class="progress-fill" id="fill"></div>
       </div>
-    </section>
+    </div>
 
-    <!-- Featured Components -->
-    <section class="section">
-      <h2>Featured Components</h2>
-      <p>Verified and ready to ship</p>
-      {featuredProducts.length > 0 ? (
-        <div class="products-grid">
-          {featuredProducts.map((product: Product) => (
-            <ProductCard product={product} />
-          ))}
-        </div>
-      ) : (
-        <p>No components yet. Be the first to list!</p>
-      )}
-    </section>
-
-    <!-- Categories -->
-    <section class="section">
-      <h2>Component Categories</h2>
-      <div class="cats-grid">
-        {[
-          'Graphics Cards',
-          'Processors',
-          'Motherboards',
-          'Memory (RAM)',
-          'Storage',
-          'Power Supplies',
-          'Cooling',
-          'Cases',
-        ].map(name => (
-          <a href={`/products?category=${name.toLowerCase()}`} class="cat-card">
-            <div class="cat-name">{name}</div>
-          </a>
-        ))}
+    <div class="stats">
+      <div class="stat">
+        <span class="stat-value">99.9%</span>
+        <span class="stat-label">Uptime SLA</span>
       </div>
-    </section>
-
-    <!-- CTA -->
-    <section class="section" style="text-align:center;">
-      <h2>Ready to Build or Upgrade?</h2>
-      <p>Join our community of PC builders buying and selling verified components.</p>
-      <a href="/products" class="btn-primary">Browse Components</a>
-      <a href="/signup" class="btn-ghost">Create Account</a>
-      <div class="fee-strip">
-        <span><strong>6% seller fee</strong> — keep 94% of every sale</span>
-        <span><strong>Fast payouts</strong> via Stripe</span>
-        <span><strong>No listing fees</strong> — only pay when you sell</span>
+      <div class="stat">
+        <span class="stat-value" id="elapsed">0m</span>
+        <span class="stat-label">Elapsed</span>
       </div>
-    </section>
+      <div class="stat">
+        <span class="stat-value">🔧</span>
+        <span class="stat-label">On it</span>
+      </div>
+    </div>
+  </div>
 
-  </main>
+  <footer>
+    © <span id="year"></span> NOX / WolfTech Innovations &nbsp;·&nbsp;
+    <a href="mailto:support@nox.lebnix.org">support@nox.lebnix.org</a>
+  </footer>
 
-  <Footer />
-</Layout>
+  <script>
+    const fill  = document.getElementById('fill');
+    const pct   = document.getElementById('pct');
+    const start = Date.now();
+
+    (function tick() {
+      const w = parseFloat(getComputedStyle(fill).width);
+      const p = parseFloat(getComputedStyle(fill.parentElement).width);
+      pct.textContent = Math.round((w / p) * 100) + '%';
+      document.getElementById('elapsed').textContent =
+        Math.floor((Date.now() - start) / 60000) + 'm';
+      requestAnimationFrame(tick);
+    })();
+
+    document.getElementById('year').textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>`;
+
+/** Serve this as a 503 response anywhere you need it, e.g. in middleware.ts:
+ *
+ *   import { maintenancePage } from './maintenance';
+ *   return new NextResponse(maintenancePage, {
+ *     status: 503,
+ *     headers: { 'Content-Type': 'text/html; charset=utf-8' },
+ *   });
+ */
