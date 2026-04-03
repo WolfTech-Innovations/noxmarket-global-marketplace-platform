@@ -91,13 +91,12 @@ export const GET: APIRoute = async ({ params }) => {
     const qty   = li.quantity ?? 1;
     const price = ((li.amount_total ?? 0) / 100).toFixed(2);
 
-    // Truncate long names
     const maxChars = 52;
     const displayName = name.length > maxChars ? name.slice(0, maxChars - 1) + '…' : name;
 
     page.drawText(displayName, { x: 48,          y, size: 10, font: fontNormal, color: BLACK });
     page.drawText(String(qty), { x: width - 160, y, size: 10, font: fontNormal, color: BLACK });
-    page.drawText(`\[ {price}`, { x: width - 100, y, size: 10, font: fontNormal, color: BLACK });
+    page.drawText(`$${price}`, { x: width - 100, y, size: 10, font: fontNormal, color: BLACK });
     y -= 22;
 
     page.drawLine({ start: { x: 48, y: y + 8 }, end: { x: width - 48, y: y + 8 }, thickness: 0.5, color: LIGHT });
@@ -108,7 +107,7 @@ export const GET: APIRoute = async ({ params }) => {
   // Total
   page.drawRectangle({ x: width - 200, y: y - 8, width: 160, height: 32, color: BLUE });
   page.drawText('TOTAL', { x: width - 192, y: y + 4, size: 9,  font: fontBold,   color: WHITE });
-  page.drawText(`${currency} \]{total}`, { x: width - 120, y: y + 4, size: 11, font: fontBold, color: WHITE });
+  page.drawText(`${currency} $${total}`, { x: width - 120, y: y + 4, size: 11, font: fontBold, color: WHITE });
 
   y -= 60;
 
@@ -116,15 +115,13 @@ export const GET: APIRoute = async ({ params }) => {
   page.drawText('Thank you for your purchase on Nox. Keep this receipt for your records.',
     { x: 40, y, size: 9, font: fontNormal, color: GRAY });
   y -= 14;
-  page.drawText('For support, visit nox.com/support',
+  page.drawText('For support, visit nox.lebnix.org/support',
     { x: 40, y, size: 9, font: fontNormal, color: GRAY });
 
   // Bottom border
   page.drawRectangle({ x: 0, y: 0, width, height: 8, color: BLUE });
 
   const pdfBytes = await doc.save();
-
-  // Fix for TypeScript 5.9+ Blob compatibility
   const pdfUint8Array = new Uint8Array(pdfBytes);
 
   return new Response(pdfUint8Array, {
