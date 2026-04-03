@@ -18,7 +18,6 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
     const formData = await request.formData();
     const productId = formData.get('productId') as string;
-    const sellerId = formData.get('sellerId') as string;
 
     if (!productId) {
       return new Response(JSON.stringify({ error: 'Product ID required' }), {
@@ -43,8 +42,22 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     }
 
     const price = product.metadata.price || 0;
-    const seller = product.metadata.seller;
-    const stripeAccountId = seller?.metadata?.stripe_account_id;
+
+    // Fetch seller separately to get full metadata including stripe_account_id
+    const sellerId = product.metadata.seller?.id;
+    let stripeAccountId: string | undefined;
+
+    if (sellerId) {
+      try {
+        const sellerResponse = await cosmic.objects.findOne({
+          type: 'sellers',
+          id: sellerId
+        });
+        stripeAccountId = sellerResponse.object?.metadata?.stripe_account_id;
+      } catch {
+        console.error('Failed to fetch seller:', sellerId);
+      }
+    }
 
     // Create Stripe Checkout Session
     const checkoutSession = await stripe.checkout.sessions.create({
@@ -56,38 +69,34 @@ export const POST: APIRoute = async ({ request, cookies }) => {
             product_data: {
               name: product.metadata.product_name,
               description: product.metadata.description?.substring(0, 200) || '',
-              images: product.metadata.product_images?.[0]?.imgix_url 
+              images: product.metadata.product_images?.[0]?.imgix_url
                 ? [`${product.metadata.product_images[0].imgix_url}?w=500&h=500&fit=crop`]
                 : []
             },
-            unit_amount: Math.round(price * 100) // Convert to cents
+            unit_amount: Math.round(price * 100)
           },
           quantity: 1
         }
       ],
       mode: 'payment',
-      
-      // Collect shipping address
+
       shipping_address_collection: {
         allowed_countries: ['US', 'CA', 'GB', 'AU', 'DE', 'FR', 'IT', 'ES', 'NL', 'BE', 'SE', 'NO', 'DK', 'FI']
       },
-      
-      // Store metadata for webhook
+
       metadata: {
         productId: product.id,
-        sellerId: seller?.id || '',
+        sellerId: sellerId || '',
         buyerEmail: session.email,
         buyerName: session.name
       },
 
-      // Success and cancel URLs
       success_url: `${request.headers.get('origin')}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${request.headers.get('origin')}/checkout/${productId}`,
 
-      // If seller has Stripe Connect account, use payment intent data for split payment
       ...(stripeAccountId && {
         payment_intent_data: {
-          application_fee_amount: Math.round(price * 100 * 0.1), // 10% platform fee
+          application_fee_amount: Math.round(price * 100 * 0.06), // 6% platform fee
           transfer_data: {
             destination: stripeAccountId
           }
@@ -95,7 +104,6 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       })
     });
 
-    // Redirect to Stripe Checkout
     return new Response(null, {
       status: 303,
       headers: {
@@ -105,7 +113,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
   } catch (error) {
     console.error('Checkout session error:', error);
-    return new Response(JSON.stringify({ 
+    return new Response(JSON.stringify({
       error: 'Failed to create checkout session',
       details: error instanceof Error ? error.message : 'Unknown error'
     }), {
