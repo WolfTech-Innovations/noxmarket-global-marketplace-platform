@@ -1,279 +1,138 @@
 ---
-// src/pages/index.astro
-// Temporary maintenance page — swap back to the real index when done
+import Layout from '@/layouts/Layout.astro';
+import Header from '@/components/Header.astro';
+import Footer from '@/components/Footer.astro';
+import ProductCard from '@/components/ProductCard.astro';
+import { getProducts } from '@/lib/cosmic';
+import type { Product } from '@/types';
+const products = await getProducts();
+const featuredProducts = products.slice(0, 8);
 ---
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <meta name="robots" content="noindex,nofollow"/>
-  <title>Nox — Down for Maintenance</title>
-  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600&family=Instrument+Serif:ital@1&display=swap" rel="stylesheet">
+<Layout title="Nox - PC Part Marketplace">
+  <Header />
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap');
+
     :root {
-      --tile: 48px;
-      --dot: 3px;
-      --purple: #6c47ff;
-      --red: #ff3b3b;
+      --bg: #fff;
+      --text: #000;
+      --muted: rgba(0,0,0,0.6);
+      --border: rgba(0,0,0,0.1);
     }
 
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; margin: 0; padding: 0; }
+    main { max-width: 1200px; margin: 0 auto; padding: 24px; }
+    h1, h2 { color: var(--text); margin-bottom: 16px; }
+    p { color: var(--muted); line-height: 1.6; margin-bottom: 24px; }
+    a { text-decoration: none; }
 
-    html, body {
-      height: 100%;
-      font-family: 'Sora', sans-serif;
-      background: #fff;
-      color: #0d0d0d;
-      overflow: hidden;
+    .btn-primary, .btn-ghost {
+      display: inline-block; padding: 12px 24px; border-radius: 6px;
+      font-weight: 700; margin-right: 12px; margin-bottom: 12px;
+      text-align: center; transition: opacity 0.15s, transform 0.1s;
     }
+    .btn-primary { background: #000; color: #fff; }
+    .btn-primary:hover { opacity: 0.88; transform: scale(0.97); }
+    .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text); }
+    .btn-ghost:hover { opacity: 0.88; transform: scale(0.97); }
 
-    body {
-      background-image:
-        radial-gradient(circle, #bbb var(--dot), transparent var(--dot)),
-        linear-gradient(#e8e8e8 1px, transparent 1px),
-        linear-gradient(90deg, #e8e8e8 1px, transparent 1px);
-      background-size: var(--tile) var(--tile);
-      background-position:
-        calc(var(--tile) / 2) calc(var(--tile) / 2),
-        0 0, 0 0;
-    }
+    .hero { padding: 80px 0; text-align: center; }
+    .hero-btns { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin-top: 24px; }
 
-    .page {
-      height: 100vh;
-      display: grid;
-      place-items: center;
-      padding: 2rem;
+    .fee-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: #f0fdf4; border: 1px solid #bbf7d0;
+      color: #15803d; font-size: 0.85rem; font-weight: 600;
+      padding: 6px 14px; border-radius: 999px; margin-bottom: 24px;
     }
+    .fee-badge-dot { width: 7px; height: 7px; background: #22c55e; border-radius: 50%; }
 
-    .center {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 2rem;
-      max-width: 580px;
-      width: 100%;
+    .fee-strip {
+      display: flex; flex-wrap: wrap; justify-content: center; gap: 24px;
+      margin: 32px 0 0; padding: 20px; background: #fafafa;
+      border: 1px solid var(--border); border-radius: 10px;
+      font-size: 0.9rem; color: var(--muted);
     }
+    .fee-strip span { display: flex; align-items: center; gap: 6px; }
+    .fee-strip strong { color: var(--text); }
 
-    .top {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      width: 100%;
-    }
-
-    .wordmark {
-      font-size: 0.7rem;
-      font-weight: 600;
-      letter-spacing: 0.22em;
-      text-transform: uppercase;
-      color: #0d0d0d;
-      opacity: 0;
-      animation: fadeUp 0.5s 0.0s ease forwards;
-    }
-
-    .status {
-      display: flex;
-      align-items: center;
-      gap: 0.45rem;
-      font-size: 0.65rem;
-      font-weight: 400;
-      letter-spacing: 0.08em;
-      color: #999;
-      opacity: 0;
-      animation: fadeUp 0.5s 0.05s ease forwards;
-    }
-
-    .pip {
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      background: var(--red);
-      flex-shrink: 0;
-      animation: pip 2s ease-in-out infinite;
-    }
-
-    @keyframes pip {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50%       { opacity: 0.3; transform: scale(0.6); }
-    }
-
-    .line {
-      width: 100%;
-      height: 1px;
-      background: #0d0d0d;
-      opacity: 0;
-      animation: fadeUp 0.5s 0.1s ease forwards;
-    }
-
-    h1 {
-      font-size: clamp(3.2rem, 10vw, 6.5rem);
-      line-height: 0.95;
-      letter-spacing: -0.04em;
-      font-weight: 300;
-      color: #0d0d0d;
-      opacity: 0;
-      animation: fadeUp 0.6s 0.15s cubic-bezier(0.22,1,0.36,1) forwards;
-    }
-
-    h1 em {
-      font-family: 'Instrument Serif', serif;
-      font-style: italic;
-      font-weight: 400;
-      color: var(--purple);
-    }
-
-    .sub {
-      font-size: 0.85rem;
-      font-weight: 300;
-      color: #666;
-      line-height: 1.7;
-      max-width: 380px;
-      opacity: 0;
-      animation: fadeUp 0.5s 0.25s ease forwards;
-    }
-
-    .timer-row {
-      display: flex;
-      align-items: baseline;
-      gap: 0.5rem;
-      opacity: 0;
-      animation: fadeUp 0.5s 0.35s ease forwards;
-    }
-
-    .timer-val {
-      font-size: 2rem;
-      font-weight: 600;
-      letter-spacing: -0.04em;
-      font-variant-numeric: tabular-nums;
-      color: #0d0d0d;
-    }
-
-    .timer-label {
-      font-size: 0.65rem;
-      font-weight: 400;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: #aaa;
-    }
-
-    .bottom {
-      width: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      opacity: 0;
-      animation: fadeUp 0.5s 0.4s ease forwards;
-    }
-
-    .sla {
-      font-size: 0.65rem;
-      color: #bbb;
-      letter-spacing: 0.06em;
-    }
-
-    .sla strong {
-      color: #0d0d0d;
-      font-weight: 600;
-    }
-
-    .copy {
-      font-size: 0.6rem;
-      color: #ccc;
-      letter-spacing: 0.06em;
-    }
-
-    @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(16px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-
-    .cursor {
-      position: fixed;
-      width: 8px; height: 8px;
-      border-radius: 50%;
-      background: var(--purple);
-      pointer-events: none;
-      transform: translate(-50%, -50%);
-      transition: width 0.2s ease, height 0.2s ease, opacity 0.2s;
-      z-index: 100;
-      mix-blend-mode: multiply;
-    }
-
-    .cursor.big {
-      width: 40px;
-      height: 40px;
-      opacity: 0.18;
-    }
+    .products-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-top: 32px; }
+    .cats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; margin-top: 32px; }
+    .cat-card { padding: 24px; border: 1px solid var(--border); border-radius: 10px; text-align: center; transition: transform 0.15s; }
+    .cat-card:hover { transform: translateY(-2px); }
+    .cat-name { font-weight: 700; }
+    .section { padding: 80px 0; }
   </style>
-</head>
-<body>
 
-  <div class="cursor" id="cursor"></div>
+  <main>
 
-  <div class="page">
-    <div class="center">
-
-      <div class="top">
-        <span class="wordmark">Nox</span>
-        <span class="status">
-          <span class="pip"></span>
-          Maintenance in progress
-        </span>
+    <!-- Hero -->
+    <section class="hero">
+      <div class="fee-badge">
+        <span class="fee-badge-dot"></span>
+        Only 6% seller fee — lower than eBay
       </div>
-
-      <div class="line"></div>
-
-      <h1>Back<br/><em>shortly.</em></h1>
-
-      <p class="sub">
-        We're making improvements under the hood.<br/>
-        Nox will be live again very soon.
-      </p>
-
-      <div class="timer-row">
-        <span class="timer-val" id="timer">00:00</span>
-        <span class="timer-label">downtime</span>
+      <h1>PC Part Marketplace</h1>
+      <p>Buy and sell verified PC components with confidence.</p>
+      <div class="hero-btns">
+        <a href="/products" class="btn-primary">Browse Components</a>
+        <a href="/become-seller" class="btn-ghost">Start Selling</a>
+        <a href="/clickz" class="btn-primary">Clickz Feed</a>
+        <a href="/sell/clickz" class="btn-ghost">Post a Clickz</a>
       </div>
+    </section>
 
-      <div class="bottom">
-        <span class="sla"><strong>99.9%</strong> uptime SLA</span>
-        <span class="copy">&copy; <span id="yr"></span> WolfTech Innovations</span>
+    <!-- Featured Components -->
+    <section class="section">
+      <h2>Featured Components</h2>
+      <p>Verified and ready to ship</p>
+      {featuredProducts.length > 0 ? (
+        <div class="products-grid">
+          {featuredProducts.map((product: Product) => (
+            <ProductCard product={product} />
+          ))}
+        </div>
+      ) : (
+        <p>No components yet. Be the first to list!</p>
+      )}
+    </section>
+
+    <!-- Categories -->
+    <section class="section">
+      <h2>Component Categories</h2>
+      <div class="cats-grid">
+        {[
+          'Graphics Cards',
+          'Processors',
+          'Motherboards',
+          'Memory (RAM)',
+          'Storage',
+          'Power Supplies',
+          'Cooling',
+          'Cases',
+        ].map(name => (
+          <a href={`/products?category=${name.toLowerCase()}`} class="cat-card">
+            <div class="cat-name">{name}</div>
+          </a>
+        ))}
       </div>
+    </section>
 
-    </div>
-  </div>
+    <!-- CTA -->
+    <section class="section" style="text-align:center;">
+      <h2>Ready to Build or Upgrade?</h2>
+      <p>Join our community of PC builders buying and selling verified components.</p>
+      <a href="/products" class="btn-primary">Browse Components</a>
+      <a href="/signup" class="btn-ghost">Create Account</a>
+      <div class="fee-strip">
+        <span><strong>6% seller fee</strong> — keep 94% of every sale</span>
+        <span><strong>Fast payouts</strong> via Stripe</span>
+        <span><strong>No listing fees</strong> — only pay when you sell</span>
+      </div>
+    </section>
 
-  <script is:inline>
-    document.getElementById('yr').textContent = new Date().getFullYear();
+  </main>
 
-    const start = Date.now();
-    const tv = document.getElementById('timer');
-    setInterval(() => {
-      const t = Date.now() - start;
-      const m = String(Math.floor(t / 60000)).padStart(2, '0');
-      const s = String(Math.floor((t % 60000) / 1000)).padStart(2, '0');
-      tv.textContent = m + ':' + s;
-    }, 1000);
-
-    const cur = document.getElementById('cursor');
-    let mx = -100, my = -100, cx = -100, cy = -100;
-    document.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; });
-
-    (function loop() {
-      cx += (mx - cx) * 0.18;
-      cy += (my - cy) * 0.18;
-      cur.style.left = cx + 'px';
-      cur.style.top  = cy + 'px';
-      requestAnimationFrame(loop);
-    })();
-
-    document.querySelectorAll('h1, .timer-val, .wordmark').forEach(el => {
-      el.addEventListener('mouseenter', () => cur.classList.add('big'));
-      el.addEventListener('mouseleave', () => cur.classList.remove('big'));
-    });
-  </script>
-
-</body>
-</html>
+  <Footer />
+</Layout>
