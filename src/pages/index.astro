@@ -1,3 +1,4 @@
+
 ---
 // src/pages/index.astro
 // Temporary maintenance page — swap back to the real index when done
@@ -6,208 +7,274 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="robots" content="noindex, nofollow" />
-  <title>Nox — Maintenance</title>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="robots" content="noindex,nofollow"/>
+  <title>Nox — Down for Maintenance</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600&family=Instrument+Serif:ital@1&display=swap" rel="stylesheet">
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@700;800&display=swap');
-
     :root {
       --tile: 48px;
-      --dot: 5px;
-      --accent: #7b6dff;
-      --accent-dim: rgba(123,109,255,0.10);
-      --danger: #ff4d6d;
-      --text: #0a0a0f;
-      --muted: #6b6b80;
+      --dot: 3px;
+      --purple: #6c47ff;
+      --red: #ff3b3b;
     }
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     html, body {
       height: 100%;
-      background: #ffffff;
-      color: var(--text);
-      font-family: 'Syne', sans-serif;
+      font-family: 'Sora', sans-serif;
+      background: #fff;
+      color: #0d0d0d;
       overflow: hidden;
     }
 
-    /* SVG grid: black lines + dots at every corner */
     body {
-      background-color: #fff;
       background-image:
-        /* dots at corners via radial-gradient at tile intersections */
-        radial-gradient(circle, #000 var(--dot), transparent var(--dot)),
-        /* vertical lines */
-        linear-gradient(to right, #000 1px, transparent 1px),
-        /* horizontal lines */
-        linear-gradient(to bottom, #000 1px, transparent 1px);
+        radial-gradient(circle, #bbb var(--dot), transparent var(--dot)),
+        linear-gradient(#e8e8e8 1px, transparent 1px),
+        linear-gradient(90deg, #e8e8e8 1px, transparent 1px);
       background-size: var(--tile) var(--tile);
-      background-position: 0 0;
+      background-position:
+        calc(var(--tile) / 2) calc(var(--tile) / 2),
+        0 0, 0 0;
     }
 
-    .container {
-      position: relative; z-index: 1;
+    .page {
       height: 100vh;
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      gap: 2rem; padding: 2rem; text-align: center;
+      display: grid;
+      place-items: center;
+      padding: 2rem;
     }
 
-    .logo {
-      display: flex; align-items: center; gap: 0.6rem;
-      font-family: 'Space Mono', monospace;
-      font-size: 1.1rem; font-weight: 700;
-      letter-spacing: 0.15em; color: var(--accent); text-transform: uppercase;
+    .center {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 2rem;
+      max-width: 580px;
+      width: 100%;
     }
 
-    .logo-icon {
-      width: 36px; height: 36px;
-      border: 2px solid var(--accent); border-radius: 8px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 1rem; background: #fff;
-      box-shadow: 0 0 16px rgba(123,109,255,0.25);
+    .top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
     }
 
-    .badge {
-      display: inline-flex; align-items: center; gap: 0.5rem;
-      background: var(--accent-dim); border: 1px solid var(--accent);
-      border-radius: 999px; padding: 0.35rem 1rem;
-      font-family: 'Space Mono', monospace;
-      font-size: 0.7rem; letter-spacing: 0.12em;
-      color: var(--accent); text-transform: uppercase;
-      backdrop-filter: blur(2px);
+    .wordmark {
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: #0d0d0d;
+      opacity: 0;
+      animation: fadeUp 0.5s 0.0s ease forwards;
     }
 
-    .badge-dot {
-      width: 7px; height: 7px; background: var(--danger);
-      border-radius: 50%; box-shadow: 0 0 8px var(--danger);
-      animation: blink 1.4s ease-in-out infinite;
+    .status {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      font-size: 0.65rem;
+      font-weight: 400;
+      letter-spacing: 0.08em;
+      color: #999;
+      opacity: 0;
+      animation: fadeUp 0.5s 0.05s ease forwards;
     }
 
-    @keyframes blink {
-      0%, 100% { opacity: 1; } 50% { opacity: 0.2; }
+    .pip {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--red);
+      flex-shrink: 0;
+      animation: pip 2s ease-in-out infinite;
+    }
+
+    @keyframes pip {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%       { opacity: 0.3; transform: scale(0.6); }
+    }
+
+    .line {
+      width: 100%;
+      height: 1px;
+      background: #0d0d0d;
+      opacity: 0;
+      animation: fadeUp 0.5s 0.1s ease forwards;
     }
 
     h1 {
-      font-size: clamp(2.4rem, 7vw, 5rem);
-      font-weight: 800; line-height: 1.05; letter-spacing: -0.02em;
-      color: #0a0a0f;
+      font-size: clamp(3.2rem, 10vw, 6.5rem);
+      line-height: 0.95;
+      letter-spacing: -0.04em;
+      font-weight: 300;
+      color: #0d0d0d;
+      opacity: 0;
+      animation: fadeUp 0.6s 0.15s cubic-bezier(0.22,1,0.36,1) forwards;
     }
 
-    h1 span {
-      background: linear-gradient(135deg, #0a0a0f 30%, var(--accent) 100%);
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-      background-clip: text;
+    h1 em {
+      font-family: 'Instrument Serif', serif;
+      font-style: italic;
+      font-weight: 400;
+      color: var(--purple);
     }
 
-    p {
-      max-width: 440px; font-size: 1rem;
-      color: var(--muted); line-height: 1.7;
+    .sub {
+      font-size: 0.85rem;
+      font-weight: 300;
+      color: #666;
+      line-height: 1.7;
+      max-width: 380px;
+      opacity: 0;
+      animation: fadeUp 0.5s 0.25s ease forwards;
     }
 
-    p strong { color: var(--text); font-weight: 700; }
-
-    .stats {
-      display: flex; gap: 1.5rem;
-      flex-wrap: wrap; justify-content: center;
+    .timer-row {
+      display: flex;
+      align-items: baseline;
+      gap: 0.5rem;
+      opacity: 0;
+      animation: fadeUp 0.5s 0.35s ease forwards;
     }
 
-    .stat {
-      display: flex; flex-direction: column;
-      align-items: center; gap: 0.25rem;
-      padding: 0.75rem 1.25rem;
-      background: rgba(255,255,255,0.85);
-      border: 1.5px solid #000;
-      border-radius: 12px; min-width: 100px;
-      box-shadow: 3px 3px 0 #000;
+    .timer-val {
+      font-size: 2rem;
+      font-weight: 600;
+      letter-spacing: -0.04em;
+      font-variant-numeric: tabular-nums;
+      color: #0d0d0d;
     }
 
-    .stat-value {
-      font-family: 'Space Mono', monospace;
-      font-size: 1.3rem; font-weight: 700; color: var(--accent);
+    .timer-label {
+      font-size: 0.65rem;
+      font-weight: 400;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #aaa;
     }
 
-    .stat-label {
-      font-size: 0.65rem; color: var(--muted);
-      text-transform: uppercase; letter-spacing: 0.1em;
+    .bottom {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      opacity: 0;
+      animation: fadeUp 0.5s 0.4s ease forwards;
     }
 
-    footer {
-      position: fixed; bottom: 1.5rem; left: 50%;
-      transform: translateX(-50%);
-      font-family: 'Space Mono', monospace;
-      font-size: 0.65rem; color: var(--muted);
-      letter-spacing: 0.1em; white-space: nowrap; z-index: 1;
+    .sla {
+      font-size: 0.65rem;
+      color: #bbb;
+      letter-spacing: 0.06em;
     }
 
-    footer a { color: var(--accent); text-decoration: none; }
-
-    .container > * {
-      opacity: 0; transform: translateY(20px);
-      animation: fadeUp 0.6s ease forwards;
+    .sla strong {
+      color: #0d0d0d;
+      font-weight: 600;
     }
-    .container > *:nth-child(1) { animation-delay: 0.1s; }
-    .container > *:nth-child(2) { animation-delay: 0.25s; }
-    .container > *:nth-child(3) { animation-delay: 0.4s; }
-    .container > *:nth-child(4) { animation-delay: 0.55s; }
-    .container > *:nth-child(5) { animation-delay: 0.65s; }
+
+    .copy {
+      font-size: 0.6rem;
+      color: #ccc;
+      letter-spacing: 0.06em;
+    }
 
     @keyframes fadeUp {
-      to { opacity: 1; transform: translateY(0); }
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .cursor {
+      position: fixed;
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--purple);
+      pointer-events: none;
+      transform: translate(-50%, -50%);
+      transition: width 0.2s ease, height 0.2s ease, opacity 0.2s;
+      z-index: 100;
+      mix-blend-mode: multiply;
+    }
+
+    .cursor.big {
+      width: 40px;
+      height: 40px;
+      opacity: 0.18;
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="logo">
-      <div class="logo-icon">N</div>
-      NOX
-    </div>
 
-    <div class="badge">
-      <span class="badge-dot"></span>
-      System maintenance in progress
-    </div>
+  <div class="cursor" id="cursor"></div>
 
-    <h1><span>We're<br/>upgrading<br/>the rig.</span></h1>
+  <div class="page">
+    <div class="center">
 
-    <p>
-      Nox is down for scheduled maintenance.<br/>
-      <strong>The marketplace will be back shortly</strong> —
-      we're tuning things up to keep your deals fast and reliable.
-    </p>
-
-    <div class="stats">
-      <div class="stat">
-        <span class="stat-value">99.9%</span>
-        <span class="stat-label">Uptime SLA</span>
+      <div class="top">
+        <span class="wordmark">Nox</span>
+        <span class="status">
+          <span class="pip"></span>
+          Maintenance in progress
+        </span>
       </div>
-      <div class="stat">
-        <span class="stat-value" id="elapsed">0m</span>
-        <span class="stat-label">Elapsed</span>
+
+      <div class="line"></div>
+
+      <h1>Back<br/><em>shortly.</em></h1>
+
+      <p class="sub">
+        We're making improvements under the hood.<br/>
+        Nox will be live again very soon.
+      </p>
+
+      <div class="timer-row">
+        <span class="timer-val" id="timer">00:00</span>
+        <span class="timer-label">downtime</span>
       </div>
-      <div class="stat">
-        <span class="stat-value">🔧</span>
-        <span class="stat-label">On it</span>
+
+      <div class="bottom">
+        <span class="sla"><strong>99.9%</strong> uptime SLA</span>
+        <span class="copy">&copy; <span id="yr"></span> WolfTech Innovations</span>
       </div>
+
     </div>
   </div>
 
-  <footer>
-    &copy; <span id="year"></span> NOX / WolfTech Innovations &nbsp;&middot;&nbsp;
-    <a href="mailto:support@nox.lebnix.org">support@nox.lebnix.org</a>
-  </footer>
-
   <script is:inline>
+    document.getElementById('yr').textContent = new Date().getFullYear();
+
     const start = Date.now();
-    (function tick() {
-      document.getElementById('elapsed').textContent =
-        Math.floor((Date.now() - start) / 60000) + 'm';
-      requestAnimationFrame(tick);
+    const tv = document.getElementById('timer');
+    setInterval(() => {
+      const t = Date.now() - start;
+      const m = String(Math.floor(t / 60000)).padStart(2, '0');
+      const s = String(Math.floor((t % 60000) / 1000)).padStart(2, '0');
+      tv.textContent = m + ':' + s;
+    }, 1000);
+
+    const cur = document.getElementById('cursor');
+    let mx = -100, my = -100, cx = -100, cy = -100;
+    document.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; });
+
+    (function loop() {
+      cx += (mx - cx) * 0.18;
+      cy += (my - cy) * 0.18;
+      cur.style.left = cx + 'px';
+      cur.style.top  = cy + 'px';
+      requestAnimationFrame(loop);
     })();
-    document.getElementById('year').textContent = new Date().getFullYear();
+
+    document.querySelectorAll('h1, .timer-val, .wordmark').forEach(el => {
+      el.addEventListener('mouseenter', () => cur.classList.add('big'));
+      el.addEventListener('mouseleave', () => cur.classList.remove('big'));
+    });
   </script>
+
 </body>
 </html>
