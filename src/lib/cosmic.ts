@@ -61,6 +61,7 @@ export async function getCategories() {
     throw new Error('Failed to fetch categories');
   }
 }
+
 export async function getClickz(): Promise<Clickz[]> {
   try {
     const res = await cosmic.objects
@@ -72,6 +73,7 @@ export async function getClickz(): Promise<Clickz[]> {
     return [];
   }
 }
+
 // Seller functions
 export async function getSeller(id: string) {
   try {
@@ -105,11 +107,11 @@ export async function getSellerByEmail(email: string) {
   }
 }
 
-// Order functions
+// Order functions — reads from ship-notifications written by notify-ship.ts
 export async function getSellerOrders(sellerId: string) {
   try {
     const response = await cosmic.objects
-      .find({ type: 'orders', 'metadata.seller': sellerId })
+      .find({ type: 'ship-notifications', 'metadata.seller_id': sellerId })
       .props(['id', 'title', 'metadata'])
       .depth(1);
 
@@ -134,7 +136,6 @@ export async function createOrder(orderData: any) {
 // User authentication functions - searches BOTH users and sellers
 export async function getUserByEmail(email: string) {
   try {
-    // First, try to find in users
     const usersResult = await cosmic.objects
       .find({
         type: 'users',
@@ -147,14 +148,12 @@ export async function getUserByEmail(email: string) {
       return usersResult.objects[0];
     }
   } catch (error: any) {
-    // 404 just means no users found, which is fine
     if (error?.status !== 404) {
       console.error('Error fetching user from users:', error);
     }
   }
 
   try {
-    // If not found in users, try sellers
     const sellersResult = await cosmic.objects
       .find({
         type: 'sellers',
@@ -167,23 +166,21 @@ export async function getUserByEmail(email: string) {
       return sellersResult.objects[0];
     }
   } catch (error: any) {
-    // 404 just means no sellers found, which is fine
     if (error?.status !== 404) {
       console.error('Error fetching user from sellers:', error);
     }
   }
 
-  // User not found in either collection
   return null;
 }
 
 export async function createUser(userData: any) {
   try {
-    console.log('Creating user in Cosmic:', { 
-      type: userData.type, 
+    console.log('Creating user in Cosmic:', {
+      type: userData.type,
       title: userData.title,
       email: userData.metadata?.email,
-      slug: userData.slug 
+      slug: userData.slug
     });
 
     const response = await cosmic.objects.insertOne(userData);
@@ -194,7 +191,6 @@ export async function createUser(userData: any) {
     console.error('Cosmic insertOne error:', error);
     console.error('Failed userData:', JSON.stringify(userData, null, 2));
 
-    // Log detailed error information
     if (error) {
       console.error('Error details:', {
         message: error.message,
@@ -206,7 +202,6 @@ export async function createUser(userData: any) {
       });
     }
 
-    // Throw a more descriptive error
     const errorMsg = error.message || error.toString();
     throw new Error(`Failed to create user: ${errorMsg}`);
   }
