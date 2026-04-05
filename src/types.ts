@@ -44,17 +44,14 @@ export interface Product extends CosmicObject {
     seller: Seller;
     stock_quantity: number;
     in_stock: boolean;
-    // PC-specific verification fields
     condition?: string;
     benchmark_results?: string;
     testing_notes?: string;
     warranty_info?: string;
-    // Compatibility fields
     socket_type?: string;
     form_factor?: string;
     power_requirements?: string;
     dimensions?: string;
-    // Trust features
     verified?: boolean;
     escrow_eligible?: boolean;
   };
@@ -66,7 +63,7 @@ export interface Seller extends CosmicObject {
   metadata: {
     business_name: string;
     email: string;
-    user_id: string; // Link to user account
+    user_id: string;
     store_description?: string;
     profile_image?: {
       url: string;
@@ -93,6 +90,7 @@ export interface Category extends CosmicObject {
     };
   };
 }
+
 export interface Clickz {
   id: string;
   slug: string;
@@ -107,59 +105,46 @@ export interface Clickz {
     likes: number;
   };
 }
-// Order interface
+
+// Order interface — maps to 'ship-notifications' Cosmic type
 export interface Order extends CosmicObject {
-  type: 'orders';
+  type: 'ship-notifications';
   metadata: {
-    // Order identifiers
-    order_id: string;
-    order_number: string;
+    // Seller
     seller_id: string;
-    product_id?: string;
-    order_status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
-    
-    // Customer/Buyer details
+
+    // Buyer
     buyer_name: string;
     buyer_email: string;
-    buyer_phone?: string;
-    
-    // Shipping details
-    shipping_name?: string;
-    shipping_address: ShippingAddress | null;
-    
-    // Order items
-    line_items: LineItem[];
-    
-    // Payment details
-    order_total: number; // in dollars
-    amount_total: number; // in cents
-    amount_subtotal: number; // in cents
-    currency: string;
-    payment_status: 'paid' | 'unpaid' | 'pending' | 'refunded';
-    
+
+    // Shipping — stored as plain textarea string
+    shipping_address: string;
+
+    // Items — stored as plain string e.g. "RTX 3080 ×1, DDR4 RAM ×2"
+    items: string;
+
+    // Payment — stored as formatted string e.g. "USD $149.99"
+    total: string;
+
+    // Stripe
+    stripe_session: string;
+
+    // Status
+    shipped: boolean;
+
     // Timestamps
-    order_date: string;
     created_at: string;
-    paid_at?: string;
-    
-    // Stripe info
-    stripe_payment_id?: string;
-    
-    // Legacy/compatibility (for old orders or backward compatibility)
-    product?: Product;
-    seller?: Seller;
   };
 }
 
-// User interface (stored in Cosmic for authentication)
-// Now unified - all users can buy, and optionally become sellers
+// User interface
 export interface User extends CosmicObject {
   type: 'users';
   metadata: {
     name: string;
     email: string;
     password_hash: string;
-    is_seller: boolean; // True if they've created a seller profile
+    is_seller: boolean;
     created_at?: string;
   };
 }
@@ -173,14 +158,13 @@ export interface CosmicResponse<T> {
 }
 
 // Authentication types
-// Unified session - no more userType distinction
 export interface AuthSession {
   userId: string;
   email: string;
   name: string;
-  isSeller: boolean; // True if they have a seller profile
-  sellerId?: string; // ID of their seller profile (if they have one)
-  businessName?: string; // Their business name (if seller)
+  isSeller: boolean;
+  sellerId?: string;
+  businessName?: string;
 }
 
 // Search filter types
