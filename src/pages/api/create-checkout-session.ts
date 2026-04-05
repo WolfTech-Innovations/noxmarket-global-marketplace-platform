@@ -14,9 +14,8 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     if (!productId) return new Response(JSON.stringify({ error: 'Product ID required' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
 
     const { object: product } = await cosmic.objects.findOne(
-      { type: 'products', id: productId },
-      { depth: 2 }
-    ) as { object: Product };
+  { type: 'products', id: productId, depth: 2 }
+) as { object: Product };
 
     if (!product || !product.metadata.in_stock) return new Response(JSON.stringify({ error: 'Product not available' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
 
