@@ -7,71 +7,65 @@ import { getSellerOrders, cosmic } from '@/lib/cosmic';
 import type { Order } from '@/types';
 
 const session = getSessionFromCookies(Astro.cookies);
-
-if (!session || !session.isSeller || !session.sellerId) {
-  return Astro.redirect('/login');
-}
+if (!session?.isSeller || !session?.sellerId) return Astro.redirect('/login');
 
 const orders = await getSellerOrders(session.sellerId);
 
-// Get products count
 let productsCount = 0;
 try {
   const productsResponse = await cosmic.objects
-    .find({
-      type: 'products',
-      'metadata.seller': session.sellerId
-    })
+    .find({ type: 'products', 'metadata.seller': session.sellerId })
     .props('id');
   productsCount = productsResponse.objects?.length || 0;
-} catch (error) {
-  console.error('Error fetching products count:', error);
-}
-
-// Calculate analytics
-const totalRevenue = orders.reduce((sum: number, order: Order) => 
-  order.metadata.payment_status === 'paid' ? sum + order.metadata.order_total : sum, 0
-);
+} catch {}
 
 const totalOrders = orders.length;
-const completedOrders = orders.filter((o: Order) => o.metadata.order_status === 'delivered').length;
-const conversionRate = totalOrders > 0 ? ((completedOrders / totalOrders) * 100).toFixed(1) : '0';
+const shippedOrders = orders.filter((o: Order) => o.metadata.shipped).length;
+const pendingOrders = orders.filter((o: Order) => !o.metadata.shipped).length;
+
+const totalRevenue = orders.reduce((sum: number, o: Order) => {
+  const amount = parseFloat(o.metadata.total?.replace(/[^0-9.]/g, '') ?? '0');
+  return sum + (isNaN(amount) ? 0 : amount);
+}, 0);
+
+const completionRate = totalOrders > 0 ? ((shippedOrders / totalOrders) * 100).toFixed(1) : '0';
 
 // Revenue by month (last 6 months)
-const last6Months = Array.from({length: 6}, (_, i) => {
+const last6Months = Array.from({ length: 6 }, (_, i) => {
   const d = new Date();
   d.setMonth(d.getMonth() - i);
-  return {
-    month: d.toLocaleString('default', { month: 'short' }),
-    year: d.getFullYear()
-  };
+  return { month: d.toLocaleString('default', { month: 'short' }), year: d.getFullYear() };
 }).reverse();
 
 const revenueByMonth = last6Months.map(({ month, year }) => {
   const monthRevenue = orders
     .filter((o: Order) => {
-      const orderDate = new Date(o.created_at);
-      return orderDate.getMonth() === new Date(`${month} 1, ${year}`).getMonth() &&
-             orderDate.getFullYear() === year &&
-             o.metadata.payment_status === 'paid';
+      const d = new Date(o.metadata.created_at);
+      return d.getMonth() === new Date(`${month} 1, ${year}`).getMonth() && d.getFullYear() === year;
     })
-    .reduce((sum: number, o: Order) => sum + o.metadata.order_total, 0);
+    .reduce((sum: number, o: Order) => {
+      const amount = parseFloat(o.metadata.total?.replace(/[^0-9.]/g, '') ?? '0');
+      return sum + (isNaN(amount) ? 0 : amount);
+    }, 0);
   return { month, revenue: monthRevenue };
 });
 
-// Top products
-const productSales = new Map<string, { name: string; count: number; revenue: number }>();
+// Top items parsed from the items string e.g. "RTX 3080 ×1, DDR4 RAM ×2"
+const itemSales = new Map<string, { name: string; count: number; revenue: number }>();
 orders.forEach((order: Order) => {
-  const productName = order.metadata.product?.metadata?.product_name || 'Unknown';
-  const existing = productSales.get(productName) || { name: productName, count: 0, revenue: 0 };
-  existing.count++;
-  if (order.metadata.payment_status === 'paid') {
-    existing.revenue += order.metadata.order_total;
-  }
-  productSales.set(productName, existing);
+  const amount = parseFloat(order.metadata.total?.replace(/[^0-9.]/g, '') ?? '0');
+  const parts = order.metadata.items?.split(',') ?? ['Unknown'];
+  parts.forEach(part => {
+    const name = part.replace(/×\d+/g, '').trim() || 'Unknown';
+    const qty = parseInt(part.match(/×(\d+)/)?.[1] ?? '1');
+    const existing = itemSales.get(name) || { name, count: 0, revenue: 0 };
+    existing.count += qty;
+    existing.revenue += isNaN(amount) ? 0 : amount / parts.length;
+    itemSales.set(name, existing);
+  });
 });
 
-const topProducts = Array.from(productSales.values())
+const topProducts = Array.from(itemSales.values())
   .sort((a, b) => b.revenue - a.revenue)
   .slice(0, 5);
 ---
@@ -81,11 +75,9 @@ const topProducts = Array.from(productSales.values())
 
   <main class="py-16 bg-gray-50 min-h-screen">
     <div class="container-custom">
-      <!-- Header -->
+
       <div class="mb-12">
-        <a href="/dashboard" class="text-blue-600 hover:underline mb-4 inline-flex items-center gap-2 font-medium">
-          ← Back to Dashboard
-        </a>
+        <a href="/dashboard" class="text-blue-600 hover:underline mb-4 inline-flex items-center gap-2 font-medium">← Back to Dashboard</a>
         <h1 class="text-5xl font-medium tracking-tight text-gray-900 mb-2 mt-4">Analytics</h1>
         <p class="text-xl text-gray-600">Track your store performance</p>
       </div>
@@ -93,12 +85,10 @@ const topProducts = Array.from(productSales.values())
       <!-- Key Metrics -->
       <div class="grid md:grid-cols-4 gap-6 mb-12">
         <div class="card-elevated p-6">
-          <div class="flex items-center justify-between mb-4">
-            <div class="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center">
-              <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
+          <div class="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center mb-4">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
           </div>
           <p class="text-gray-600 text-sm font-medium mb-1">Total Revenue</p>
           <p class="text-4xl font-medium text-gray-900">${totalRevenue.toFixed(2)}</p>
@@ -106,25 +96,21 @@ const topProducts = Array.from(productSales.values())
         </div>
 
         <div class="card-elevated p-6">
-          <div class="flex items-center justify-between mb-4">
-            <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center">
-              <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-              </svg>
-            </div>
+          <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center mb-4">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+            </svg>
           </div>
           <p class="text-gray-600 text-sm font-medium mb-1">Total Orders</p>
           <p class="text-4xl font-medium text-gray-900">{totalOrders}</p>
-          <p class="text-xs text-gray-500 mt-2">{completedOrders} completed</p>
+          <p class="text-xs text-gray-500 mt-2">{pendingOrders} pending</p>
         </div>
 
         <div class="card-elevated p-6">
-          <div class="flex items-center justify-between mb-4">
-            <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center">
-              <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-              </svg>
-            </div>
+          <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center mb-4">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+            </svg>
           </div>
           <p class="text-gray-600 text-sm font-medium mb-1">Active Listings</p>
           <p class="text-4xl font-medium text-gray-900">{productsCount}</p>
@@ -132,20 +118,18 @@ const topProducts = Array.from(productSales.values())
         </div>
 
         <div class="card-elevated p-6">
-          <div class="flex items-center justify-between mb-4">
-            <div class="w-12 h-12 bg-gradient-to-br from-orange-500 to-red-500 rounded-2xl flex items-center justify-center">
-              <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-              </svg>
-            </div>
+          <div class="w-12 h-12 bg-gradient-to-br from-orange-500 to-red-500 rounded-2xl flex items-center justify-center mb-4">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+            </svg>
           </div>
-          <p class="text-gray-600 text-sm font-medium mb-1">Completion Rate</p>
-          <p class="text-4xl font-medium text-gray-900">{conversionRate}%</p>
-          <p class="text-xs text-gray-500 mt-2">Order completion</p>
+          <p class="text-gray-600 text-sm font-medium mb-1">Shipped Rate</p>
+          <p class="text-4xl font-medium text-gray-900">{completionRate}%</p>
+          <p class="text-xs text-gray-500 mt-2">{shippedOrders} shipped</p>
         </div>
       </div>
 
-      <!-- Revenue Chart (Simple) -->
+      <!-- Revenue Chart -->
       <div class="card-elevated p-8 mb-12">
         <h2 class="text-2xl font-medium text-gray-900 mb-6">Revenue Overview</h2>
         <div class="space-y-4">
@@ -159,7 +143,7 @@ const topProducts = Array.from(productSales.values())
                   <span class="text-sm font-semibold text-gray-900">${revenue.toFixed(2)}</span>
                 </div>
                 <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
-                  <div 
+                  <div
                     class="bg-gradient-to-r from-blue-500 to-indigo-600 h-3 rounded-full transition-all duration-500"
                     style={`width: ${percentage}%`}
                   ></div>
@@ -173,7 +157,6 @@ const topProducts = Array.from(productSales.values())
       <!-- Top Products -->
       <div class="card-elevated p-8">
         <h2 class="text-2xl font-medium text-gray-900 mb-6">Top Selling Components</h2>
-        
         {topProducts.length === 0 ? (
           <div class="text-center py-12">
             <p class="text-gray-500">No sales data yet</p>
@@ -199,28 +182,6 @@ const topProducts = Array.from(productSales.values())
         )}
       </div>
 
-      <!-- Insights -->
-      <div class="mt-12 grid md:grid-cols-2 gap-6">
-        <div class="card-elevated p-6 bg-gradient-to-br from-blue-50 to-indigo-50">
-          <h3 class="font-semibold text-gray-900 mb-2 flex items-center gap-2">
-            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            Verified Components
-          </h3>
-          <p class="text-sm text-gray-700">All your listings include verification and benchmarks, building trust with buyers.</p>
-        </div>
-
-        <div class="card-elevated p-6 bg-gradient-to-br from-green-50 to-emerald-50">
-          <h3 class="font-semibold text-gray-900 mb-2 flex items-center gap-2">
-            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-            </svg>
-            Escrow Protected
-          </h3>
-          <p class="text-sm text-gray-700">30-day protection on all sales ensures buyers receive working components.</p>
-        </div>
-      </div>
     </div>
   </main>
 
