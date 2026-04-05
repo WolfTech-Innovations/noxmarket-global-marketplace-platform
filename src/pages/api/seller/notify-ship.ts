@@ -1,4 +1,3 @@
-// src/pages/api/seller/notify-ship.ts
 import type { APIRoute } from 'astro';
 import Stripe from 'stripe';
 
@@ -43,11 +42,7 @@ export const POST: APIRoute = async ({ request }) => {
       ].filter(Boolean).join('\n')
     : 'No address provided';
 
-  const firstProduct = items[0]?.price?.product;
-  const sellerId: string =
-    typeof firstProduct === 'object' && firstProduct !== null
-      ? (firstProduct as Stripe.Product).metadata?.seller_id ?? 'unknown'
-      : 'unknown';
+  const sellerId: string = session.metadata?.sellerId ?? 'unknown';
 
   const itemSummary = items
     .map(li => {
