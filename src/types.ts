@@ -105,38 +105,38 @@ export interface Clickz {
     likes: number;
   };
 }
-
 // Order interface — maps to 'ship-notifications' Cosmic type
 export interface Order extends CosmicObject {
   type: 'ship-notifications';
   metadata: {
-    // Seller
+    // Core ship-notifications fields
     seller_id: string;
-
-    // Buyer
     buyer_name: string;
     buyer_email: string;
-
-    // Shipping — stored as plain textarea string
-    shipping_address: string;
-
-    // Items — stored as plain string e.g. "RTX 3080 ×1, DDR4 RAM ×2"
+    shipping_address: string; // plain textarea string
     items: string;
-
-    // Payment — stored as formatted string e.g. "USD $149.99"
     total: string;
-
-    // Stripe
     stripe_session: string;
-
-    // Status
     shipped: boolean;
-
-    // Timestamps
     created_at: string;
+
+    // Legacy/compatibility fields referenced across dashboard pages
+    order_id?: string;
+    order_number?: string;
+    order_status?: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+    order_total?: number;
+    order_date?: string;
+    currency?: string;
+    payment_status?: 'paid' | 'unpaid' | 'pending' | 'refunded';
+    shipping_name?: string;
+    buyer_phone?: string;
+    line_items?: LineItem[];
+    product?: Product;
+    seller?: Seller;
+    amount_total?: number;
+    amount_subtotal?: number;
   };
 }
-
 // User interface
 export interface User extends CosmicObject {
   type: 'users';
