@@ -10,125 +10,140 @@ const featuredProducts = products.slice(0, 8);
 ---
 
 <Layout title="Nox - PC Part Marketplace">
-  <Header/>
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap');
-
-    :root {
-      --bg: #fff;
-      --text: #000;
-      --muted: rgba(0,0,0,0.6);
-      --border: rgba(0,0,0,0.1);
-    }
-
-    body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; margin: 0; padding: 0; }
-    main { max-width: 1200px; margin: 0 auto; padding: 24px; }
-    h1, h2 { color: var(--text); margin-bottom: 16px; }
-    p { color: var(--muted); line-height: 1.6; margin-bottom: 24px; }
-    a { text-decoration: none; }
-
-    .btn-primary, .btn-ghost {
-      display: inline-block; padding: 12px 24px; border-radius: 6px;
-      font-weight: 700; margin-right: 12px; margin-bottom: 12px;
-      text-align: center; transition: opacity 0.15s, transform 0.1s;
-    }
-    .btn-primary { background: #000; color: #fff; }
-    .btn-primary:hover { opacity: 0.88; transform: scale(0.97); }
-    .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text); }
-    .btn-ghost:hover { opacity: 0.88; transform: scale(0.97); }
-
-    .hero { padding: 80px 0; text-align: center; }
-    .hero-btns { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin-top: 24px; }
-
-    .fee-badge {
-      display: inline-flex; align-items: center; gap: 8px;
-      background: #f0fdf4; border: 1px solid #bbf7d0;
-      color: #15803d; font-size: 0.85rem; font-weight: 600;
-      padding: 6px 14px; border-radius: 999px; margin-bottom: 24px;
-    }
-    .fee-badge-dot { width: 7px; height: 7px; background: #22c55e; border-radius: 50%; }
-
-    .fee-strip {
-      display: flex; flex-wrap: wrap; justify-content: center; gap: 24px;
-      margin: 32px 0 0; padding: 20px; background: #fafafa;
-      border: 1px solid var(--border); border-radius: 10px;
-      font-size: 0.9rem; color: var(--muted);
-    }
-    .fee-strip span { display: flex; align-items: center; gap: 6px; }
-    .fee-strip strong { color: var(--text); }
-
-    .products-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-top: 32px; }
-    .cats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; margin-top: 32px; }
-    .cat-card { padding: 24px; border: 1px solid var(--border); border-radius: 10px; text-align: center; transition: transform 0.15s; }
-    .cat-card:hover { transform: translateY(-2px); }
-    .cat-name { font-weight: 700; }
-    .section { padding: 80px 0; }
-  </style>
+  <Header />
 
   <main>
-
     <!-- Hero -->
-    <section class="hero">
-      <div class="fee-badge">
-        <span class="fee-badge-dot"></span>
-        Only 6% seller fee — lower than eBay
-      </div>
-      <h1>PC Part Marketplace</h1>
-      <p>Buy and sell verified PC components with confidence.</p>
-      <div class="hero-btns">
-        <a href="/products" class="btn-primary">Browse Components</a>
-        <a href="/become-seller" class="btn-ghost">Start Selling</a>
-        <a href="/clickz" class="btn-primary">Clickz Feed</a>
-        <a href="/sell/clickz" class="btn-ghost">Post a Clickz</a>
+    <section class="py-20 md:py-32 text-center bg-gradient-to-br from-blue-50 to-indigo-50 rounded-b-[3rem] md:rounded-b-[6rem] mb-16 shadow-sm">
+      <div class="container-custom">
+        <div class="chip bg-green-50 text-green-700 border border-green-200 mb-8 animation-delay-100">
+          <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+          Only 6% seller fee — lower than eBay
+        </div>
+        <h1 class="text-6xl md:text-8xl font-bold tracking-tighter text-gray-900 mb-6 motion-emphasized">
+          PC Part <span class="text-blue-600">Marketplace</span>
+        </h1>
+        <p class="text-xl md:text-2xl text-gray-600 mb-10 max-w-2xl mx-auto leading-relaxed">
+          Buy and sell verified PC components with confidence on the most modern hardware platform.
+        </p>
+        <div class="flex flex-wrap justify-center gap-4">
+          <a href="/products" class="btn btn-primary">Browse Components</a>
+          <a href="/become-seller" class="btn btn-secondary">Start Selling</a>
+          <a href="/clickz" class="btn btn-primary">Clickz Feed</a>
+          <a href="/sell/clickz" class="btn btn-secondary">Post a Clickz</a>
+        </div>
       </div>
     </section>
 
     <!-- Featured Components -->
-    <section class="section">
-      <h2>Featured Components</h2>
-      <p>Verified and ready to ship</p>
+    <section class="container-custom py-16">
+      <div class="flex items-end justify-between mb-10">
+        <div>
+          <h2 class="text-4xl font-bold text-gray-900 mb-2">Featured Components</h2>
+          <p class="text-gray-600 text-lg">Verified and ready to ship</p>
+        </div>
+        <a href="/products" class="text-blue-600 font-semibold hover:underline hidden md:block">View all products →</a>
+      </div>
+
       {featuredProducts.length > 0 ? (
-        <div class="products-grid">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
           {featuredProducts.map((product: Product) => (
             <ProductCard product={product} />
           ))}
         </div>
       ) : (
-        <p>No components yet. Be the first to list!</p>
+        <div class="card p-12 text-center bg-gray-50 border-dashed border-2 border-gray-200">
+          <p class="text-gray-500 text-lg">No components yet. Be the first to list!</p>
+        </div>
       )}
     </section>
 
+    <!-- Why Choose Nox -->
+    <section class="py-24 bg-gray-50">
+      <div class="container-custom">
+        <h2 class="text-4xl font-bold text-center text-gray-900 mb-16">Why Choose Nox?</h2>
+        <div class="grid md:grid-cols-3 gap-8">
+          <div class="card-elevated p-10 bg-white">
+            <div class="w-14 h-14 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center mb-6">
+              <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0121 12c0 5.523-4.477 10-10 10S1 17.523 1 12 5.477 2 11 2c1.821 0 3.532.49 5.003 1.343" />
+              </svg>
+            </div>
+            <h3 class="text-xl font-bold mb-4">Verified Parts</h3>
+            <p class="text-gray-600 leading-relaxed">Every component listed on Nox goes through a rigorous verification process to ensure quality and authenticity.</p>
+          </div>
+          <div class="card-elevated p-10 bg-white">
+            <div class="w-14 h-14 bg-green-100 text-green-600 rounded-2xl flex items-center justify-center mb-6">
+              <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+            </div>
+            <h3 class="text-xl font-bold mb-4">Secure Payments</h3>
+            <p class="text-gray-600 leading-relaxed">Transactions are protected by Stripe, ensuring your money and data are always safe and secure.</p>
+          </div>
+          <div class="card-elevated p-10 bg-white">
+            <div class="w-14 h-14 bg-purple-100 text-purple-600 rounded-2xl flex items-center justify-center mb-6">
+              <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+            </div>
+            <h3 class="text-xl font-bold mb-4">Community First</h3>
+            <p class="text-gray-600 leading-relaxed">Built by PC enthusiasts for the global building community. We understand what builders need.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- Categories -->
-    <section class="section">
-      <h2>Component Categories</h2>
-      <div class="cats-grid">
+    <section class="container-custom py-24">
+      <h2 class="text-4xl font-bold text-center text-gray-900 mb-16">Component Categories</h2>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
         {[
-          'Graphics Cards',
-          'Processors',
-          'Motherboards',
-          'Memory (RAM)',
-          'Storage',
-          'Power Supplies',
-          'Cooling',
-          'Cases',
-        ].map(name => (
-          <a href={`/products?category=${name.toLowerCase()}`} class="cat-card">
-            <div class="cat-name">{name}</div>
+          { name: 'Graphics Cards', icon: 'M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z' },
+          { name: 'Processors', icon: 'M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m12 4a2 2 0 100-4m0 4a2 2 0 110-4' },
+          { name: 'Motherboards', icon: 'M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2z' },
+          { name: 'Memory (RAM)', icon: 'M3 10h18M3 14h18m-9-4v4m-3-4v4m6-4v4' },
+          { name: 'Storage', icon: 'M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4' },
+          { name: 'Power Supplies', icon: 'M13 10V3L4 14h7v7l9-11h-7z' },
+          { name: 'Cooling', icon: 'M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z' },
+          { name: 'Cases', icon: 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4' },
+        ].map(cat => (
+          <a href={`/products?category=${cat.name.toLowerCase()}`} class="card-outlined p-8 flex flex-col items-center justify-center text-center hover:bg-blue-50 hover:border-blue-200 transition-all group">
+            <div class="w-12 h-12 text-blue-600 mb-4 group-hover:scale-110 transition-transform">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={cat.icon} />
+              </svg>
+            </div>
+            <div class="font-bold text-gray-900">{cat.name}</div>
           </a>
         ))}
       </div>
     </section>
 
     <!-- CTA -->
-    <section class="section" style="text-align:center;">
-      <h2>Ready to Build or Upgrade?</h2>
-      <p>Join our community of PC builders buying and selling verified components.</p>
-      <a href="/products" class="btn-primary">Browse Components</a>
-      <a href="/signup" class="btn-ghost">Create Account</a>
-      <div class="fee-strip">
-        <span><strong>6% seller fee</strong> — keep 94% of every sale</span>
-        <span><strong>Fast payouts</strong> via Stripe</span>
-        <span><strong>No listing fees</strong> — only pay when you sell</span>
+    <section class="container-custom py-24 mb-20">
+      <div class="bg-blue-600 rounded-[3rem] p-12 md:p-20 text-center text-white shadow-2xl relative overflow-hidden">
+        <div class="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.15),transparent)]"></div>
+        <h2 class="text-4xl md:text-5xl font-bold mb-6 relative z-10">Ready to Build or Upgrade?</h2>
+        <p class="text-blue-100 text-xl mb-10 max-w-2xl mx-auto relative z-10">Join our community of PC builders buying and selling verified components.</p>
+        <div class="flex flex-wrap justify-center gap-4 relative z-10">
+          <a href="/products" class="btn bg-white text-blue-600 hover:bg-blue-50 shadow-lg">Browse Components</a>
+          <a href="/signup" class="btn bg-blue-700 text-white border border-blue-500 hover:bg-blue-800 shadow-lg">Create Account</a>
+        </div>
+        <div class="grid md:grid-cols-3 gap-8 mt-16 pt-16 border-t border-blue-500/50 relative z-10">
+          <div>
+            <div class="text-3xl font-bold mb-1">6%</div>
+            <div class="text-blue-200 text-sm">Seller fee — keep 94%</div>
+          </div>
+          <div>
+            <div class="text-3xl font-bold mb-1">Fast</div>
+            <div class="text-blue-200 text-sm">Payouts via Stripe</div>
+          </div>
+          <div>
+            <div class="text-3xl font-bold mb-1">$0</div>
+            <div class="text-blue-200 text-sm">Listing fees</div>
+          </div>
+        </div>
       </div>
     </section>
 

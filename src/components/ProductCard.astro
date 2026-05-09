@@ -17,32 +17,32 @@ const price = product.metadata.price ? `$${product.metadata.price.toFixed(2)}` :
 const inStock = product.metadata.in_stock;
 ---
 
-<div class="card animate-fade-in hover:scale-[1.02] transition-transform duration-300">
+<div class="card-elevated motion-emphasized group">
   <a href={`/products/${product.slug}`} class="block">
     {imageUrl && (
-      <div class="relative aspect-square overflow-hidden bg-gray-100">
+      <div class="relative aspect-square overflow-hidden rounded-t-3xl bg-gray-100">
         <img 
           src={imageUrl}
           alt={product.metadata.product_name}
-          class="w-full h-full object-cover"
+          class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
           width="300"
           height="300"
         />
         {!inStock && (
-          <div class="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-            <span class="text-white font-bold text-lg">Out of Stock</span>
+          <div class="absolute inset-0 bg-black/60 backdrop-blur-[2px] flex items-center justify-center">
+            <span class="text-white font-bold text-xl tracking-tight">Out of Stock</span>
           </div>
         )}
       </div>
     )}
     
-    <div class="p-4">
-      <h3 class="font-bold text-lg mb-2 line-clamp-2">{product.metadata.product_name}</h3>
+    <div class="p-6">
+      <h3 class="font-bold text-xl mb-3 line-clamp-2 group-hover:text-blue-600 transition-colors">{product.metadata.product_name}</h3>
       
-      <div class="flex items-center justify-between">
-        <span class="text-2xl font-bold text-accent">{price}</span>
+      <div class="flex items-center justify-between mb-4">
+        <span class="text-2xl font-bold text-blue-600">{price}</span>
         {inStock && (
-          <span class="text-xs text-green-600 font-medium">In Stock</span>
+          <span class="chip bg-green-50 text-green-700 text-xs py-1">In Stock</span>
         )}
       </div>
       
