@@ -7,41 +7,73 @@ import Footer from '@/components/Footer.astro';
 <Layout title="Contact Us - NoxMarket">
   <Header />
   
-  <main class="py-12">
+  <main class="py-20 bg-gray-50">
     <div class="container-custom">
-      <div class="max-w-2xl mx-auto">
-        <h1 class="text-4xl font-bold mb-8">Contact Us</h1>
-        
-        <div class="card p-8">
-          <p class="text-gray-600 mb-6">
+      <div class="max-w-5xl mx-auto">
+        <div class="text-center mb-16">
+          <h1 class="text-5xl md:text-6xl font-bold tracking-tight text-gray-900 mb-6">Contact Us</h1>
+          <p class="text-xl text-gray-600 max-w-2xl mx-auto">
             Have questions? We'd love to hear from you. Send us a message and we'll respond as soon as possible.
           </p>
-          
-          <form class="space-y-4">
-            <div>
-              <label class="block font-medium mb-2">Name</label>
-              <input type="text" required class="input" />
+        </div>
+
+        <div class="grid md:grid-cols-3 gap-12">
+          <div class="md:col-span-2">
+            <div class="card-elevated p-8 md:p-10 bg-white">
+              <form class="space-y-6">
+                <div class="grid sm:grid-cols-2 gap-6">
+                  <div>
+                    <label class="block text-sm font-bold text-gray-900 mb-2">Name</label>
+                    <input type="text" required placeholder="John Doe" class="input" />
+                  </div>
+                  <div>
+                    <label class="block text-sm font-bold text-gray-900 mb-2">Email</label>
+                    <input type="email" required placeholder="john@example.com" class="input" />
+                  </div>
+                </div>
+
+                <div>
+                  <label class="block text-sm font-bold text-gray-900 mb-2">Subject</label>
+                  <input type="text" required placeholder="How can we help?" class="input" />
+                </div>
+
+                <div>
+                  <label class="block text-sm font-bold text-gray-900 mb-2">Message</label>
+                  <textarea rows="5" required placeholder="Your message here..." class="input"></textarea>
+                </div>
+
+                <button type="submit" class="btn btn-primary w-full text-lg">
+                  Send Message
+                </button>
+              </form>
             </div>
-            
-            <div>
-              <label class="block font-medium mb-2">Email</label>
-              <input type="email" required class="input" />
+          </div>
+
+          <div class="space-y-8">
+            <div class="card-elevated p-8 bg-blue-600 text-white">
+              <h3 class="text-xl font-bold mb-4">Support Hours</h3>
+              <ul class="space-y-3 text-blue-100">
+                <li class="flex justify-between">
+                  <span>Mon - Fri:</span>
+                  <span class="font-bold text-white">9am - 5pm EST</span>
+                </li>
+                <li class="flex justify-between">
+                  <span>Saturday:</span>
+                  <span class="font-bold text-white">10am - 2pm EST</span>
+                </li>
+                <li class="flex justify-between">
+                  <span>Sunday:</span>
+                  <span class="font-bold text-white">Closed</span>
+                </li>
+              </ul>
             </div>
-            
-            <div>
-              <label class="block font-medium mb-2">Subject</label>
-              <input type="text" required class="input" />
+
+            <div class="card-outlined p-8">
+              <h3 class="text-xl font-bold mb-4 text-gray-900">Direct Contact</h3>
+              <p class="text-gray-600 mb-4">You can also reach us directly via email for urgent matters.</p>
+              <a href="mailto:support@noxmarket.com" class="text-blue-600 font-bold hover:underline">support@noxmarket.com</a>
             </div>
-            
-            <div>
-              <label class="block font-medium mb-2">Message</label>
-              <textarea rows="5" required class="input"></textarea>
-            </div>
-            
-            <button type="submit" class="btn btn-primary w-full">
-              Send Message
-            </button>
-          </form>
+          </div>
         </div>
       </div>
     </div>

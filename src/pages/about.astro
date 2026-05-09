@@ -7,31 +7,61 @@ import Footer from '@/components/Footer.astro';
 <Layout title="About Us - Nox">
   <Header />
   
-  <main class="py-12">
+  <main class="py-20 md:py-32 bg-gray-50">
     <div class="container-custom">
-      <div class="max-w-3xl mx-auto">
-        <h1 class="text-4xl font-bold mb-6">About NoxMarket</h1>
-        
-        <div class="prose prose-lg">
-          <p>
+      <div class="max-w-4xl mx-auto">
+        <div class="text-center mb-16">
+          <h1 class="text-5xl md:text-6xl font-bold tracking-tight text-gray-900 mb-6">About <span class="text-blue-600">Nox</span></h1>
+          <p class="text-xl text-gray-600 leading-relaxed max-w-2xl mx-auto">
             Nox is a global marketplace platform powered by WolfTech Innovations, 
-            connecting sellers and buyers from around the world in a seamless e-commerce experience.
+            connecting builders and enthusiasts in a seamless hardware ecosystem.
+          </p>
+        </div>
+
+        <div class="card-elevated p-8 md:p-12 bg-white mb-16">
+          <h2 class="text-3xl font-bold mb-6">Our Mission</h2>
+          <p class="text-lg text-gray-600 leading-relaxed mb-8">
+            To provide a secure, efficient, and user-friendly platform where PC enthusiasts can
+            trade verified components and builders can discover the hardware they need to create their next masterpiece.
           </p>
           
-          <h2>Our Mission</h2>
-          <p>
-            To provide a secure, efficient, and user-friendly platform where sellers can 
-            showcase their products and buyers can discover unique items from around the globe.
-          </p>
-          
-          <h2>Why Choose Nox?</h2>
-          <ul>
-            <li>Secure payment processing powered by Stripe</li>
-            <li>Easy seller onboarding with Stripe Connect</li>
-            <li>Comprehensive seller dashboard for managing products and orders</li>
-            <li>Advanced search and filtering capabilities</li>
-            <li>Modern, responsive design optimized for all devices</li>
-          </ul>
+          <h2 class="text-3xl font-bold mb-6">Why Choose Nox?</h2>
+          <div class="grid sm:grid-cols-2 gap-6">
+            {[
+              { title: 'Secure Payments', desc: 'Protected by Stripe for peace of mind.' },
+              { title: 'Easy Onboarding', desc: 'Get selling in minutes with Stripe Connect.' },
+              { title: 'Comprehensive Dashboard', desc: 'Manage your products and orders with ease.' },
+              { title: 'Modern Design', desc: 'A seamless experience across all devices.' }
+            ].map(item => (
+              <div class="flex gap-4">
+                <div class="flex-shrink-0 w-6 h-6 text-blue-600 mt-1">
+                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <div>
+                  <h4 class="font-bold text-gray-900">{item.title}</h4>
+                  <p class="text-gray-600">{item.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <h2 class="text-4xl font-bold text-center mb-12">Our Values</h2>
+        <div class="grid md:grid-cols-3 gap-8">
+          <div class="card-outlined p-8 hover:bg-white hover:shadow-xl transition-all">
+            <h3 class="text-xl font-bold mb-4 text-blue-600">Quality</h3>
+            <p class="text-gray-600 leading-relaxed">Every component listed on Nox undergoes a verification process to ensure it meets our performance standards.</p>
+          </div>
+          <div class="card-outlined p-8 hover:bg-white hover:shadow-xl transition-all">
+            <h3 class="text-xl font-bold mb-4 text-green-600">Trust</h3>
+            <p class="text-gray-600 leading-relaxed">We facilitate secure transactions through Stripe, providing peace of mind for both buyers and sellers.</p>
+          </div>
+          <div class="card-outlined p-8 hover:bg-white hover:shadow-xl transition-all">
+            <h3 class="text-xl font-bold mb-4 text-purple-600">Community</h3>
+            <p class="text-gray-600 leading-relaxed">Nox is built by PC enthusiasts for the global building community. We are one of you.</p>
+          </div>
         </div>
       </div>
     </div>
